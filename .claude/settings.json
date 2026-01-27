@@ -1,0 +1,8 @@
+{
+  "skills": {
+    "rhdh-plugin": {
+      "path": "../skills/rhdh-plugin/SKILL.md",
+      "description": "Manage RHDH plugins - onboard, update, and maintain plugins in the Extensions Catalog"
+    }
+  }
+}
