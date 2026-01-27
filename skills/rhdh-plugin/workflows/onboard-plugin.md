@@ -4,6 +4,7 @@ Add a new Backstage plugin to the RHDH Extensions Catalog via the overlay reposi
 
 <required_reading>
 **Read these reference files NOW:**
+
 1. `references/overlay-repo.md` — Workspace patterns and examples
 2. `references/ci-feedback.md` — Interpreting publish workflow output
 </required_reading>
@@ -29,6 +30,7 @@ Add a new Backstage plugin to the RHDH Extensions Catalog via the overlay reposi
 - [ ] Note the package name(s) to export
 
 **What to look for:**
+
 - Most plugins live in monorepos under `plugins/<name>/` with `frontend`, `backend`, `common` subdirs
 - Package names often follow `@<org>/<plugin-name>` and `@<org>/<plugin-name>-backend` pattern
 
@@ -38,6 +40,7 @@ Add a new Backstage plugin to the RHDH Extensions Catalog via the overlay reposi
 - [ ] Document license in evaluation notes
 
 **Compatible licenses:**
+
 - ✅ Apache 2.0 (preferred)
 - ✅ MIT, BSD-2-Clause, BSD-3-Clause, ISC
 - ⚠️ MPL-2.0 (review needed - weak copyleft)
@@ -50,7 +53,16 @@ Add a new Backstage plugin to the RHDH Extensions Catalog via the overlay reposi
 - [ ] Review open issues/PRs for red flags
 - [ ] Identify maintainer responsiveness
 
+**Red flags to watch for:**
+
+- 🚩 No commits in 12+ months (abandoned)
+- 🚩 Many open issues with no maintainer response
+- 🚩 "Looking for maintainers" or archive notices
+- 🚩 Breaking changes in recent commits without release
+- 🚩 CI/build badges showing failures
+
 **Quick health check commands:**
+
 ```bash
 # Last commit date
 gh api repos/<owner>/<repo>/commits?per_page=1 --jq '.[0].commit.committer.date'
@@ -69,6 +81,7 @@ gh release list -R <owner>/<repo> --limit 5
 - [ ] Document any version gaps
 
 **Version gap guidance:**
+
 - Minor version gaps (e.g., 1.43 → 1.45) are typically safe
 - Major version gaps require careful review of breaking changes
 
@@ -81,6 +94,20 @@ gh release list -R <owner>/<repo> --limit 5
 | Backstage version aligned | |
 
 **Proceed?** Yes / No (document reason if No)
+
+**When to say No:**
+
+- License is incompatible (GPL/LGPL/proprietary)
+- Repo appears abandoned with no alternative
+- Major Backstage version gap (e.g., 1.x vs 2.x) with no upgrade path
+- Plugin has known critical security issues
+
+**When to escalate:**
+
+- MPL-2.0 or other "gray area" licenses → Legal/compliance review
+- Plugin is popular but unhealthy → Consider forking or community adoption
+- Backstage version 2+ minor behind → Check with RHDH team on timeline
+- Unsure about any criteria → Ask in #forum-rhdh-plugins Slack
 
 ---
 
@@ -110,12 +137,14 @@ mkdir -p workspaces/<workspace-name>
 See `templates/workspace-files.md` for the template.
 
 **Key fields:**
+
 - `repo` - Upstream GitHub URL (only `https://github.com/xxx` supported)
 - `repo-ref` - Target commit SHA or tag
 - `repo-flat` - `true` if plugins at repo root, `false` if inside workspace folder
 - `repo-backstage-version` - Backstage version from upstream
 
 **Validate upstream version:**
+
 ```bash
 curl -s https://raw.githubusercontent.com/<owner>/<repo>/<commit>/backstage.json | jq .version
 ```
@@ -125,6 +154,7 @@ curl -s https://raw.githubusercontent.com/<owner>/<repo>/<commit>/backstage.json
 See `templates/workspace-files.md` for the template.
 
 **Key patterns:**
+
 - Path format: `plugins/<name>/frontend:` or `plugins/<name>/backend:`
 - Use `--embed-package` for shared dependencies not published separately
 
@@ -133,6 +163,7 @@ See `templates/workspace-files.md` for the template.
 Usually not needed on first attempt. The CI will tell you if a version override is required.
 
 **When CI says "incompatible workspaces":**
+
 1. Add `backstage.json` with RHDH's target version
 2. Keep `source.json`'s `repo-backstage-version` as the upstream's actual version
 
@@ -205,6 +236,7 @@ Create a Plugin entity that groups your packages together.
 **Location:** `catalog-entities/marketplace/plugins/<plugin-name>.yaml`
 
 **Key fields:**
+
 - `metadata.name` — short identifier
 - `metadata.description` — brief summary
 - `spec.description` — full markdown documentation
@@ -220,6 +252,22 @@ git push
 ```
 
 Comment `/publish` to rebuild. Watch for test workflow results.
+
+> ⚠️ **Smoke test only:** The CI test verifies plugins install and RHDH starts without errors. It does **not** test plugin functionality (no API calls, no browser tests). Functional verification happens in Phase 5.
+
+### 4.4 Add to Packages List (if applicable)
+
+Plugins in these lists become "required" — release gates fail if they're incompatible.
+
+| File | Tier | Meaning |
+|------|------|---------|
+| `rhdh-supported-packages.txt` | Supported | Full Red Hat support |
+| `rhdh-techpreview-packages.txt` | Tech Preview | Limited support |
+| `rhdh-community-packages.txt` | Community | Community-maintained |
+
+**Format:** `<workspace>/plugins/<plugin-folder>` (e.g., `aws-codebuild/plugins/codebuild/frontend`)
+
+> ⚠️ **Note:** Tier assignment is typically decided by RHDH team during release planning, not at onboarding time. If unclear, check with team before adding.
 
 ---
 
@@ -279,11 +327,85 @@ spec:
 
 **Success:** Plugin renders and attempts API calls. Auth errors expected without real credentials.
 
-### 5.5 Update PR Description
+### 5.5 (Optional) Test Plugin Entity in Extensions Catalog
 
-Add verification results to PR description (not comments).
+Verify the Plugin entity appears correctly in the Extensions Catalog UI.
 
-### 5.6 Local Cleanup
+**Prerequisites:**
+
+1. Plugin entity created in `catalog-entities/marketplace/plugins/<plugin-name>.yaml`
+2. Plugin added to `catalog-entities/marketplace/plugins/all.yaml` (alphabetical order)
+
+**Discover rhdh-local location:**
+
+```bash
+rhdh-plugin config show  # Look for "local:" path
+# Or use: $RHDH_LOCAL_REPO environment variable
+```
+
+**One-time setup — create these files in rhdh-local:**
+
+**1. Create `compose.override.yaml`:**
+
+```yaml
+services:
+  rhdh:
+    volumes:
+      - type: bind
+        source: ../rhdh-plugin-export-overlays/catalog-entities/marketplace/plugins/
+        target: /marketplace/catalog-entities/plugins
+        read_only: true
+      - type: bind
+        source: ../rhdh-plugin-export-overlays/catalog-entities/marketplace/packages/
+        target: /marketplace/catalog-entities/packages
+        read_only: true
+```
+
+> ⚠️ Adjust `source:` paths if your overlay repo is in a different location relative to rhdh-local.
+
+**2. Create `configs/app-config/app-config.local.yaml`:**
+
+Read `configs/app-config/app-config.default.yaml` as the base. YAML arrays don't merge, so you must include all default catalog locations plus the new marketplace locations.
+
+Add these to the catalog locations array:
+
+```yaml
+catalog:
+  locations:
+    # ... include all defaults from app-config.default.yaml ...
+    - type: file
+      target: /marketplace/catalog-entities/plugins/all.yaml
+      rules:
+        - allow: [Plugin]
+    - type: file
+      target: /marketplace/catalog-entities/packages/all.yaml
+      rules:
+        - allow: [Package]
+  rules:
+    # ... include existing rules ...
+    - allow: [Plugin, Package]  # Add these entity kinds
+```
+
+**3. Restart and verify:**
+
+```bash
+podman compose down && podman compose up -d
+```
+
+Navigate to **<http://localhost:7007/extensions>** — your plugin card should appear.
+
+**Verification checklist:**
+
+- [ ] Plugin card appears in Extensions Catalog
+- [ ] Plugin name and description display correctly
+- [ ] Categories/tags render properly
+- [ ] "Install" or details link works
+
+### 5.6 Update PR Description
+
+Add verification results to PR description (not comments). See `templates/workspace-files.md` for the verification section template.
+
+### 5.7 Local Cleanup
 
 - [ ] Remove test override files (don't commit to rhdh-local)
 - [ ] Stop rhdh-local: `podman compose down`
@@ -307,11 +429,39 @@ Add verification results to PR description (not comments).
 
 ### 6.3 Close Out JIRA
 
-After merge, update the JIRA ticket with summary and transition to Closed.
+After merge, update the JIRA ticket:
+
+**1. Add summary comment:**
+
+```
+Plugin onboarding complete.
+
+**PR:** <link> (merged)
+
+**Plugins Published:**
+- Frontend: <package-name> (<version>)
+- Backend: <package-name> (<version>)
+
+**Files Added:**
+- workspaces/<name>/ (source.json, plugins-list.yaml, metadata/)
+- catalog-entities/marketplace/plugins/<name>.yaml
+
+**Notes:**
+- <any version overrides, patches, or special handling>
+
+Plugin available in Extensions Catalog on next RHDH release.
+```
+
+**2. Transition to Closed:**
+
+```bash
+jira issue move <TICKET-ID> "Closed"
+```
 
 </process>
 
 <action_triggers>
+
 | Trigger | Type | What to Do | Resume When |
 |---------|------|------------|-------------|
 | License policy unclear | 👥 Sync | Check with team on acceptable licenses | Policy confirmed |
@@ -321,6 +471,7 @@ After merge, update the JIRA ticket with summary and transition to Closed.
 
 <success_criteria>
 This workflow is complete when:
+
 - [ ] Workspace created with source.json + plugins-list.yaml
 - [ ] `/publish` succeeds with OCI images
 - [ ] Metadata files created (Package + Plugin entities)

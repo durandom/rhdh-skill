@@ -9,6 +9,7 @@ CI handles the actual export — we define the configuration.
 </overview>
 
 <workspace_structure>
+
 ```
 workspaces/<name>/
 ├── source.json           # Required: upstream source definition
@@ -20,6 +21,7 @@ workspaces/<name>/
     ├── frontend.yaml
     └── backend.yaml
 ```
+
 </workspace_structure>
 
 <reference_examples>
@@ -35,6 +37,7 @@ When in doubt, find a similar workspace and copy its structure.
 | Needs metadata files | `aws-codebuild/metadata/`, `todo/metadata/` | YAML structure, `appConfigExamples` patterns |
 
 **View similar PRs:**
+
 ```bash
 gh pr view <number> --repo redhat-developer/rhdh-plugin-export-overlays
 ```
@@ -53,6 +56,7 @@ Patterns not caught by CI that require specific handling:
 </known_gotchas>
 
 <related_tooling>
+
 | Resource | Description |
 |----------|-------------|
 | [rhdh-dynamic-plugin-factory](https://github.com/redhat-developer/rhdh-dynamic-plugin-factory) | Container for local plugin building |

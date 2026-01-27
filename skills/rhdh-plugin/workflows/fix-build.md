@@ -4,6 +4,7 @@ Debug and resolve CI/publish failures.
 
 <required_reading>
 **Read this reference file NOW:**
+
 1. `references/ci-feedback.md` — Error patterns and solutions
 </required_reading>
 
@@ -12,6 +13,7 @@ Debug and resolve CI/publish failures.
 ## Step 1: Read the PR Comment
 
 The publish workflow provides detailed feedback. Look for:
+
 - **Backstage Compatibility Check** — version mismatches
 - **"How to fix" section** — specific guidance
 - **Failed exports** — which plugin failed
@@ -37,12 +39,14 @@ diff -r workspaces/<yours>/ workspaces/<similar>/
 ## Step 4: Apply Fix
 
 **For version issues:**
+
 ```bash
 # Check upstream version
 curl -s https://raw.githubusercontent.com/<owner>/<repo>/<commit>/backstage.json | jq .version
 ```
 
 **For build issues:**
+
 ```bash
 # Read full logs
 gh run view <run-id> --repo redhat-developer/rhdh-plugin-export-overlays --log | grep -i error
@@ -61,6 +65,7 @@ Comment `/publish` to retry.
 </process>
 
 <success_criteria>
+
 - [ ] Error identified
 - [ ] Fix applied
 - [ ] `/publish` succeeds

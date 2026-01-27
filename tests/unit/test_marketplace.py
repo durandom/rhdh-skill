@@ -116,8 +116,9 @@ class TestCommandFiles:
 
             assert "allowed-tools" in frontmatter, f"{cmd.name} missing allowed-tools"
             # Should reference the skill
-            assert "Skill" in frontmatter["allowed-tools"], \
+            assert "Skill" in frontmatter["allowed-tools"], (
                 f"{cmd.name} allowed-tools should reference Skill"
+            )
 
 
 class TestSettingsJson:

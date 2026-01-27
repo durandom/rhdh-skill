@@ -3,14 +3,22 @@ name = "rhdh-plugin-skill"
 version = "1.0.0"
 description = "Claude Code skill for RHDH plugin management"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 requires-python = ">=3.9"
+
+# No runtime dependencies - stdlib only!
+
+[tool.setuptools.packages.find]
+include = ["rhdh_plugin*"]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
-    "pyyaml>=6.0",
+    "pyyaml>=6.0",  # Only for SKILL.md structure tests
 ]
+
+[project.scripts]
+rhdh-plugin = "rhdh_plugin.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

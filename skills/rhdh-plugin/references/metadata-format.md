@@ -45,6 +45,7 @@ spec:
 ```
 
 **Key sections:**
+
 - `dynamicPluginConfig` — how the plugin mounts in RHDH
 - `appConfigExamples` — configuration snippets for users
 </package_entity>

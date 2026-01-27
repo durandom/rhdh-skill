@@ -4,6 +4,7 @@ Bump a plugin to a newer upstream commit or tag.
 
 <required_reading>
 **Read these reference files NOW:**
+
 1. `references/overlay-repo.md` — Workspace patterns
 2. `references/ci-feedback.md` — Interpreting publish output
 </required_reading>
@@ -35,6 +36,7 @@ cd workspaces/<name>/
 ```
 
 Update `source.json`:
+
 - `repo-ref` → new commit SHA or tag
 - `repo-backstage-version` → upstream's Backstage version at that commit
 
@@ -66,6 +68,7 @@ Follow Phase 5-6 from `workflows/onboard-plugin.md`.
 </process>
 
 <success_criteria>
+
 - [ ] source.json updated with new ref
 - [ ] `/publish` succeeds
 - [ ] PR merged

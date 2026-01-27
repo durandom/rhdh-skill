@@ -1,13 +1,21 @@
 """Shared pytest fixtures for rhdh-plugin-skill tests."""
 
+import json
 import os
 import subprocess
+import sys
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 # Path to the skill root
 SKILL_ROOT = Path(__file__).parent.parent
+
+# Add package to path for testing
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
 SCRIPTS_DIR = SKILL_ROOT / "scripts"
 SKILLS_DIR = SKILL_ROOT / "skills" / "rhdh-plugin"
 
@@ -31,12 +39,13 @@ def skills_dir():
 
 
 @pytest.fixture
-def isolated_env(tmp_path):
+def isolated_env(tmp_path, monkeypatch):
     """Create an isolated environment with temp directories.
 
     Sets up:
     - Temporary config directory (~/.config/rhdh-plugin-skill/)
     - Isolated working directory
+    - Mock HOME environment
     """
     # Create temp config dir
     config_dir = tmp_path / ".config" / "rhdh-plugin-skill"
@@ -55,12 +64,16 @@ def isolated_env(tmp_path):
     # Create a sample workspace
     sample_workspace = overlay_dir / "workspaces" / "test-plugin"
     sample_workspace.mkdir()
-    (sample_workspace / "source.json").write_text('''{
-  "repo": "https://github.com/example/test-plugin",
-  "repo-ref": "abc123",
-  "repo-flat": false,
-  "repo-backstage-version": "1.43.0"
-}''')
+    (sample_workspace / "source.json").write_text(
+        json.dumps(
+            {
+                "repo": "https://github.com/example/test-plugin",
+                "repo-ref": "abc123",
+                "repo-flat": False,
+                "repo-backstage-version": "1.43.0",
+            }
+        )
+    )
     (sample_workspace / "plugins-list.yaml").write_text("- plugins/test/frontend:\n")
 
     # Initialize as git repo
@@ -70,8 +83,13 @@ def isolated_env(tmp_path):
         ["git", "commit", "-m", "init"],
         cwd=overlay_dir,
         capture_output=True,
-        env={**os.environ, "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@test.com",
-             "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@test.com"}
+        env={
+            **os.environ,
+            "GIT_AUTHOR_NAME": "test",
+            "GIT_AUTHOR_EMAIL": "test@test.com",
+            "GIT_COMMITTER_NAME": "test",
+            "GIT_COMMITTER_EMAIL": "test@test.com",
+        },
     )
 
     # Create mock rhdh-local
@@ -79,12 +97,14 @@ def isolated_env(tmp_path):
     local_dir.mkdir()
     (local_dir / "compose.yaml").write_text("services:\n  rhdh:\n    image: rhdh\n")
 
-    old_cwd = os.getcwd()
-    os.chdir(tmp_path)
-
     # Set HOME to temp dir so config goes there
-    old_home = os.environ.get("HOME")
-    os.environ["HOME"] = str(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    # Clear any existing env overrides
+    monkeypatch.delenv("RHDH_OVERLAY_REPO", raising=False)
+    monkeypatch.delenv("RHDH_LOCAL_REPO", raising=False)
+    monkeypatch.delenv("RHDH_FACTORY_REPO", raising=False)
+    monkeypatch.delenv("SKILL_ROOT", raising=False)
 
     yield {
         "root": tmp_path,
@@ -94,13 +114,73 @@ def isolated_env(tmp_path):
         "local_dir": local_dir,
     }
 
-    os.chdir(old_cwd)
-    if old_home:
-        os.environ["HOME"] = old_home
+
+class CLIResult:
+    """Result of running the CLI."""
+
+    def __init__(self, returncode: int, stdout: str, stderr: str = ""):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
 
 
-def run_cli(*args, cwd=None, env=None):
-    """Run the rhdh-plugin CLI and return result.
+def run_cli_python(*args, env=None, isolated_env=None):
+    """Run the CLI directly in Python (no subprocess).
+
+    Args:
+        *args: CLI arguments
+        env: Environment variables to set
+        isolated_env: isolated_env fixture dict (for HOME path)
+
+    Returns:
+        CLIResult with returncode, stdout, stderr
+    """
+    # Import here to avoid circular imports and ensure fresh module state
+    from rhdh_plugin import config as config_module
+    from rhdh_plugin.cli import main
+
+    # Capture stdout
+    stdout_capture = StringIO()
+
+    # Set up environment
+    env_patches = {}
+    if env:
+        env_patches.update(env)
+
+    # Reload config module to pick up new HOME
+    if isolated_env:
+        # Update the module-level constants
+        new_home = Path(isolated_env["root"])
+        config_module.USER_CONFIG_DIR = new_home / ".config" / "rhdh-plugin-skill"
+        config_module.USER_CONFIG_FILE = config_module.USER_CONFIG_DIR / "config.json"
+
+    with patch.dict(os.environ, env_patches, clear=False):
+        with patch("sys.stdout", stdout_capture):
+            try:
+                returncode = main(list(args))
+            except SystemExit as e:
+                returncode = e.code if isinstance(e.code, int) else 0
+
+    return CLIResult(returncode, stdout_capture.getvalue())
+
+
+@pytest.fixture
+def cli(isolated_env, monkeypatch):
+    """Fixture providing the run_cli function configured for the isolated env."""
+
+    def _run_cli(*args, env=None):
+        # Merge env with any existing overrides
+        full_env = {}
+        if env:
+            full_env.update(env)
+        return run_cli_python(*args, env=full_env, isolated_env=isolated_env)
+
+    return _run_cli
+
+
+# Legacy fixture for subprocess-based testing (kept for backward compatibility)
+def run_cli_subprocess(*args, cwd=None, env=None):
+    """Run the rhdh-plugin CLI via subprocess and return result.
 
     Args:
         *args: CLI arguments
@@ -123,10 +203,5 @@ def run_cli(*args, cwd=None, env=None):
         cwd=cwd,
         env=run_env,
     )
-    return result
 
-
-@pytest.fixture
-def cli():
-    """Fixture providing the run_cli function."""
-    return run_cli
+    return CLIResult(result.returncode, result.stdout, result.stderr)
