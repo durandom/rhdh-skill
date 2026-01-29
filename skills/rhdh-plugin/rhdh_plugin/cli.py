@@ -218,6 +218,32 @@ def cmd_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         checks.append({"name": "jq", "status": "warn", "message": "not installed"})
         fmt.log_warn("jq: not installed (recommended)")
 
+    if check_tool("jira"):
+        rc, _, _ = run_command(["jira", "me"])
+        if rc == 0:
+            checks.append({"name": "jira", "status": "pass", "message": "authenticated"})
+            fmt.log_ok("jira: authenticated")
+        else:
+            checks.append(
+                {
+                    "name": "jira",
+                    "status": "warn",
+                    "message": "not authenticated",
+                    "reference": "references/jira-reference.md",
+                }
+            )
+            fmt.log_warn("jira: not authenticated (see references/jira-reference.md)")
+    else:
+        checks.append(
+            {
+                "name": "jira",
+                "status": "info",
+                "message": "not installed (optional)",
+                "reference": "references/jira-reference.md",
+            }
+        )
+        fmt.log_info("jira: not installed (optional)")
+
     # Build output based on state
     data: dict[str, Any] = {
         "needs_setup": needs_setup,
@@ -357,6 +383,38 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         checks.append({"name": "container_runtime", "status": "fail", "message": "not found"})
         fmt.log_fail("No container runtime found")
         issues.append("Install podman or docker for local testing")
+
+    # JIRA CLI (optional)
+    fmt.header("JIRA CLI")
+
+    if check_tool("jira"):
+        checks.append({"name": "jira_installed", "status": "pass", "message": "installed"})
+        fmt.log_ok("jira CLI installed")
+
+        rc, _, _ = run_command(["jira", "me"])
+        if rc == 0:
+            checks.append({"name": "jira_auth", "status": "pass", "message": "authenticated"})
+            fmt.log_ok("  Authenticated")
+        else:
+            checks.append(
+                {
+                    "name": "jira_auth",
+                    "status": "warn",
+                    "message": "not authenticated",
+                    "reference": "references/jira-reference.md",
+                }
+            )
+            fmt.log_warn("  Not authenticated (see references/jira-reference.md)")
+    else:
+        checks.append(
+            {
+                "name": "jira_installed",
+                "status": "info",
+                "message": "not installed (optional)",
+                "reference": "references/jira-reference.md",
+            }
+        )
+        fmt.log_info("jira: not installed (optional, see references/jira-reference.md)")
 
     # Summary
     fmt.header("Summary")

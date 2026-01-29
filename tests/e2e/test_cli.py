@@ -340,3 +340,129 @@ class TestCliOutputFormat:
 
         # Should have human-readable content
         assert "Next steps" in result.stdout or "✓" in result.stdout
+
+
+class TestCliDoctorJira:
+    """Test CLI doctor JIRA checks (optional tool)."""
+
+    def test_doctor_includes_jira_check(self, cli, isolated_env, monkeypatch):
+        """Doctor should include JIRA check in results."""
+        from rhdh_plugin import cli as cli_module
+
+        # Mock jira not installed
+        original_check_tool = cli_module.check_tool
+        monkeypatch.setattr(
+            cli_module,
+            "check_tool",
+            lambda name: original_check_tool(name) if name != "jira" else False,
+        )
+
+        result = cli("doctor")
+        response = parse_response(result)
+
+        check_names = [c["name"] for c in response["data"]["checks"]]
+        assert "jira_installed" in check_names
+
+    def test_doctor_jira_not_installed_is_info(self, cli, isolated_env, monkeypatch):
+        """JIRA not installed should be info status (optional tool)."""
+        from rhdh_plugin import cli as cli_module
+
+        original_check_tool = cli_module.check_tool
+        monkeypatch.setattr(
+            cli_module,
+            "check_tool",
+            lambda name: original_check_tool(name) if name != "jira" else False,
+        )
+
+        result = cli("doctor")
+        response = parse_response(result)
+
+        jira_check = next(c for c in response["data"]["checks"] if c["name"] == "jira_installed")
+        assert jira_check["status"] == "info"
+        assert "optional" in jira_check["message"]
+        assert "reference" in jira_check
+
+    def test_doctor_jira_not_authenticated_is_warn(self, cli, isolated_env, monkeypatch):
+        """JIRA installed but not authenticated should be warn status."""
+        from rhdh_plugin import cli as cli_module
+
+        # Mock jira installed
+        original_check_tool = cli_module.check_tool
+        monkeypatch.setattr(
+            cli_module,
+            "check_tool",
+            lambda name: True if name == "jira" else original_check_tool(name),
+        )
+
+        # Mock 'jira me' failing
+        original_run = cli_module.run_command
+
+        def mock_run(cmd, cwd=None):
+            if cmd == ["jira", "me"]:
+                return (1, "", "not authenticated")
+            return original_run(cmd, cwd)
+
+        monkeypatch.setattr(cli_module, "run_command", mock_run)
+
+        result = cli("doctor")
+        response = parse_response(result)
+
+        jira_auth = next(c for c in response["data"]["checks"] if c["name"] == "jira_auth")
+        assert jira_auth["status"] == "warn"
+        assert "reference" in jira_auth
+
+    def test_doctor_jira_authenticated_is_pass(self, cli, isolated_env, monkeypatch):
+        """JIRA installed and authenticated should be pass status."""
+        from rhdh_plugin import cli as cli_module
+
+        # Mock jira installed
+        original_check_tool = cli_module.check_tool
+        monkeypatch.setattr(
+            cli_module,
+            "check_tool",
+            lambda name: True if name == "jira" else original_check_tool(name),
+        )
+
+        # Mock 'jira me' succeeding
+        original_run = cli_module.run_command
+
+        def mock_run(cmd, cwd=None):
+            if cmd == ["jira", "me"]:
+                return (0, "user@example.com", "")
+            return original_run(cmd, cwd)
+
+        monkeypatch.setattr(cli_module, "run_command", mock_run)
+
+        result = cli("doctor")
+        response = parse_response(result)
+
+        jira_installed = next(
+            c for c in response["data"]["checks"] if c["name"] == "jira_installed"
+        )
+        jira_auth = next(c for c in response["data"]["checks"] if c["name"] == "jira_auth")
+        assert jira_installed["status"] == "pass"
+        assert jira_auth["status"] == "pass"
+
+    def test_doctor_jira_check_does_not_affect_all_passed(self, cli, isolated_env, monkeypatch):
+        """JIRA issues should NOT cause doctor to fail (optional tool)."""
+        from rhdh_plugin import cli as cli_module
+
+        # Mock jira not installed
+        original_check_tool = cli_module.check_tool
+        monkeypatch.setattr(
+            cli_module,
+            "check_tool",
+            lambda name: original_check_tool(name) if name != "jira" else False,
+        )
+
+        result = cli("doctor")
+        response = parse_response(result)
+
+        # JIRA being missing should not add to issues
+        jira_check = next(c for c in response["data"]["checks"] if c["name"] == "jira_installed")
+        assert jira_check["status"] == "info"  # info, not fail
+
+        # Verify no JIRA-related items in issues list
+        issues = response["data"]["issues"]
+        jira_issues = [i for i in issues if "jira" in i.lower()]
+        assert len(jira_issues) == 0
