@@ -7,7 +7,7 @@ description: Orchestrator skill for RHDH plugin development. Provides CLI toolin
 **Set the CLI variable for this session:**
 
 ```bash
-RHDH=scripts/rhdh
+RHDH=${CLAUDE_PLUGIN_ROOT}/skills/rhdh/scripts/rhdh
 ```
 
 **Get oriented (run first):**
