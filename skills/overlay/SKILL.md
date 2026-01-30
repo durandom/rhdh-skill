@@ -7,7 +7,7 @@ description: Manage RHDH plugins in the overlay repository (rhdh-plugin-export-o
 This skill uses the orchestrator CLI. **Set up first:**
 
 ```bash
-RHDH=../rhdh/scripts/rhdh
+RHDH=${CLAUDE_PLUGIN_ROOT}/skills/rhdh/scripts/rhdh
 ```
 
 **Verify environment:**
