@@ -8,7 +8,7 @@ class TestWorkspaceInfo:
 
     def test_from_path_basic(self, tmp_path):
         """Should create WorkspaceInfo from a basic workspace."""
-        from rhdh_plugin.workspace import WorkspaceInfo
+        from rhdh.workspace import WorkspaceInfo
 
         # Create a workspace directory
         workspace = tmp_path / "my-plugin"
@@ -23,7 +23,7 @@ class TestWorkspaceInfo:
 
     def test_from_path_with_source_json(self, tmp_path):
         """Should parse source.json when present."""
-        from rhdh_plugin.workspace import WorkspaceInfo
+        from rhdh.workspace import WorkspaceInfo
 
         workspace = tmp_path / "my-plugin"
         workspace.mkdir()
@@ -44,7 +44,7 @@ class TestWorkspaceInfo:
 
     def test_from_path_with_all_files(self, tmp_path):
         """Should detect all workspace files."""
-        from rhdh_plugin.workspace import WorkspaceInfo
+        from rhdh.workspace import WorkspaceInfo
 
         workspace = tmp_path / "my-plugin"
         workspace.mkdir()
@@ -61,7 +61,7 @@ class TestWorkspaceInfo:
 
     def test_from_path_with_metadata(self, tmp_path):
         """Should list metadata files."""
-        from rhdh_plugin.workspace import WorkspaceInfo
+        from rhdh.workspace import WorkspaceInfo
 
         workspace = tmp_path / "my-plugin"
         workspace.mkdir()
@@ -78,7 +78,7 @@ class TestWorkspaceInfo:
 
     def test_from_path_handles_invalid_json(self, tmp_path):
         """Should handle invalid source.json gracefully."""
-        from rhdh_plugin.workspace import WorkspaceInfo
+        from rhdh.workspace import WorkspaceInfo
 
         workspace = tmp_path / "my-plugin"
         workspace.mkdir()
@@ -95,8 +95,8 @@ class TestListWorkspaces:
 
     def test_returns_none_when_no_overlay(self, tmp_path, monkeypatch):
         """Should return (None, []) when overlay repo not found."""
-        from rhdh_plugin import config
-        from rhdh_plugin.workspace import list_workspaces
+        from rhdh import config
+        from rhdh.workspace import list_workspaces
 
         # Ensure no env var and set SKILL_ROOT to tmp to prevent fallback
         monkeypatch.delenv("RHDH_OVERLAY_REPO", raising=False)
@@ -113,7 +113,7 @@ class TestListWorkspaces:
 
     def test_returns_empty_list_when_no_workspaces_dir(self, tmp_path, monkeypatch):
         """Should return empty list when workspaces dir doesn't exist."""
-        from rhdh_plugin.workspace import list_workspaces
+        from rhdh.workspace import list_workspaces
 
         overlay_dir = tmp_path / "overlay"
         overlay_dir.mkdir()
@@ -127,7 +127,7 @@ class TestListWorkspaces:
 
     def test_lists_all_workspaces(self, tmp_path, monkeypatch):
         """Should list all workspace directories."""
-        from rhdh_plugin.workspace import list_workspaces
+        from rhdh.workspace import list_workspaces
 
         overlay_dir = tmp_path / "overlay"
         workspaces_dir = overlay_dir / "workspaces"
@@ -152,7 +152,7 @@ class TestGetWorkspace:
 
     def test_returns_workspace_when_found(self, tmp_path, monkeypatch):
         """Should return workspace info when found."""
-        from rhdh_plugin.workspace import get_workspace
+        from rhdh.workspace import get_workspace
 
         overlay_dir = tmp_path / "overlay"
         workspace_dir = overlay_dir / "workspaces" / "my-plugin"
@@ -170,7 +170,7 @@ class TestGetWorkspace:
 
     def test_returns_not_found_when_missing(self, tmp_path, monkeypatch):
         """Should return not found when workspace doesn't exist."""
-        from rhdh_plugin.workspace import get_workspace
+        from rhdh.workspace import get_workspace
 
         overlay_dir = tmp_path / "overlay"
         (overlay_dir / "workspaces").mkdir(parents=True)
@@ -185,8 +185,8 @@ class TestGetWorkspace:
 
     def test_returns_error_when_no_overlay(self, tmp_path, monkeypatch):
         """Should return error when overlay repo not configured."""
-        from rhdh_plugin import config
-        from rhdh_plugin.workspace import get_workspace
+        from rhdh import config
+        from rhdh.workspace import get_workspace
 
         monkeypatch.delenv("RHDH_OVERLAY_REPO", raising=False)
         monkeypatch.setenv("SKILL_ROOT", str(tmp_path))

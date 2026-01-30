@@ -1,4 +1,4 @@
-"""Entry point for python -m rhdh_plugin."""
+"""Entry point for python -m rhdh."""
 
 import sys
 

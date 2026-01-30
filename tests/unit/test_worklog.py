@@ -15,8 +15,8 @@ def temp_config_dir():
         config_dir = Path(tmpdir) / "config"
         config_dir.mkdir()
         # Mock find_git_root to return None (no git repo → uses USER_CONFIG_DIR)
-        with patch("rhdh_plugin.worklog.find_git_root", return_value=None):
-            with patch("rhdh_plugin.worklog.USER_CONFIG_DIR", config_dir):
+        with patch("rhdh.worklog.find_git_root", return_value=None):
+            with patch("rhdh.worklog.USER_CONFIG_DIR", config_dir):
                 yield config_dir
 
 
@@ -24,13 +24,13 @@ class TestAddEntry:
     """Tests for add_entry function."""
 
     def test_creates_file_if_not_exists(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, get_worklog_file
+        from rhdh.worklog import add_entry, get_worklog_file
 
         add_entry("Test message")
         assert get_worklog_file().exists()
 
     def test_adds_entry_with_timestamp(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, get_worklog_file
+        from rhdh.worklog import add_entry, get_worklog_file
 
         add_entry("Test message")
         content = get_worklog_file().read_text()
@@ -39,7 +39,7 @@ class TestAddEntry:
         assert entry["msg"] == "Test message"
 
     def test_adds_entry_with_tags(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, get_worklog_file
+        from rhdh.worklog import add_entry, get_worklog_file
 
         add_entry("Test message", tags=["tag1", "tag2"])
         content = get_worklog_file().read_text()
@@ -47,7 +47,7 @@ class TestAddEntry:
         assert entry["tags"] == ["tag1", "tag2"]
 
     def test_appends_multiple_entries(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, get_worklog_file
+        from rhdh.worklog import add_entry, get_worklog_file
 
         add_entry("First")
         add_entry("Second")
@@ -59,13 +59,13 @@ class TestReadEntries:
     """Tests for read_entries function."""
 
     def test_returns_empty_list_if_no_file(self, temp_config_dir):
-        from rhdh_plugin.worklog import read_entries
+        from rhdh.worklog import read_entries
 
         entries = read_entries()
         assert entries == []
 
     def test_returns_entries_most_recent_first(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, read_entries
+        from rhdh.worklog import add_entry, read_entries
 
         add_entry("First")
         add_entry("Second")
@@ -75,7 +75,7 @@ class TestReadEntries:
         assert entries[1]["msg"] == "First"
 
     def test_respects_limit(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, read_entries
+        from rhdh.worklog import add_entry, read_entries
 
         for i in range(10):
             add_entry(f"Entry {i}")
@@ -83,7 +83,7 @@ class TestReadEntries:
         assert len(entries) == 5
 
     def test_since_filter(self, temp_config_dir):
-        from rhdh_plugin.worklog import get_worklog_file, read_entries
+        from rhdh.worklog import get_worklog_file, read_entries
 
         # Write entries with known timestamps
         get_worklog_file().write_text(
@@ -99,7 +99,7 @@ class TestSearchEntries:
     """Tests for search_entries function."""
 
     def test_searches_message(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, search_entries
+        from rhdh.worklog import add_entry, search_entries
 
         add_entry("Plugin onboarding started")
         add_entry("Build failed")
@@ -108,7 +108,7 @@ class TestSearchEntries:
         assert "onboarding" in matches[0]["msg"]
 
     def test_searches_tags(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, search_entries
+        from rhdh.worklog import add_entry, search_entries
 
         add_entry("Some message", tags=["onboard"])
         add_entry("Other message", tags=["build"])
@@ -116,7 +116,7 @@ class TestSearchEntries:
         assert len(matches) == 1
 
     def test_case_insensitive(self, temp_config_dir):
-        from rhdh_plugin.worklog import add_entry, search_entries
+        from rhdh.worklog import add_entry, search_entries
 
         add_entry("UPPERCASE message")
         matches = search_entries("uppercase")

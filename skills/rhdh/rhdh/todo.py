@@ -1,7 +1,7 @@
-"""Todo management for rhdh-plugin CLI.
+"""Todo management for rhdh CLI.
 
 Section-based markdown todo tracker.
-Stored in .rhdh-plugin/TODO.md (project) or ~/.config/rhdh-plugin/TODO.md (fallback).
+Stored in .rhdh/TODO.md (project) or ~/.config/rhdh/TODO.md (fallback).
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ TODO_FILENAME = "TODO.md"
 def get_todo_file() -> Path:
     """Get the todo file path.
 
-    Uses project config dir (.rhdh-plugin/) if in a git repo,
+    Uses project config dir (.rhdh/) if in a git repo,
     otherwise falls back to user config dir.
     """
     if find_git_root():

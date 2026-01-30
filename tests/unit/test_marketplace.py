@@ -19,7 +19,7 @@ class TestPluginJson:
     def test_has_name(self, plugin_json):
         """plugin.json must have name field."""
         assert "name" in plugin_json
-        assert plugin_json["name"] == "rhdh-plugin"
+        assert plugin_json["name"] == "rhdh"
 
     def test_has_description(self, plugin_json):
         """plugin.json must have description field."""
@@ -57,7 +57,7 @@ class TestMarketplaceJson:
     def test_has_name(self, marketplace_json):
         """marketplace.json must have name field."""
         assert "name" in marketplace_json
-        assert marketplace_json["name"] == "rhdh-plugin"
+        assert marketplace_json["name"] == "rhdh"
 
     def test_has_owner(self, marketplace_json):
         """marketplace.json must have owner field."""
@@ -138,11 +138,11 @@ class TestSettingsJson:
     def test_has_skills(self, settings_json):
         """settings.json should have skills section."""
         assert "skills" in settings_json
-        assert "rhdh-plugin" in settings_json["skills"]
+        assert "rhdh" in settings_json["skills"]
 
     def test_skill_has_path(self, settings_json):
         """Skill entry should have path."""
-        skill = settings_json["skills"]["rhdh-plugin"]
+        skill = settings_json["skills"]["rhdh"]
         assert "path" in skill
 
     def test_command_paths_are_valid(self, settings_json, skill_root):

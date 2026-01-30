@@ -1,4 +1,4 @@
-"""CLI for rhdh-plugin.
+"""CLI for rhdh (RHDH plugin development orchestrator).
 
 Follows agentic CLI patterns:
 - Auto-detects output format: JSON when piped (for Claude), human when TTY
@@ -252,13 +252,13 @@ def cmd_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
 
     if needs_setup:
         # Just point to doctor - it has all the setup guidance
-        next_steps.append("rhdh-plugin doctor")
-        fmt.render_banner("Configuration needed. Run:", call_to_action="rhdh-plugin doctor")
+        next_steps.append("rhdh doctor")
+        fmt.render_banner("Configuration needed. Run:", call_to_action="rhdh doctor")
     else:
         next_steps.extend(
             [
-                "rhdh-plugin workspace list",
-                "rhdh-plugin doctor",
+                "rhdh workspace list",
+                "rhdh doctor",
             ]
         )
 
@@ -307,7 +307,7 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     else:
         checks.append({"name": "overlay_repo", "status": "fail", "message": "not found"})
         fmt.log_fail("Overlay repo not found")
-        issues.append("Configure overlay repo: rhdh-plugin config set overlay /path/to/repo")
+        issues.append("Configure overlay repo: rhdh config set overlay /path/to/repo")
 
     local_repo = get_local_repo()
     if local_repo:
@@ -327,7 +327,7 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     else:
         checks.append({"name": "rhdh_local", "status": "fail", "message": "not found"})
         fmt.log_fail("rhdh-local not found")
-        issues.append("Configure rhdh-local: rhdh-plugin config set local /path/to/repo")
+        issues.append("Configure rhdh-local: rhdh config set local /path/to/repo")
 
     fmt.header("GitHub CLI")
 
@@ -426,7 +426,7 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
 
     if all_passed:
         fmt.log_ok("All checks passed!")
-        next_steps = ["rhdh-plugin workspace list", "/onboard-plugin"]
+        next_steps = ["rhdh workspace list", "/onboard-plugin"]
         data: dict[str, Any] = {
             "needs_setup": needs_setup,
             "all_passed": all_passed,
@@ -473,15 +473,11 @@ def cmd_config_init(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         if repos.get("overlay"):
             fmt.log_ok(f"Auto-detected overlay: {repos['overlay']}")
         else:
-            fmt.log_info(
-                "overlay: not found (configure with: rhdh-plugin config set repos.overlay /path)"
-            )
+            fmt.log_info("overlay: not found (configure with: rhdh config set repos.overlay /path)")
         if repos.get("local"):
             fmt.log_ok(f"Auto-detected local: {repos['local']}")
         else:
-            fmt.log_info(
-                "local: not found (configure with: rhdh-plugin config set repos.local /path)"
-            )
+            fmt.log_info("local: not found (configure with: rhdh config set repos.local /path)")
         fmt.success(data, next_steps=next_steps)
         return 0
     else:
@@ -648,15 +644,15 @@ def cmd_setup_submodule_list(fmt: OutputFormatter, _args: argparse.Namespace) ->
     if needs_username and not github_username:
         next_steps = [
             "gh auth login",
-            "rhdh-plugin config set github.username <your-username>",
+            "rhdh config set github.username <your-username>",
         ]
     elif unconfigured_required:
         next_steps = [
-            "rhdh-plugin setup submodule add --all",
-            f"rhdh-plugin setup submodule add {unconfigured_required[0]['name']}",
+            "rhdh setup submodule add --all",
+            f"rhdh setup submodule add {unconfigured_required[0]['name']}",
         ]
     else:
-        next_steps = ["rhdh-plugin", "rhdh-plugin workspace list"]
+        next_steps = ["rhdh", "rhdh workspace list"]
 
     fmt.success(data, next_steps=next_steps)
     return 0
@@ -713,10 +709,10 @@ def cmd_setup_submodule_add(fmt: OutputFormatter, args: argparse.Namespace) -> i
         }
 
         if all_success:
-            fmt.success(output_data, next_steps=["rhdh-plugin", "rhdh-plugin doctor"])
+            fmt.success(output_data, next_steps=["rhdh", "rhdh doctor"])
             return 0
         else:
-            fmt.success(output_data, next_steps=["rhdh-plugin setup submodule list"])
+            fmt.success(output_data, next_steps=["rhdh setup submodule list"])
             return 1
 
     elif name:
@@ -750,8 +746,8 @@ def cmd_setup_submodule_add(fmt: OutputFormatter, args: argparse.Namespace) -> i
             "MISSING_ARGUMENT",
             "Specify repository name or use --all",
             next_steps=[
-                "rhdh-plugin setup submodule list",
-                "rhdh-plugin setup submodule add --all",
+                "rhdh setup submodule list",
+                "rhdh setup submodule add --all",
             ],
         )
         return 1
@@ -770,7 +766,7 @@ def cmd_workspace_list(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         fmt.error(
             "OVERLAY_NOT_FOUND",
             "Overlay repo not found",
-            next_steps=["rhdh-plugin config init", "rhdh-plugin doctor"],
+            next_steps=["rhdh config init", "rhdh doctor"],
         )
         return 1
 
@@ -803,7 +799,7 @@ def cmd_workspace_list(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         "items": items,
     }
 
-    fmt.success(data, next_steps=["rhdh-plugin workspace status <name>", "/onboard-plugin"])
+    fmt.success(data, next_steps=["rhdh workspace status <name>", "/onboard-plugin"])
     return 0
 
 
@@ -815,7 +811,7 @@ def cmd_workspace_status(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.error(
             "WORKSPACE_NOT_FOUND",
             error,
-            next_steps=["rhdh-plugin workspace list"],
+            next_steps=["rhdh workspace list"],
         )
         return 1
 
@@ -851,7 +847,7 @@ def cmd_workspace_status(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         "metadata_files": ws.metadata_files,
     }
 
-    fmt.success(data, next_steps=[f"cd {ws.path}", "rhdh-plugin workspace list"])
+    fmt.success(data, next_steps=[f"cd {ws.path}", "rhdh workspace list"])
     return 0
 
 
@@ -870,7 +866,7 @@ def cmd_log_add(fmt: OutputFormatter, args: argparse.Namespace) -> int:
     fmt.log_ok(f"Added: {format_entry_human(entry)}")
     fmt.success(
         {"entry": entry},
-        next_steps=["rhdh-plugin log show", "rhdh-plugin log search <query>"],
+        next_steps=["rhdh log show", "rhdh log search <query>"],
     )
     return 0
 
@@ -886,7 +882,7 @@ def cmd_log_show(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.log_info("No entries found")
         fmt.success(
             {"count": 0, "entries": []},
-            next_steps=["rhdh-plugin log add <message>"],
+            next_steps=["rhdh log add <message>"],
         )
         return 0
 
@@ -900,7 +896,7 @@ def cmd_log_show(fmt: OutputFormatter, args: argparse.Namespace) -> int:
 
     fmt.success(
         {"count": len(entries), "entries": entries},
-        next_steps=["rhdh-plugin log add <message>", "rhdh-plugin log search <query>"],
+        next_steps=["rhdh log add <message>", "rhdh log search <query>"],
     )
     return 0
 
@@ -916,7 +912,7 @@ def cmd_log_search(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.log_info(f"No entries matching '{query}'")
         fmt.success(
             {"query": query, "count": 0, "entries": []},
-            next_steps=["rhdh-plugin log show", "rhdh-plugin log add <message>"],
+            next_steps=["rhdh log show", "rhdh log add <message>"],
         )
         return 0
 
@@ -930,7 +926,7 @@ def cmd_log_search(fmt: OutputFormatter, args: argparse.Namespace) -> int:
 
     fmt.success(
         {"query": query, "count": len(matches), "entries": matches},
-        next_steps=["rhdh-plugin log show", "rhdh-plugin log add <message>"],
+        next_steps=["rhdh log show", "rhdh log add <message>"],
     )
     return 0
 
@@ -956,7 +952,7 @@ def cmd_todo_add(fmt: OutputFormatter, args: argparse.Namespace) -> int:
             "created": todo.created,
             "context": todo.context,
         },
-        next_steps=["rhdh-plugin todo list", f"rhdh-plugin todo note {todo.slug} <text>"],
+        next_steps=["rhdh todo list", f"rhdh todo note {todo.slug} <text>"],
     )
     return 0
 
@@ -971,7 +967,7 @@ def cmd_todo_list(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.log_info("No todos found")
         fmt.success(
             {"count": 0, "items": []},
-            next_steps=["rhdh-plugin todo add <title>"],
+            next_steps=["rhdh todo add <title>"],
         )
         return 0
 
@@ -1003,7 +999,7 @@ def cmd_todo_list(fmt: OutputFormatter, args: argparse.Namespace) -> int:
 
     fmt.success(
         {"count": len(todos), "items": items},
-        next_steps=["rhdh-plugin todo add <title>", "rhdh-plugin todo done <slug>"],
+        next_steps=["rhdh todo add <title>", "rhdh todo done <slug>"],
     )
     return 0
 
@@ -1018,7 +1014,7 @@ def cmd_todo_done(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.error(
             "TODO_NOT_FOUND",
             f"No todo matching '{slug}'",
-            next_steps=["rhdh-plugin todo list"],
+            next_steps=["rhdh todo list"],
         )
         return 1
 
@@ -1029,7 +1025,7 @@ def cmd_todo_done(fmt: OutputFormatter, args: argparse.Namespace) -> int:
 
     fmt.success(
         {"slug": todo.slug, "title": todo.title, "completed": todo.completed},
-        next_steps=["rhdh-plugin todo list"],
+        next_steps=["rhdh todo list"],
     )
     return 0
 
@@ -1045,14 +1041,14 @@ def cmd_todo_note(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.error(
             "TODO_NOT_FOUND",
             f"No todo matching '{slug}'",
-            next_steps=["rhdh-plugin todo list"],
+            next_steps=["rhdh todo list"],
         )
         return 1
 
     fmt.log_ok(f"Added note to: {todo.title}")
     fmt.success(
         {"slug": todo.slug, "title": todo.title, "note": note},
-        next_steps=["rhdh-plugin todo show", "rhdh-plugin todo list"],
+        next_steps=["rhdh todo show", "rhdh todo list"],
     )
     return 0
 
@@ -1068,7 +1064,7 @@ def cmd_todo_show(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     if not fmt.is_human:
         fmt.success(
             {"file": str(file_path), "content": content},
-            next_steps=["rhdh-plugin todo list", "rhdh-plugin todo add <title>"],
+            next_steps=["rhdh todo list", "rhdh todo add <title>"],
         )
 
     return 0
@@ -1082,7 +1078,7 @@ def cmd_todo_show(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
-        prog="rhdh-plugin",
+        prog="rhdh",
         description="CLI helper for RHDH plugin management",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
@@ -1096,23 +1092,23 @@ ENVIRONMENT VARIABLES:
     RHDH_FACTORY_REPO   Path to rhdh-dynamic-plugin-factory
 
 EXAMPLES:
-    rhdh-plugin                           # Show status (orientation)
-    rhdh-plugin doctor                    # Check setup
-    rhdh-plugin config init               # Create config
-    rhdh-plugin workspace list            # List workspaces
-    rhdh-plugin --json workspace list     # Force JSON output
+    rhdh                           # Show status (orientation)
+    rhdh doctor                    # Check setup
+    rhdh config init               # Create config
+    rhdh workspace list            # List workspaces
+    rhdh --json workspace list     # Force JSON output
 
     # Worklog
-    rhdh-plugin log add "Started onboarding aws-appsync" --tag onboard
-    rhdh-plugin log show --limit 10
-    rhdh-plugin log search "aws"
+    rhdh log add "Started onboarding aws-appsync" --tag onboard
+    rhdh log show --limit 10
+    rhdh log search "aws"
 
     # Todos
-    rhdh-plugin todo add "Check license with legal" --context aws-appsync
-    rhdh-plugin todo list
-    rhdh-plugin todo done check-license
-    rhdh-plugin todo note check-license "Sent email to legal@"
-    rhdh-plugin todo show
+    rhdh todo add "Check license with legal" --context aws-appsync
+    rhdh todo list
+    rhdh todo done check-license
+    rhdh todo note check-license "Sent email to legal@"
+    rhdh todo show
 """,
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -1332,9 +1328,9 @@ def main(argv: list[str] | None = None) -> int:
             "MISSING_SUBCOMMAND",
             "Config subcommand required",
             next_steps=[
-                "rhdh-plugin config init",
-                "rhdh-plugin config show",
-                "rhdh-plugin config set <key> <path>",
+                "rhdh config init",
+                "rhdh config show",
+                "rhdh config set <key> <path>",
             ],
         )
         return 1
@@ -1344,7 +1340,7 @@ def main(argv: list[str] | None = None) -> int:
         fmt.error(
             "MISSING_SUBCOMMAND",
             "Workspace subcommand required",
-            next_steps=["rhdh-plugin workspace list", "rhdh-plugin workspace status <name>"],
+            next_steps=["rhdh workspace list", "rhdh workspace status <name>"],
         )
         return 1
 
@@ -1354,9 +1350,9 @@ def main(argv: list[str] | None = None) -> int:
             "MISSING_SUBCOMMAND",
             "Log subcommand required",
             next_steps=[
-                "rhdh-plugin log add <message>",
-                "rhdh-plugin log show",
-                "rhdh-plugin log search <query>",
+                "rhdh log add <message>",
+                "rhdh log show",
+                "rhdh log search <query>",
             ],
         )
         return 1
@@ -1367,9 +1363,9 @@ def main(argv: list[str] | None = None) -> int:
             "MISSING_SUBCOMMAND",
             "Todo subcommand required",
             next_steps=[
-                "rhdh-plugin todo list",
-                "rhdh-plugin todo add <title>",
-                "rhdh-plugin todo show",
+                "rhdh todo list",
+                "rhdh todo add <title>",
+                "rhdh todo show",
             ],
         )
         return 1
@@ -1380,8 +1376,8 @@ def main(argv: list[str] | None = None) -> int:
             "MISSING_SUBCOMMAND",
             "Setup subcommand required",
             next_steps=[
-                "rhdh-plugin setup submodule list",
-                "rhdh-plugin setup submodule add --all",
+                "rhdh setup submodule list",
+                "rhdh setup submodule add --all",
             ],
         )
         return 1
@@ -1396,9 +1392,9 @@ def main(argv: list[str] | None = None) -> int:
             "MISSING_SUBCOMMAND",
             "Submodule subcommand required",
             next_steps=[
-                "rhdh-plugin setup submodule list",
-                "rhdh-plugin setup submodule add --all",
-                "rhdh-plugin setup submodule add <name>",
+                "rhdh setup submodule list",
+                "rhdh setup submodule add --all",
+                "rhdh setup submodule add <name>",
             ],
         )
         return 1

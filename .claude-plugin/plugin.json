@@ -1,12 +1,12 @@
 {
-  "name": "rhdh-plugin",
-  "description": "Manage RHDH plugins - onboard, update, and maintain plugins in the Extensions Catalog",
+  "name": "rhdh",
+  "description": "Orchestrator skill for RHDH plugin development - onboard, update, and maintain plugins in the Extensions Catalog",
   "version": "1.0.0",
   "author": {
     "name": "RHDH Store Manager"
   },
-  "homepage": "https://github.com/redhat-developer/rhdh-plugin-skill",
-  "repository": "https://github.com/redhat-developer/rhdh-plugin-skill",
+  "homepage": "https://github.com/redhat-developer/rhdh-skill",
+  "repository": "https://github.com/redhat-developer/rhdh-skill",
   "license": "Apache-2.0",
   "keywords": [
     "rhdh",

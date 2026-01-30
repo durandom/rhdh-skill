@@ -6,12 +6,12 @@ import pytest
 import yaml
 
 
-class TestSkillMdStructure:
-    """Test that SKILL.md has required structure."""
+class TestOrchestratorSkillMd:
+    """Test that orchestrator SKILL.md (skills/rhdh/SKILL.md) has required structure."""
 
     @pytest.fixture
     def skill_md(self, skills_dir):
-        """Load SKILL.md content."""
+        """Load orchestrator SKILL.md content."""
         skill_path = skills_dir / "SKILL.md"
         return skill_path.read_text()
 
@@ -26,7 +26,7 @@ class TestSkillMdStructure:
     def test_frontmatter_has_name(self, skill_frontmatter):
         """SKILL.md must have a name field."""
         assert "name" in skill_frontmatter
-        assert skill_frontmatter["name"] == "rhdh-plugin"
+        assert skill_frontmatter["name"] == "rhdh"
 
     def test_frontmatter_has_description(self, skill_frontmatter):
         """SKILL.md must have a description field."""
@@ -37,7 +37,6 @@ class TestSkillMdStructure:
         """SKILL.md must have <cli_setup> section."""
         assert "<cli_setup>" in skill_md
         assert "</cli_setup>" in skill_md
-        assert "CLAUDE_PLUGIN_ROOT" in skill_md
 
     def test_has_essential_principles(self, skill_md):
         """SKILL.md must have <essential_principles> section."""
@@ -56,24 +55,79 @@ class TestSkillMdStructure:
         assert "<routing>" in skill_md
         assert "</routing>" in skill_md
         # Should have markdown table
-        assert "| Response |" in skill_md or "| Intent |" in skill_md
+        assert "| Response |" in skill_md or "| Intent |" in skill_md or "| Condition |" in skill_md
 
     def test_has_cli_commands_section(self, skill_md):
         """SKILL.md must have <cli_commands> section."""
         assert "<cli_commands>" in skill_md
         assert "</cli_commands>" in skill_md
-        assert "$RHDH_PLUGIN" in skill_md
+        assert "$RHDH" in skill_md
+
+    def test_references_cli_variable(self, skill_md):
+        """SKILL.md should use $RHDH variable consistently."""
+        # Count references to the variable
+        matches = re.findall(r"\$RHDH", skill_md)
+        assert len(matches) >= 3, "Should reference $RHDH multiple times"
+
+    def test_routes_to_overlay_skill(self, skill_md):
+        """Orchestrator should route to overlay skill."""
+        assert "overlay" in skill_md.lower()
+
+
+class TestOverlaySkillMd:
+    """Test that overlay SKILL.md (skills/overlay/SKILL.md) has required structure."""
+
+    @pytest.fixture
+    def skill_md(self, overlay_skill_dir):
+        """Load overlay SKILL.md content."""
+        skill_path = overlay_skill_dir / "SKILL.md"
+        return skill_path.read_text()
+
+    @pytest.fixture
+    def skill_frontmatter(self, skill_md):
+        """Parse YAML frontmatter from SKILL.md."""
+        match = re.match(r"^---\n(.*?)\n---", skill_md, re.DOTALL)
+        if not match:
+            pytest.fail("SKILL.md missing YAML frontmatter")
+        return yaml.safe_load(match.group(1))
+
+    def test_frontmatter_has_name(self, skill_frontmatter):
+        """SKILL.md must have a name field."""
+        assert "name" in skill_frontmatter
+        assert skill_frontmatter["name"] == "overlay"
+
+    def test_frontmatter_has_description(self, skill_frontmatter):
+        """SKILL.md must have a description field."""
+        assert "description" in skill_frontmatter
+        assert len(skill_frontmatter["description"]) > 20
+
+    def test_has_essential_principles(self, skill_md):
+        """SKILL.md must have <essential_principles> section."""
+        assert "<essential_principles>" in skill_md
+        assert "</essential_principles>" in skill_md
+
+    def test_has_intake_section(self, skill_md):
+        """SKILL.md must have <intake> section with menu."""
+        assert "<intake>" in skill_md
+        assert "</intake>" in skill_md
+        # Should have numbered options
+        assert re.search(r"1\.\s+\*\*", skill_md)
+
+    def test_has_routing_section(self, skill_md):
+        """SKILL.md must have <routing> section with table."""
+        assert "<routing>" in skill_md
+        assert "</routing>" in skill_md
+        # Should have markdown table
+        assert "| Response |" in skill_md
 
     def test_has_success_criteria(self, skill_md):
         """SKILL.md must have <success_criteria> section."""
         assert "<success_criteria>" in skill_md
         assert "</success_criteria>" in skill_md
 
-    def test_references_cli_variable(self, skill_md):
-        """SKILL.md should use $RHDH_PLUGIN variable consistently."""
-        # Count references to the variable
-        matches = re.findall(r"\$RHDH_PLUGIN", skill_md)
-        assert len(matches) >= 3, "Should reference $RHDH_PLUGIN multiple times"
+    def test_references_workflows(self, skill_md):
+        """Overlay skill should reference its workflows."""
+        assert "workflows/" in skill_md
 
     def test_no_markdown_headings_in_xml_body(self, skill_md):
         """XML sections should not use markdown headings (# or ##) outside code blocks."""
@@ -115,9 +169,9 @@ class TestWorkflowStructure:
     """Test that workflow files have required structure."""
 
     @pytest.fixture
-    def workflow_files(self, skills_dir):
-        """Get all workflow files."""
-        workflows_dir = skills_dir / "workflows"
+    def workflow_files(self, overlay_skill_dir):
+        """Get all workflow files from overlay skill."""
+        workflows_dir = overlay_skill_dir / "workflows"
         return list(workflows_dir.glob("*.md"))
 
     def test_workflows_exist(self, workflow_files):
@@ -152,10 +206,12 @@ class TestReferenceStructure:
     """Test that reference files have required structure."""
 
     @pytest.fixture
-    def reference_files(self, skills_dir):
-        """Get all reference files."""
-        refs_dir = skills_dir / "references"
-        return list(refs_dir.glob("*.md"))
+    def reference_files(self, skills_dir, overlay_skill_dir):
+        """Get all reference files from both skills."""
+        refs = []
+        refs.extend((skills_dir / "references").glob("*.md"))
+        refs.extend((overlay_skill_dir / "references").glob("*.md"))
+        return refs
 
     def test_references_exist(self, reference_files):
         """At least one reference should exist."""
@@ -179,9 +235,9 @@ class TestTemplateStructure:
     """Test that template files exist and are valid."""
 
     @pytest.fixture
-    def template_files(self, skills_dir):
-        """Get all template files."""
-        templates_dir = skills_dir / "templates"
+    def template_files(self, overlay_skill_dir):
+        """Get all template files from overlay skill."""
+        templates_dir = overlay_skill_dir / "templates"
         return list(templates_dir.glob("*.md"))
 
     def test_templates_exist(self, template_files):

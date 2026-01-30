@@ -28,13 +28,13 @@ class TestClaudeMdStructure:
 
     def test_has_project_structure(self, claude_md):
         """CLAUDE.md should document project structure."""
-        assert "rhdh_plugin/" in claude_md
+        assert "rhdh/" in claude_md
         assert "skills/" in claude_md
         assert "tests/" in claude_md
 
     def test_has_cli_section(self, claude_md):
         """CLAUDE.md should document CLI usage."""
-        assert "rhdh-plugin" in claude_md
+        assert "rhdh" in claude_md
         assert "uv run" in claude_md
 
     def test_documents_output_format(self, claude_md):

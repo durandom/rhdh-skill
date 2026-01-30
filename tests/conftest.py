@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for rhdh-plugin-skill tests."""
+"""Shared pytest fixtures for rhdh-skill tests."""
 
 import json
 import os
@@ -13,15 +13,19 @@ import pytest
 # Path to the project root
 PROJECT_ROOT = Path(__file__).parent.parent
 
-# Path to the skill directory (where rhdh_plugin package now lives)
-SKILL_DIR = PROJECT_ROOT / "skills" / "rhdh-plugin"
+# Path to the orchestrator skill directory (where rhdh package lives)
+RHDH_SKILL_DIR = PROJECT_ROOT / "skills" / "rhdh"
 
-# Add skill directory to path for testing
-if str(SKILL_DIR) not in sys.path:
-    sys.path.insert(0, str(SKILL_DIR))
+# Path to the overlay skill directory (markdown-only)
+OVERLAY_SKILL_DIR = PROJECT_ROOT / "skills" / "overlay"
 
-SCRIPTS_DIR = SKILL_DIR / "scripts"
-SKILLS_DIR = SKILL_DIR  # Same as SKILL_DIR now
+# Add orchestrator skill directory to path for testing
+if str(RHDH_SKILL_DIR) not in sys.path:
+    sys.path.insert(0, str(RHDH_SKILL_DIR))
+
+SCRIPTS_DIR = RHDH_SKILL_DIR / "scripts"
+SKILLS_DIR = RHDH_SKILL_DIR  # Legacy alias
+SKILL_DIR = RHDH_SKILL_DIR  # Legacy alias
 
 
 @pytest.fixture
@@ -32,8 +36,8 @@ def skill_root():
 
 @pytest.fixture
 def skill_dir():
-    """Return the skill directory path (skills/rhdh-plugin)."""
-    return SKILL_DIR
+    """Return the orchestrator skill directory path (skills/rhdh)."""
+    return RHDH_SKILL_DIR
 
 
 @pytest.fixture
@@ -44,8 +48,14 @@ def scripts_dir():
 
 @pytest.fixture
 def skills_dir():
-    """Return the skills/rhdh-plugin directory path."""
+    """Return the orchestrator skills/rhdh directory path."""
     return SKILLS_DIR
+
+
+@pytest.fixture
+def overlay_skill_dir():
+    """Return the overlay skill directory path (skills/overlay)."""
+    return OVERLAY_SKILL_DIR
 
 
 @pytest.fixture
@@ -53,17 +63,17 @@ def isolated_env(tmp_path, monkeypatch):
     """Create an isolated environment with temp directories.
 
     Sets up:
-    - Temporary config directory (~/.config/rhdh-plugin/)
-    - Temporary project config directory (.rhdh-plugin/)
+    - Temporary config directory (~/.config/rhdh/)
+    - Temporary project config directory (.rhdh/)
     - Isolated working directory
     - Mock HOME environment
     """
-    # Create temp user config dir (matches config.py: .config/rhdh-plugin)
-    config_dir = tmp_path / ".config" / "rhdh-plugin"
+    # Create temp user config dir (matches config.py: .config/rhdh)
+    config_dir = tmp_path / ".config" / "rhdh"
     config_dir.mkdir(parents=True)
 
     # Create temp project config dir
-    project_config_dir = tmp_path / ".rhdh-plugin"
+    project_config_dir = tmp_path / ".rhdh"
     project_config_dir.mkdir(parents=True)
 
     # Create a mock repo structure
@@ -152,8 +162,8 @@ def run_cli_python(*args, env=None, isolated_env=None):
         CLIResult with returncode, stdout, stderr
     """
     # Import here to avoid circular imports and ensure fresh module state
-    from rhdh_plugin import config as config_module
-    from rhdh_plugin.cli import main
+    from rhdh import config as config_module
+    from rhdh.cli import main
 
     # Capture stdout
     stdout_capture = StringIO()
@@ -167,7 +177,7 @@ def run_cli_python(*args, env=None, isolated_env=None):
     if isolated_env:
         new_home = Path(isolated_env["root"])
         # Patch user config paths
-        config_module.USER_CONFIG_DIR = new_home / ".config" / "rhdh-plugin"
+        config_module.USER_CONFIG_DIR = new_home / ".config" / "rhdh"
         config_module.USER_CONFIG_FILE = config_module.USER_CONFIG_DIR / "config.json"
 
     # Mock find_git_root to return isolated dir (prevents writes to real project)
@@ -212,7 +222,7 @@ def unconfigured_cli(isolated_env, monkeypatch):
     Use this to test the "needs setup" state without manual monkeypatching.
     Mocks get_overlay_repo and get_local_repo to return None.
     """
-    from rhdh_plugin import cli as cli_module
+    from rhdh import cli as cli_module
 
     monkeypatch.setattr(cli_module, "get_overlay_repo", lambda: None)
     monkeypatch.setattr(cli_module, "get_local_repo", lambda: None)
@@ -228,7 +238,7 @@ def unconfigured_cli(isolated_env, monkeypatch):
 
 # Legacy fixture for subprocess-based testing (kept for backward compatibility)
 def run_cli_subprocess(*args, cwd=None, env=None):
-    """Run the rhdh-plugin CLI via subprocess and return result.
+    """Run the rhdh CLI via subprocess and return result.
 
     Args:
         *args: CLI arguments
@@ -238,7 +248,7 @@ def run_cli_subprocess(*args, cwd=None, env=None):
     Returns:
         subprocess.CompletedProcess with stdout, stderr, returncode
     """
-    script_path = SCRIPTS_DIR / "rhdh-plugin"
+    script_path = SCRIPTS_DIR / "rhdh"
 
     run_env = os.environ.copy()
     if env:

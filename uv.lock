@@ -194,7 +194,7 @@ wheels = [
 ]
 
 [[package]]
-name = "rhdh-plugin-skill"
+name = "rhdh-skill"
 version = "1.0.0"
 source = { virtual = "." }
 

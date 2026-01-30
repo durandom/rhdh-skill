@@ -9,12 +9,17 @@
 ## Project Structure
 
 ```
-rhdh-plugin-skill/
-├── skills/rhdh-plugin/    # Self-contained skill
-│   ├── rhdh_plugin/       # Python CLI package (stdlib only)
-│   ├── scripts/           # Entry point (./scripts/rhdh-plugin)
-│   ├── workflows/         # Agent workflows
-│   └── SKILL.md           # Skill definition
+rhdh-skill/
+├── skills/
+│   ├── rhdh/              # Orchestrator skill (Python CLI + routing)
+│   │   ├── rhdh/          # Python CLI package (stdlib only)
+│   │   ├── scripts/       # Entry point (./scripts/rhdh)
+│   │   ├── references/    # General tool references (GitHub, JIRA)
+│   │   └── SKILL.md       # Routes to overlay skill
+│   └── overlay/           # Overlay skill (markdown only)
+│       ├── workflows/     # Plugin workflows (onboard, update, fix)
+│       ├── references/    # Overlay-specific references
+│       └── SKILL.md       # Overlay workflow routing
 ├── tests/                 # pytest test suite (dev only)
 └── pyproject.toml         # Dev dependencies (pytest)
 ```
@@ -24,9 +29,9 @@ rhdh-plugin-skill/
 The CLI is stdlib-only and runs with any Python 3.9+:
 
 ```bash
-./skills/rhdh-plugin/scripts/rhdh-plugin           # Status check
-./skills/rhdh-plugin/scripts/rhdh-plugin doctor    # Full environment check
-./skills/rhdh-plugin/scripts/rhdh-plugin --json    # Force JSON output
+./skills/rhdh/scripts/rhdh           # Status check
+./skills/rhdh/scripts/rhdh doctor    # Full environment check
+./skills/rhdh/scripts/rhdh --json    # Force JSON output
 ```
 
 Auto-detects output format: **TTY** → human-readable, **Piped** → JSON.
@@ -34,5 +39,5 @@ Auto-detects output format: **TTY** → human-readable, **Piped** → JSON.
 ## Key Patterns
 
 - `OutputFormatter` handles JSON/human rendering — commands build data dicts
-- Workflows live in `skills/rhdh-plugin/workflows/` — doctor points agents there for setup
+- Workflows live in `skills/overlay/workflows/` — doctor points agents there for setup
 - Config discovery: env vars → project config → user config → auto-detection

@@ -1,11 +1,11 @@
-"""Configuration management for rhdh-plugin CLI.
+"""Configuration management for rhdh CLI.
 
 Layered configuration with project-local and user-global support.
 
 Config locations (highest to lowest priority):
 1. Environment variables (RHDH_OVERLAY_REPO, etc.)
-2. Project config (.rhdh-plugin/config.json in git root)
-3. User config (~/.config/rhdh-plugin/config.json)
+2. Project config (.rhdh/config.json in git root)
+3. User config (~/.config/rhdh/config.json)
 4. Auto-detection (../repo/ relative to skill install)
 
 Supports dot-notation keys (e.g., repos.overlay, user.name).
@@ -20,8 +20,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 # Config directory names
-PROJECT_CONFIG_DIR_NAME = ".rhdh-plugin"
-USER_CONFIG_DIR = Path.home() / ".config" / "rhdh-plugin"
+PROJECT_CONFIG_DIR_NAME = ".rhdh"
+USER_CONFIG_DIR = Path.home() / ".config" / "rhdh"
 USER_CONFIG_FILE = USER_CONFIG_DIR / "config.json"
 
 # Submodule repository definitions
@@ -76,7 +76,7 @@ def find_git_root() -> Path | None:
 
 
 def get_project_config_dir() -> Path:
-    """Get project config directory (.rhdh-plugin/ in git root or cwd)."""
+    """Get project config directory (.rhdh/ in git root or cwd)."""
     git_root = find_git_root()
     base = git_root if git_root else Path.cwd()
     return base / PROJECT_CONFIG_DIR_NAME
@@ -99,7 +99,7 @@ def get_skill_root() -> Path:
     """
     if "SKILL_ROOT" in os.environ:
         return Path(os.environ["SKILL_ROOT"])
-    # Package is in rhdh_plugin/, skill root is parent
+    # Package is in rhdh/, skill root is parent
     return Path(__file__).parent.parent
 
 
@@ -221,7 +221,7 @@ def deep_merge(base: dict, override: dict) -> dict:
 
 
 def load_user_config() -> dict:
-    """Load user config from ~/.config/rhdh-plugin/config.json.
+    """Load user config from ~/.config/rhdh/config.json.
 
     Returns:
         Config dict, or empty dict if file doesn't exist.
@@ -236,7 +236,7 @@ def load_user_config() -> dict:
 
 
 def load_project_config() -> dict:
-    """Load project config from .rhdh-plugin/config.json.
+    """Load project config from .rhdh/config.json.
 
     Returns:
         Config dict, or empty dict if file doesn't exist.
@@ -421,7 +421,7 @@ def _config_init(force: bool, global_: bool) -> tuple[bool, dict | str, list[str
         return (
             False,
             f"Config already exists at {config_path}. Use --force to overwrite.",
-            ["rhdh-plugin config init --force", "rhdh-plugin config show"],
+            ["rhdh config init --force", "rhdh config show"],
         )
 
     # Try to auto-detect repos for project config
@@ -453,7 +453,7 @@ def _config_init(force: bool, global_: bool) -> tuple[bool, dict | str, list[str
         "config": config,
     }
 
-    next_steps = ["rhdh-plugin config show", "rhdh-plugin doctor"]
+    next_steps = ["rhdh config show", "rhdh doctor"]
     return True, data, next_steps
 
 
@@ -476,7 +476,7 @@ def _config_show(global_: bool) -> tuple[bool, dict, list[str]]:
         },
     }
 
-    next_steps = ["rhdh-plugin config set <key> <value>", "rhdh-plugin config keys"]
+    next_steps = ["rhdh config set <key> <value>", "rhdh config keys"]
     return True, data, next_steps
 
 
@@ -492,8 +492,8 @@ def _config_keys(global_: bool) -> tuple[bool, dict, list[str]]:
     if not config:
         return (
             False,
-            "No config found. Run 'rhdh-plugin config init' first.",
-            ["rhdh-plugin config init"],
+            "No config found. Run 'rhdh config init' first.",
+            ["rhdh config init"],
         )
 
     keys = sorted(collect_keys(config))
@@ -504,14 +504,14 @@ def _config_keys(global_: bool) -> tuple[bool, dict, list[str]]:
 def _config_get(key: str | None) -> tuple[bool, dict | str, list[str]]:
     """Get a config value."""
     if not key:
-        return False, "Key is required for 'config get'", ["rhdh-plugin config keys"]
+        return False, "Key is required for 'config get'", ["rhdh config keys"]
 
     config = load_merged_config()
     if not config:
         return (
             False,
-            "No config found. Run 'rhdh-plugin config init' first.",
-            ["rhdh-plugin config init"],
+            "No config found. Run 'rhdh config init' first.",
+            ["rhdh config init"],
         )
 
     try:
@@ -521,7 +521,7 @@ def _config_get(key: str | None) -> tuple[bool, dict | str, list[str]]:
         return (
             False,
             f"Key '{key}' not found in config",
-            ["rhdh-plugin config keys"],
+            ["rhdh config keys"],
         )
 
 
@@ -561,7 +561,7 @@ def _config_set(
             "scope": scope,
             "config_path": str(config_path),
         }
-        return True, data, ["rhdh-plugin config show"]
+        return True, data, ["rhdh config show"]
     else:
         return False, "Failed to write config", []
 
@@ -704,7 +704,7 @@ def setup_submodule(
         return (
             False,
             str(e),
-            ["gh auth login", "rhdh-plugin config set github.username <your-username>"],
+            ["gh auth login", "rhdh config set github.username <your-username>"],
         )
 
     git_root = find_git_root()
@@ -742,7 +742,7 @@ def setup_submodule(
                 "path": str(submodule_path),
                 "config_key": f"repos.{config_key}",
             },
-            ["rhdh-plugin config show"],
+            ["rhdh config show"],
         )
 
     # Remove from .gitignore if present
@@ -756,13 +756,13 @@ def setup_submodule(
                 False,
                 f"Directory exists with nested .git: {submodule_path}. "
                 "Remove it manually or back up first.",
-                [f"rm -rf {submodule_path}", f"rhdh-plugin setup submodule add {name}"],
+                [f"rm -rf {submodule_path}", f"rhdh setup submodule add {name}"],
             )
         # Non-git directory - also needs manual handling
         return (
             False,
             f"Directory exists: {submodule_path}. Remove it first.",
-            [f"rm -rf {submodule_path}", f"rhdh-plugin setup submodule add {name}"],
+            [f"rm -rf {submodule_path}", f"rhdh setup submodule add {name}"],
         )
 
     # Add as submodule
@@ -797,7 +797,7 @@ def setup_submodule(
         "config_key": f"repos.{config_key}",
     }
 
-    return True, data, ["rhdh-plugin", "rhdh-plugin config show"]
+    return True, data, ["rhdh", "rhdh config show"]
 
 
 def _ensure_upstream(repo_path: Path, upstream_url: str | None) -> None:
@@ -916,7 +916,7 @@ def get_github_username_or_prompt() -> tuple[str | None, str | None]:
     return None, (
         "GitHub username not found. Either:\n"
         "  1. Run 'gh auth login' to authenticate\n"
-        "  2. Run 'rhdh-plugin config set github.username <your-username>'"
+        "  2. Run 'rhdh config set github.username <your-username>'"
     )
 
 
@@ -943,13 +943,13 @@ def config_init() -> tuple[bool, list[str]]:
                 messages.append(f"Auto-detected overlay repo: {repos['overlay']}")
             else:
                 messages.append(
-                    "overlay repo: not found (configure with: rhdh-plugin config set repos.overlay /path)"
+                    "overlay repo: not found (configure with: rhdh config set repos.overlay /path)"
                 )
             if repos.get("local"):
                 messages.append(f"Auto-detected rhdh-local: {repos['local']}")
             else:
                 messages.append(
-                    "rhdh-local: not found (configure with: rhdh-plugin config set repos.local /path)"
+                    "rhdh-local: not found (configure with: rhdh config set repos.local /path)"
                 )
     else:
         messages.append(str(data))

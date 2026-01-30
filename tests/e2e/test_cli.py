@@ -1,4 +1,4 @@
-"""End-to-end tests for rhdh-plugin CLI.
+"""End-to-end tests for rhdh CLI.
 
 These tests run the actual Python CLI code (no subprocess).
 Output is JSON by default (non-TTY context), so we parse the structured response.
@@ -68,7 +68,7 @@ class TestCliStatus:
         assert response["data"]["needs_setup"] is True
 
         # next_steps should include doctor command
-        assert "rhdh-plugin doctor" in response["next_steps"]
+        assert "rhdh doctor" in response["next_steps"]
 
         # Should NOT include setup_options or doctor_workflow (that's doctor's job)
         assert "setup_options" not in response["data"]
@@ -268,14 +268,14 @@ class TestCliHelp:
 
         assert result.returncode == 0
         # Help is always human-readable
-        assert "rhdh-plugin" in result.stdout
+        assert "rhdh" in result.stdout
 
     def test_help_command(self, cli, isolated_env):
         """help command should show help."""
         result = cli("help")
 
         assert result.returncode == 0
-        assert "rhdh-plugin" in result.stdout
+        assert "rhdh" in result.stdout
 
 
 class TestCliUnknownCommand:
@@ -347,7 +347,7 @@ class TestCliDoctorJira:
 
     def test_doctor_includes_jira_check(self, cli, isolated_env, monkeypatch):
         """Doctor should include JIRA check in results."""
-        from rhdh_plugin import cli as cli_module
+        from rhdh import cli as cli_module
 
         # Mock jira not installed
         original_check_tool = cli_module.check_tool
@@ -365,7 +365,7 @@ class TestCliDoctorJira:
 
     def test_doctor_jira_not_installed_is_info(self, cli, isolated_env, monkeypatch):
         """JIRA not installed should be info status (optional tool)."""
-        from rhdh_plugin import cli as cli_module
+        from rhdh import cli as cli_module
 
         original_check_tool = cli_module.check_tool
         monkeypatch.setattr(
@@ -384,7 +384,7 @@ class TestCliDoctorJira:
 
     def test_doctor_jira_not_authenticated_is_warn(self, cli, isolated_env, monkeypatch):
         """JIRA installed but not authenticated should be warn status."""
-        from rhdh_plugin import cli as cli_module
+        from rhdh import cli as cli_module
 
         # Mock jira installed
         original_check_tool = cli_module.check_tool
@@ -413,7 +413,7 @@ class TestCliDoctorJira:
 
     def test_doctor_jira_authenticated_is_pass(self, cli, isolated_env, monkeypatch):
         """JIRA installed and authenticated should be pass status."""
-        from rhdh_plugin import cli as cli_module
+        from rhdh import cli as cli_module
 
         # Mock jira installed
         original_check_tool = cli_module.check_tool
@@ -445,7 +445,7 @@ class TestCliDoctorJira:
 
     def test_doctor_jira_check_does_not_affect_all_passed(self, cli, isolated_env, monkeypatch):
         """JIRA issues should NOT cause doctor to fail (optional tool)."""
-        from rhdh_plugin import cli as cli_module
+        from rhdh import cli as cli_module
 
         # Mock jira not installed
         original_check_tool = cli_module.check_tool

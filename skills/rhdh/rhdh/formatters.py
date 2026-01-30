@@ -1,4 +1,4 @@
-"""Output formatting for rhdh-plugin CLI.
+"""Output formatting for rhdh CLI.
 
 Auto-detects output format based on context:
 - TTY (terminal) → Human-readable with colors

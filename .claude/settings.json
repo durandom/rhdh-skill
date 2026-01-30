@@ -17,9 +17,13 @@
     }
   },
   "skills": {
-    "rhdh-plugin": {
-      "path": "../skills/rhdh-plugin/SKILL.md",
-      "description": "Manage RHDH plugins - onboard, update, and maintain plugins in the Extensions Catalog"
+    "rhdh": {
+      "path": "../skills/rhdh/SKILL.md",
+      "description": "Orchestrator skill for RHDH plugin development"
+    },
+    "overlay": {
+      "path": "../skills/overlay/SKILL.md",
+      "description": "Manage plugins in the overlay repository (rhdh-plugin-export-overlays)"
     }
   }
 }
