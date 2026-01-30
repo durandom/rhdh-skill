@@ -290,140 +290,83 @@ Plugins in these lists become "required" — release gates fail if they're incom
 
 **Goal:** Confirm plugin works using PR artifacts (before merge).
 
-### 5.1 Set Up Local Test Environment
+> 📖 **Full reference:** See `references/rhdh-local.md` for complete setup, commands, and troubleshooting.
 
-Use [RHDH Local](https://github.com/redhat-developer/rhdh-local):
+### 5.1 Set Up Local Test Environment
 
 ```bash
 cd repo/rhdh-local
 podman compose up -d
-# Access at http://localhost:7007
+# Access at http://localhost:7007, login as Guest
 ```
 
 ### 5.2 Configure PR Artifacts
 
-Create `configs/dynamic-plugins/dynamic-plugins.override.yaml`:
+Create `configs/dynamic-plugins/dynamic-plugins.override.yaml` with OCI URLs from PR `/publish` comment:
 
 ```yaml
 includes:
   - dynamic-plugins.default.yaml
 
 plugins:
-  - package: oci://<registry>/<image>:pr_<number>__<version>!<package-name>
+  - package: oci://ghcr.io/redhat-developer/rhdh-plugin-export-overlays/<package>:pr_<number>__<version>!<package>
     disabled: false
     pluginConfig:
-      # Copy from metadata/*.yaml appConfigExamples
+      # Copy from workspaces/<plugin>/metadata/*.yaml appConfigExamples
 ```
 
 ### 5.3 Create Test Entity
 
-Most plugins require specific annotations. Create `configs/catalog-entities/components.override.yaml`:
+Create `configs/catalog-entities/components.override.yaml` with required annotations:
 
 ```yaml
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: test-<plugin-name>
+  name: <plugin>-test-service
   annotations:
-    <annotation-key>: <test-value>
+    <annotation-key>: <test-value>  # Check plugin README for required annotations
 spec:
   type: service
   lifecycle: experimental
   owner: user:default/guest
 ```
 
+Restart to load: `podman compose down && podman compose up -d`
+
 ### 5.4 Verify Plugin Works
 
-- [ ] Check logs: `podman logs rhdh 2>&1 | grep -i <plugin-name>`
-- [ ] Plugin loads without errors
-- [ ] Navigate to test entity in catalog
-- [ ] Plugin UI renders (card, tab, page)
-- [ ] No console errors (browser DevTools)
+- [ ] Backend health: `curl http://localhost:7007/api/<plugin>/health` returns `{"status":"ok"}`
+- [ ] Logs clean: `podman compose logs rhdh 2>&1 | grep -i <plugin>` shows no errors
+- [ ] Card renders on test entity Overview tab
+- [ ] Auth errors expected without real credentials — confirms wiring works
 
-**Success:** Plugin renders and attempts API calls. Auth errors expected without real credentials.
+### 5.5 (Optional) Test Extensions Catalog Visibility
 
-### 5.5 (Optional) Test Plugin Entity in Extensions Catalog
+To verify the Plugin entity appears in `/extensions/catalog`:
 
-Verify the Plugin entity appears correctly in the Extensions Catalog UI.
+1. Create `compose.override.yaml` mounting catalog entities
+2. Create `configs/app-config/app-config.local.yaml` with `Plugin` kind allowed
 
-**Prerequisites:**
+See `references/rhdh-local.md` → `<extensions_catalog_visibility>` for complete config.
 
-1. Plugin entity created in `catalog-entities/marketplace/plugins/<plugin-name>.yaml`
-2. Plugin added to `catalog-entities/marketplace/plugins/all.yaml` (alphabetical order)
-
-**Discover rhdh-local location:**
-
-```bash
-rhdh-plugin config show  # Look for "local:" path
-# Or use: $RHDH_LOCAL_REPO environment variable
-```
-
-**One-time setup — create these files in rhdh-local:**
-
-**1. Create `compose.override.yaml`:**
-
-```yaml
-services:
-  rhdh:
-    volumes:
-      - type: bind
-        source: ../rhdh-plugin-export-overlays/catalog-entities/marketplace/plugins/
-        target: /marketplace/catalog-entities/plugins
-        read_only: true
-      - type: bind
-        source: ../rhdh-plugin-export-overlays/catalog-entities/marketplace/packages/
-        target: /marketplace/catalog-entities/packages
-        read_only: true
-```
-
-> ⚠️ Adjust `source:` paths if your overlay repo is in a different location relative to rhdh-local.
-
-**2. Create `configs/app-config/app-config.local.yaml`:**
-
-Read `configs/app-config/app-config.default.yaml` as the base. YAML arrays don't merge, so you must include all default catalog locations plus the new marketplace locations.
-
-Add these to the catalog locations array:
-
-```yaml
-catalog:
-  locations:
-    # ... include all defaults from app-config.default.yaml ...
-    - type: file
-      target: /marketplace/catalog-entities/plugins/all.yaml
-      rules:
-        - allow: [Plugin]
-    - type: file
-      target: /marketplace/catalog-entities/packages/all.yaml
-      rules:
-        - allow: [Package]
-  rules:
-    # ... include existing rules ...
-    - allow: [Plugin, Package]  # Add these entity kinds
-```
-
-**3. Restart and verify:**
-
-```bash
-podman compose down && podman compose up -d
-```
-
-Navigate to **<http://localhost:7007/extensions>** — your plugin card should appear.
-
-**Verification checklist:**
+**Verification:**
 
 - [ ] Plugin card appears in Extensions Catalog
-- [ ] Plugin name and description display correctly
-- [ ] Categories/tags render properly
-- [ ] "Install" or details link works
+- [ ] Name, description, categories display correctly
 
 ### 5.6 Update PR Description
 
-Add verification results to PR description (not comments). See `templates/workspace-files.md` for the verification section template.
+Add verification results to PR. See `templates/workspace-files.md` for template.
 
 ### 5.7 Local Cleanup
 
-- [ ] Remove test override files (don't commit to rhdh-local)
-- [ ] Stop rhdh-local: `podman compose down`
+```bash
+rm configs/dynamic-plugins/dynamic-plugins.override.yaml
+rm configs/catalog-entities/components.override.yaml
+rm -f compose.override.yaml configs/app-config/app-config.local.yaml
+podman compose down
+```
 
 ---
 

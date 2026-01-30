@@ -242,7 +242,7 @@ The CLI includes worklog and todo tracking to maintain context across sessions. 
 
 ### Worklog Commands
 
-Append-only activity log stored in `~/.config/rhdh-plugin-skill/worklog.jsonl`:
+Append-only activity log stored in `.rhdh-plugin/worklog.jsonl`:
 
 ```bash
 # Log activity with tags for searchability
@@ -259,7 +259,7 @@ $RHDH_PLUGIN log search "onboard"
 
 ### Todo Commands
 
-Section-based markdown todos stored in `~/.config/rhdh-plugin-skill/TODO.md`:
+Section-based markdown todos stored in `.rhdh-plugin/TODO.md`:
 
 ```bash
 # Create todo when blocked
@@ -346,6 +346,7 @@ $RHDH_PLUGIN log add "Resumed onboard: license approved" --tag onboard
 **CI feedback interpretation:** references/ci-feedback.md
 **Metadata format:** references/metadata-format.md
 **PR label priorities:** references/label-priority.md
+**RHDH Local testing:** references/rhdh-local.md
 </reference_index>
 
 <workflows_index>
