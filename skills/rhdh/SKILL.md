@@ -4,10 +4,17 @@ description: Orchestrator skill for RHDH plugin development. Provides CLI toolin
 ---
 
 <cli_setup>
-**Set the CLI variable for this session:**
+**Locate and set the CLI variable:**
+
+The CLI script is at `scripts/rhdh` **relative to this SKILL.md file** (not the working directory).
+
+When you read this file, note its path and derive the script location:
+
+- If SKILL.md is at `/path/to/skills/rhdh/SKILL.md`
+- Then the CLI is at `/path/to/skills/rhdh/scripts/rhdh`
 
 ```bash
-RHDH=scripts/rhdh
+RHDH="/path/to/skills/rhdh/scripts/rhdh"  # Use the actual path
 ```
 
 **Get oriented (run first):**

@@ -7,7 +7,7 @@ A Claude Code skill for managing Red Hat Developer Hub plugins — onboarding, u
 ### From Local Checkout (Development)
 
 ```bash
-claude plugin marketplace add ~/src/rhdh/store-manager/rhdh-skill
+claude plugin marketplace add ~/src/rhdh/rhdh-skill
 claude plugin install --scope project rhdh
 ```
 
