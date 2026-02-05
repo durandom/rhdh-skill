@@ -1,0 +1,159 @@
+# Example Dynamic Plugin Configurations
+# Demonstrates various packaging formats and configuration patterns
+
+plugins:
+  # ============================================================
+  # OCI Image Examples
+  # ============================================================
+
+  # Backend plugin from OCI image (basic)
+  - package: oci://quay.io/example/my-backend-plugin:v1.0.0!my-plugin-backend-dynamic
+    disabled: false
+    pluginConfig:
+      myPlugin:
+        apiUrl: https://api.example.com
+
+  # Frontend plugin from OCI image
+  - package: oci://quay.io/example/my-frontend-plugin:v1.0.0!my-plugin
+    disabled: false
+    pluginConfig:
+      dynamicPlugins:
+        frontend:
+          my-org.plugin-my-plugin:
+            dynamicRoutes:
+              - path: /my-plugin
+                importName: MyPage
+                menuItem:
+                  icon: dashboard
+                  text: My Plugin
+
+  # OCI with digest (recommended for production)
+  - package: oci://quay.io/example/my-plugin@sha256:28036abec4dffc714394e4ee433f16a59493db8017795049c831be41c02eb5dc!my-plugin-backend-dynamic
+    disabled: false
+
+  # OCI with version inheritance (requires includes)
+  # includes:
+  #   - dynamic-plugins.default.yaml
+  - package: oci://quay.io/example/my-plugin:{{inherit}}!my-plugin-backend-dynamic
+    disabled: false
+
+  # ============================================================
+  # Multi-Plugin Bundle Examples
+  # ============================================================
+
+  # Frontend and backend from same OCI image
+  - package: oci://quay.io/example/my-plugin-bundle:v1.0.0!my-plugin
+    disabled: false
+    pluginConfig:
+      dynamicPlugins:
+        frontend:
+          my-org.plugin-my-plugin:
+            mountPoints:
+              - mountPoint: entity.page.overview/cards
+                importName: MyPluginCard
+
+  - package: oci://quay.io/example/my-plugin-bundle:v1.0.0!my-plugin-backend-dynamic
+    disabled: false
+    pluginConfig:
+      myPlugin:
+        apiUrl: https://api.example.com
+
+  # ============================================================
+  # tgz Archive Examples
+  # ============================================================
+
+  # Plugin from HTTP server
+  - package: https://plugin-registry.example.com/my-plugin-1.0.0.tgz
+    integrity: sha512-9WlbgEdadJNeQxdn1973r5E4kNFvnT9GjLD627GWgrhCaxjCmxqdNW08cj+Bf47mwAtZMt1Ttyo+ZhDRDj9PoA==
+    disabled: false
+    pluginConfig:
+      myPlugin:
+        enabled: true
+
+  # Plugin from internal httpd service (OpenShift)
+  - package: http://plugin-registry:8080/my-plugin-backend-dynamic-1.0.0.tgz
+    integrity: sha512-abc123def456...
+    disabled: false
+
+  # ============================================================
+  # npm Package Examples
+  # ============================================================
+
+  # Plugin from private npm registry
+  - package: '@my-org/my-plugin-dynamic@1.0.0'
+    integrity: sha512-xyz789...
+    disabled: false
+    pluginConfig:
+      myPlugin:
+        setting: value
+
+  # Scoped package with specific version
+  - package: '@company/backstage-plugin-custom@^2.0.0'
+    integrity: sha512-abc...
+    disabled: false
+
+  # ============================================================
+  # Local Development Examples
+  # ============================================================
+
+  # Pre-installed plugin (already in RHDH image)
+  - package: ./dynamic-plugins/dist/backstage-plugin-catalog-backend-module-github-dynamic
+    disabled: false
+
+  # Local development plugin (copied to dynamic-plugins-root)
+  - package: ./dynamic-plugins-root/my-dev-plugin-dynamic
+    disabled: false
+    pluginConfig:
+      myDevPlugin:
+        debug: true
+
+  # ============================================================
+  # Complete Plugin Configuration Patterns
+  # ============================================================
+
+  # Backend plugin with full config
+  - package: oci://quay.io/example/complete-backend:v1.0.0!complete-backend-dynamic
+    disabled: false
+    pluginConfig:
+      completePlugin:
+        apiUrl: https://api.example.com
+        timeout: 30000
+        auth:
+          type: bearer
+          tokenEnv: PLUGIN_API_TOKEN
+        features:
+          caching: true
+          retries: 3
+
+  # Frontend plugin with full wiring
+  - package: oci://quay.io/example/complete-frontend:v1.0.0!complete-frontend
+    disabled: false
+    pluginConfig:
+      dynamicPlugins:
+        frontend:
+          my-org.plugin-complete:
+            appIcons:
+              - name: completeIcon
+                importName: CompleteIcon
+
+            dynamicRoutes:
+              - path: /complete
+                importName: CompletePage
+                menuItem:
+                  icon: completeIcon
+                  text: Complete Plugin
+
+            mountPoints:
+              - mountPoint: entity.page.overview/cards
+                importName: CompleteCard
+                config:
+                  layout:
+                    gridColumn: '1 / -1'
+                  if:
+                    allOf:
+                      - isKind: component
+                      - hasAnnotation: complete-plugin/enabled
+
+            menuItems:
+              complete:
+                priority: 50
