@@ -1,4 +1,4 @@
-"""Tests for jira-structure skill structure and content validation."""
+"""Tests for rhdh-jira-structure skill structure and content validation."""
 
 import re
 from pathlib import Path
@@ -6,18 +6,18 @@ from pathlib import Path
 import pytest
 import yaml
 
-JIRA_STRUCTURE_SKILL_DIR = Path(__file__).parent.parent.parent / "skills" / "jira-structure"
+JIRA_STRUCTURE_SKILL_DIR = Path(__file__).parent.parent.parent / "skills" / "rhdh-jira-structure"
 
 
 @pytest.fixture
 def jira_skill_dir():
-    """Return the jira-structure skill directory path."""
+    """Return the rhdh-jira-structure skill directory path."""
     return JIRA_STRUCTURE_SKILL_DIR
 
 
 @pytest.fixture
 def skill_md(jira_skill_dir):
-    """Load jira-structure SKILL.md content."""
+    """Load rhdh-jira-structure SKILL.md content."""
     skill_path = jira_skill_dir / "SKILL.md"
     return skill_path.read_text()
 
@@ -32,7 +32,7 @@ def skill_frontmatter(skill_md):
 
 
 class TestJiraStructureSkillMd:
-    """Test that jira-structure SKILL.md has required structure."""
+    """Test that rhdh-jira-structure SKILL.md has required structure."""
 
     def test_skill_md_exists(self, jira_skill_dir):
         """SKILL.md must exist."""
@@ -41,7 +41,7 @@ class TestJiraStructureSkillMd:
     def test_frontmatter_has_name(self, skill_frontmatter):
         """SKILL.md must have a name field."""
         assert "name" in skill_frontmatter
-        assert skill_frontmatter["name"] == "jira-structure"
+        assert skill_frontmatter["name"] == "rhdh-jira-structure"
 
     def test_frontmatter_has_description(self, skill_frontmatter):
         """SKILL.md must have a description field with trigger phrases."""

@@ -1,5 +1,5 @@
 ---
-name: jira-structure
+name: rhdh-jira-structure
 description: >-
   Use when the user asks about RHDH Jira structure, issue types, which
   project to file in, or when creating a new Jira issue.
