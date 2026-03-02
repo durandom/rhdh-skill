@@ -220,7 +220,7 @@ class TestReferenceStructure:
     def test_reference_has_xml_sections(self, reference_files):
         """Reference files should use XML tags for structure (optional for cheatsheets)."""
         # Some reference files are practical cheatsheets without XML structure
-        xml_optional = {"jira-reference.md", "github-tips.md"}
+        xml_optional = {"jira-reference.md", "jira-structure.md", "github-tips.md"}
 
         for ref in reference_files:
             if ref.name in xml_optional:

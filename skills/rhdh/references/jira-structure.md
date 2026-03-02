@@ -1,11 +1,4 @@
----
-name: rhdh-jira-structure
-description: >-
-  Use when the user asks about RHDH Jira structure, issue types, which
-  project to file in, or when creating a new Jira issue.
----
-
-# RHDH Jira Structure
+# Reference: RHDH Jira Structure
 
 Reference for RHDH Jira projects, the issue types available in each project,
 and rules for which project to file issues in.
