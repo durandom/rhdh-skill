@@ -9,7 +9,7 @@ and rules for which project to file issues in.
 - **RHDHPLAN** — Program Planning: High-level planning, Outcomes, Features, and Feature Requests for RHDH program planning
 - **RHDHBUGS** — Bug Tracking: Tracking bugs and other defects in RHDH
 - **RHDHSUPP** — Customer Support: Communication between customer support team to track customer reported issues and support requests
-- **RHDHPAI** — Dev AI Engineering: Main project for tracking engineering work of the Dev AI RHDH Team
+
 
 ## Issue Types by Project
 
@@ -39,10 +39,6 @@ and rules for which project to file issues in.
 - **Bug** — Customer-reported issues
 
 Single type only — no Sub-task, Task, or Story types.
-
-### RHDHPAI — Dev AI Engineering
-
-No issues found. Project appears to be newly created or empty.
 
 ## Where Each Issue Type Lives
 

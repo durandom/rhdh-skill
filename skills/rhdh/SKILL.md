@@ -140,7 +140,7 @@ What would you like to do?
 
 | Response | Action |
 |----------|--------|
-| 10, "jira", "jira projects", "issue types", "RHIDP", "RHDHPLAN" | Read `references/jira-structure.md` and use it as context |
+| 10, "jira", "jira projects", "issue types", "RHIDP", "RHDHPLAN", "RHDHBUGS", "RHDHSUPP" | Read `references/jira-structure.md` and use it as context |
 
 ### General Routes
 

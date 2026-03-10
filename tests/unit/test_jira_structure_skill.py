@@ -33,6 +33,7 @@ class TestJiraStructureReference:
         assert "RHDHSUPP" in jira_structure_content
         assert "RHDHBUGS" in jira_structure_content
 
+
     def test_mentions_issue_types(self, jira_structure_content):
         """Reference should list issue types."""
         assert "Story" in jira_structure_content
