@@ -43,6 +43,12 @@ See the `<tracking_system>` section for details.
 These contain critical gotchas (jq escaping, JQL limitations, assignee format) that prevent common errors.
 </principle>
 
+<principle name="understand_rhdh_repos">
+**Before any RHDH-related work**, consult `references/rhdh-repos.md` for a reference of all RHDH-related repositories, what each one is used for, and how they relate to each other.
+Use this when navigating between projects or understanding the overall RHDH ecosystem.
+use `$RHDH config set`  to set path to the local checkout of the RHDH repositories.
+</principle>
+
 </essential_principles>
 
 <context_scan>
@@ -263,6 +269,7 @@ Todos must be **self-contained**—a new session should understand the task with
 </tracking_system>
 
 <reference_index>
+**RHDH Repos:** references/rhdh-repos.md — repository map, ecosystem relationships, key paths
 **GitHub CLI (PRs, CI, workflows):** references/github-reference.md
 **JIRA CLI (issues, JQL, comments):** references/jira-reference.md
 **JIRA Structure (projects, issue types, filing rules):** references/jira-structure.md
