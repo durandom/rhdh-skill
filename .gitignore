@@ -31,4 +31,5 @@ Thumbs.db
 .python-version
 
 # Local config (project-specific settings)
+.rhdh/
 .rhdh-plugin/

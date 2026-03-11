@@ -175,10 +175,17 @@ $RHDH doctor
 **Configuration:**
 
 ```bash
-$RHDH config init              # Create config with auto-detection
-$RHDH config show              # Show resolved paths
-$RHDH config set overlay /path # Set repo location
-$RHDH config set local /path   # Set rhdh-local location
+$RHDH config init                  # Create config with auto-detection
+$RHDH config show                  # Show resolved paths
+$RHDH config set overlay /path     # Set rhdh-plugin-export-overlays location
+$RHDH config set local /path       # Set rhdh-local location
+$RHDH config set rhdh /path        # Set main rhdh repo location
+$RHDH config set downstream /path  # Set rhdh-downstream location
+$RHDH config set cli /path         # Set rhdh-cli location
+$RHDH config set plugins /path     # Set rhdh-plugins location
+$RHDH config set operator /path    # Set rhdh-operator location
+$RHDH config set chart /path       # Set rhdh-chart location
+$RHDH config set catalog /path     # Set rhdh-plugin-catalog location
 ```
 
 **Workspace operations:**
