@@ -95,6 +95,8 @@ class TestListWorkspaces:
 
     def test_returns_none_when_no_overlay(self, tmp_path, monkeypatch):
         """Should return (None, []) when overlay repo not found."""
+        from unittest.mock import patch
+
         from rhdh import config
         from rhdh.workspace import list_workspaces
 
@@ -106,10 +108,12 @@ class TestListWorkspaces:
         config.USER_CONFIG_DIR = tmp_path / ".config"
         config.USER_CONFIG_FILE = config.USER_CONFIG_DIR / "config.json"
 
-        overlay_path, workspaces = list_workspaces()
+        # Mock find_git_root to prevent picking up real .rhdh/config.json
+        with patch.object(config, "find_git_root", return_value=tmp_path):
+            overlay_path, workspaces = list_workspaces()
 
-        assert overlay_path is None
-        assert workspaces == []
+            assert overlay_path is None
+            assert workspaces == []
 
     def test_returns_empty_list_when_no_workspaces_dir(self, tmp_path, monkeypatch):
         """Should return empty list when workspaces dir doesn't exist."""
@@ -185,6 +189,8 @@ class TestGetWorkspace:
 
     def test_returns_error_when_no_overlay(self, tmp_path, monkeypatch):
         """Should return error when overlay repo not configured."""
+        from unittest.mock import patch
+
         from rhdh import config
         from rhdh.workspace import get_workspace
 
@@ -193,8 +199,10 @@ class TestGetWorkspace:
         config.USER_CONFIG_DIR = tmp_path / ".config"
         config.USER_CONFIG_FILE = config.USER_CONFIG_DIR / "config.json"
 
-        found, workspace, error = get_workspace("any")
+        # Mock find_git_root to prevent picking up real .rhdh/config.json
+        with patch.object(config, "find_git_root", return_value=tmp_path):
+            found, workspace, error = get_workspace("any")
 
-        assert found is False
-        assert workspace is None
-        assert "overlay" in error.lower()
+            assert found is False
+            assert workspace is None
+            assert "overlay" in error.lower()
