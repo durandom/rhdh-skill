@@ -20,7 +20,6 @@ from .config import (
     SUBMODULE_REPOS,
     get_data_dir,
     get_github_username,
-    get_overlay_repo,
     get_repo,
     list_submodule_repos,
     save_github_username,
@@ -97,7 +96,7 @@ def cmd_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     needs_setup = False
 
     # Check all configured repos
-    for repo_name, info in SUBMODULE_REPOS.items():
+    for info in SUBMODULE_REPOS.values():
         config_key = info["config_key"]
         required = info["required"]
         repo_path = get_repo(config_key)
@@ -235,7 +234,7 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     issues: list[str] = []
 
     # Check all repos
-    for repo_name, info in SUBMODULE_REPOS.items():
+    for info in SUBMODULE_REPOS.values():
         config_key = info["config_key"]
         required = info["required"]
         repo_path = get_repo(config_key)

@@ -75,6 +75,8 @@ SUBMODULE_REPOS: dict[str, dict] = {
         "required": False,
         "config_key": "catalog",
         "description": "Midstream plugin builds, OCI artifacts & catalog index",
+        "upstream_host": "gitlab.cee.redhat.com",
+        "upstream_path": "rhidp/rhdh-plugin-catalog",
     },
     "rhdh-operator": {
         "has_fork": False,
