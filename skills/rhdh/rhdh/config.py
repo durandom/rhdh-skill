@@ -94,6 +94,12 @@ SUBMODULE_REPOS: dict[str, dict] = {
         "config_key": "local",
         "description": "Local RHDH testing environment (Docker Compose)",
     },
+    "rhdh-dynamic-plugin-factory": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "factory",
+        "description": "Container for local dynamic plugin building",
+    },
     "backstage": {
         "has_fork": False,
         "required": False,

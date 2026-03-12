@@ -46,7 +46,7 @@ These contain critical gotchas (jq escaping, JQL limitations, assignee format) t
 <principle name="understand_rhdh_repos">
 **Before any RHDH-related work**, consult `references/rhdh-repos.md` for a reference of all RHDH-related repositories, what each one is used for, and how they relate to each other.
 Use this when navigating between projects or understanding the overall RHDH ecosystem.
-use `$RHDH config set`  to set path to the local checkout of the RHDH repositories.
+Use `$RHDH config set` to set the path to the local checkout of the RHDH repositories.
 </principle>
 
 </essential_principles>
@@ -298,6 +298,7 @@ Todos must be **self-contained**—a new session should understand the task with
 
 | Reference | Purpose | Path |
 |-----------|---------|------|
+| rhdh-repos | Repository map, ecosystem relationships, key paths | `references/rhdh-repos.md` |
 | versions | RHDH/Backstage version compatibility matrix | `references/versions.md` |
 | jira-structure | RHDH Jira projects, issue types, filing rules | `references/jira-structure.md` |
 

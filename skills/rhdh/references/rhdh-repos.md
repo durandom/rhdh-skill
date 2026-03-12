@@ -133,6 +133,16 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
   - **Branching:** `main` for active development; `1.2` for release maintenance; `changesets-release/<workspace>/main` for automated version PRs.
 - **Key paths:** `workspaces/` (all plugin workspaces), `scripts/ci/` (CI helper scripts), `.github/CODEOWNERS` (per-workspace ownership)
 
+### rhdh-dynamic-plugin-factory
+
+- **Upstream:** https://github.com/redhat-developer/rhdh-dynamic-plugin-factory
+- **Description:** Container image and tooling for building dynamic plugins locally. Provides a pre-configured build environment with all necessary dependencies (Node.js, Yarn, Backstage CLI) so plugin authors can export and package plugins without setting up a full development environment. Used via `podman` or `docker`.
+- **Tech stack:** Container (Podman/Docker), Node.js, Yarn, Backstage CLI
+- **Key concepts:**
+  - **Container-based builds:** Run `podman run` or `docker run` with the factory image to build plugins in an isolated environment.
+  - **Used by overlay workflows:** `rhdh-plugin-export-overlays` can use the factory container for local plugin builds.
+- **Key paths:** `Containerfile` (image definition)
+
 ### backstage
 
 - **Upstream:** https://github.com/backstage/backstage
@@ -172,6 +182,7 @@ rhdh (enterprise distribution, github.com)
     |   +-- rhdh-chart (Helm chart)
     |
     +-- rhdh-local (local dev/test environment)
+    +-- rhdh-dynamic-plugin-factory (container for local plugin building)
 ```
 
 ## Common Workflows
