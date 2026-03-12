@@ -96,10 +96,14 @@ What would you like to do?
 8. **Export and package plugin** — Export plugin and package as OCI/tgz/npm
 9. **Configure frontend wiring** — Set up mount points, routes, entity tabs
 
+### Jira Tasks
+
+10. **Jira structure** — Projects and issue types
+
 ### General Tasks
 
-10. **Check environment** — Run doctor, configure paths
-11. **View/search activity** — Review worklog, todos
+11. **Check environment** — Run doctor, configure paths
+12. **View/search activity** — Review worklog, todos
 
 **Wait for response before proceeding.**
 </intake>
@@ -132,12 +136,18 @@ What would you like to do?
 
 **To route:** Read the corresponding skill file in `../` and follow its workflow.
 
+### Jira Routes
+
+| Response | Action |
+|----------|--------|
+| 10, "jira", "jira projects", "issue types", "RHIDP", "RHDHPLAN", "RHDHBUGS", "RHDHSUPP" | Read `references/jira-structure.md` and use it as context |
+
 ### General Routes
 
 | Response | Action |
 |----------|--------|
-| 10, "doctor", "setup", "config" | Use CLI commands below |
-| 11, "log", "todo", "activity" | Use tracking commands below |
+| 11, "doctor", "setup", "config" | Use CLI commands below |
+| 12, "log", "todo", "activity" | Use tracking commands below |
 
 </routing>
 
@@ -255,6 +265,7 @@ Todos must be **self-contained**—a new session should understand the task with
 <reference_index>
 **GitHub CLI (PRs, CI, workflows):** references/github-reference.md
 **JIRA CLI (issues, JQL, comments):** references/jira-reference.md
+**JIRA Structure (projects, issue types, filing rules):** references/jira-structure.md
 </reference_index>
 
 <skills_index>
@@ -274,5 +285,6 @@ Todos must be **self-contained**—a new session should understand the task with
 | Reference | Purpose | Path |
 |-----------|---------|------|
 | versions | RHDH/Backstage version compatibility matrix | `references/versions.md` |
+| jira-structure | RHDH Jira projects, issue types, filing rules | `references/jira-structure.md` |
 
 </skills_index>
