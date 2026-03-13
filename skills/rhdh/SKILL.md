@@ -106,6 +106,12 @@ What would you like to do?
 
 10. **Jira structure** — Projects and issue types
 
+### Local Testing Tasks
+
+*For testing plugins in a local RHDH instance using rhdh-local-setup*
+
+13. **Local testing** — Enable/disable/test plugins in local RHDH
+
 ### General Tasks
 
 11. **Check environment** — Run doctor, configure paths
@@ -147,6 +153,14 @@ What would you like to do?
 | Response | Action |
 |----------|--------|
 | 10, "jira", "jira projects", "issue types", "RHIDP", "RHDHPLAN", "RHDHBUGS", "RHDHSUPP" | Read `references/jira-structure.md` and use it as context |
+
+### Local Testing Routes
+
+| Response | Skill |
+|----------|-------|
+| 13, "local", "test locally", "enable plugin", "disable plugin", "local testing", "rhdh-local-setup" | Route to `@local-testing` skill |
+
+**To route:** Read `../local-testing/SKILL.md` and follow its intake process.
 
 ### General Routes
 
@@ -293,6 +307,7 @@ Todos must be **self-contained**—a new session should understand the task with
 | create-frontend-plugin | Bootstrap new RHDH frontend dynamic plugins | `../create-frontend-plugin/SKILL.md` |
 | export-and-package | Export and package plugins as OCI/tgz/npm | `../export-and-package/SKILL.md` |
 | generate-frontend-wiring | Configure frontend mount points, routes, tabs | `../generate-frontend-wiring/SKILL.md` |
+| local-testing | Enable/disable/test plugins in local RHDH | `../local-testing/SKILL.md` |
 
 ### Shared References
 

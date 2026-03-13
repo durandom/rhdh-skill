@@ -271,3 +271,204 @@ rm configs/app-config/app-config.local.yaml
 podman compose down
 ```
 </cleanup>
+
+<customization_system>
+**Purpose:** The `rhdh-customizations/` copy-sync system manages all configuration overrides without touching the pristine `rhdh-local/` git repo.
+
+**Architecture:**
+
+```
+rhdh-local-setup/
+├── rhdh-local/               # Upstream git repo (NEVER edit directly)
+└── rhdh-customizations/      # Your config files (always edit here)
+    ├── apply-customizations.sh   # Copies files INTO rhdh-local/
+    ├── remove-customizations.sh  # Deletes copies from rhdh-local/
+    ├── .env                      # Environment variables
+    ├── compose.override.yaml     # Extra compose services
+    └── configs/
+        ├── app-config/app-config.local.yaml
+        ├── dynamic-plugins/dynamic-plugins.override.yaml
+        ├── catalog-entities/*.override.yaml
+        └── extra-files/          # e.g. github-app-credentials.yaml
+```
+
+**File mapping** (source → destination after `apply-customizations.sh`):
+
+| Source in `rhdh-customizations/` | Destination in `rhdh-local/` |
+|----------------------------------|-------------------------------|
+| `compose.override.yaml` | `compose.override.yaml` |
+| `.env` | `.env` |
+| `configs/app-config/app-config.local.yaml` | `configs/app-config/app-config.local.yaml` |
+| `configs/dynamic-plugins/dynamic-plugins.override.yaml` | `configs/dynamic-plugins/dynamic-plugins.override.yaml` |
+| `configs/catalog-entities/*.override.yaml` | `configs/catalog-entities/*.override.yaml` |
+| `configs/extra-files/*` | `configs/extra-files/*` |
+| `developer-lightspeed/configs/app-config/app-config.lightspeed.local.yaml` | same path |
+
+**Configuration precedence (lowest → highest):**
+
+1. `rhdh-local/` defaults (`default.env`, `app-config.yaml`, `dynamic-plugins.default.yaml`)
+2. Override files copied from `rhdh-customizations/` (`.env`, `app-config.local.yaml`, `dynamic-plugins.override.yaml`)
+3. `app-config.local.yaml` loads last (highest precedence among config files)
+4. Environment variables from `.env` override `default.env`
+
+**Standard workflow:**
+
+```bash
+# 1. Edit customizations (ALWAYS in rhdh-customizations/)
+# 2. Sync copies into rhdh-local/
+cd rhdh-customizations && ./apply-customizations.sh
+# 3. Restart
+cd .. && ./down.sh && ./up.sh --customized [flags]
+```
+
+**NEVER:**
+
+- Modify files in `rhdh-local/` directly
+- Manually copy files — always use `apply-customizations.sh`
+- Commit `*.local.yaml`, `*.override.yaml`, `.env` to the rhdh-local repo
+
+**Verify pristine state:**
+
+```bash
+cd rhdh-local && git status  # Should show "working tree clean"
+```
+
+**What to edit and where:**
+
+| Change | File to edit |
+|--------|-------------|
+| App configuration | `rhdh-customizations/configs/app-config/app-config.local.yaml` |
+| Plugins | `rhdh-customizations/configs/dynamic-plugins/dynamic-plugins.override.yaml` |
+| Environment variables | `rhdh-customizations/.env` |
+| Extra compose services | `rhdh-customizations/compose.override.yaml` |
+| Credentials | `rhdh-customizations/configs/extra-files/github-app-credentials.yaml` |
+</customization_system>
+
+<container_lifecycle>
+**Critical rule:** Use `up.sh` / `down.sh` scripts — NEVER `podman compose restart` or `podman compose up/down` directly when Lightspeed or Orchestrator are enabled.
+
+**Why:** Several containers share RHDH's network namespace via `network_mode: "service:rhdh"`:
+
+- `lightspeed-core-service` (port 8080)
+- `llama-stack` (port 8321)
+
+When RHDH restarts, it gets a NEW network namespace. Containers in `service:rhdh` mode stay in the OLD namespace → **504 Gateway Timeout** even though containers appear "running".
+
+**Startup scripts:**
+
+```bash
+./up.sh --customized                  # With customizations (most common)
+./up.sh --baseline                    # Pristine RHDH only
+./up.sh --customized --lightspeed    # With AI assistant
+./up.sh --customized --orchestrator  # With Orchestrator
+./up.sh --customized --both --ollama # Everything enabled
+./up.sh --customized --follow-logs   # Tail logs after startup
+```
+
+**Shutdown scripts:**
+
+```bash
+./down.sh                    # Stop (interactive)
+./down.sh --keep-volumes     # Keep database for fast restart
+./down.sh --volumes          # Full clean slate
+```
+
+> `down.sh` removes customization copies from `rhdh-local/`. Reapply before next start:
+> `cd rhdh-customizations && ./apply-customizations.sh`
+
+**FORBIDDEN** (when Lightspeed/Orchestrator enabled):
+
+```bash
+podman compose restart rhdh
+podman compose down && podman compose up -d
+podman compose -f compose.yaml -f orchestrator/compose.yaml restart
+```
+
+**Exception:** If running ONLY base RHDH (no Lightspeed, no Orchestrator), direct `podman compose restart rhdh` is acceptable for config-only changes.
+
+**Services and network membership:**
+
+| Service | Network | Purpose |
+|---------|---------|---------|
+| `install-dynamic-plugins` | Independent | Plugin installation (runs once) |
+| `rhdh` | Owns namespace | Main application |
+| `lightspeed-core-service` | Shares `rhdh` | AI assistant |
+| `llama-stack` | Shares `rhdh` | LLM inference |
+| `sonataflow` | Independent | Workflow engine |
+| `ollama` | Independent | Local LLM runtime |
+
+**Startup flow:**
+
+1. `install-dynamic-plugins` installs plugins from `dynamic-plugins.override.yaml`
+2. `rhdh` waits for installation to complete
+3. `rhdh` applies config overrides and starts Backstage
+4. Network-sharing containers attach to RHDH's namespace
+</container_lifecycle>
+
+<common_operations>
+**Restart decision table:**
+
+| Situation | Action |
+|-----------|--------|
+| Changed `dynamic-plugins.override.yaml` | `apply-customizations.sh` → `down.sh` → `up.sh --customized` |
+| Changed `app-config.local.yaml` | `apply-customizations.sh` → `down.sh` → `up.sh --customized` |
+| Changed `.env` | `apply-customizations.sh` → `down.sh` → `up.sh --customized` |
+| Base RHDH only, config change | `apply-customizations.sh` → `podman compose restart rhdh` |
+| Update rhdh-local from upstream | `down.sh` → `cd rhdh-local && git pull` → `apply-customizations.sh` → `up.sh --customized` |
+| Test pristine (no customizations) | `down.sh` → `up.sh --baseline` |
+| Full clean slate | `down.sh --volumes` → `apply-customizations.sh` → `up.sh --customized` |
+
+**Add a plugin:**
+
+```bash
+# 1. Edit
+code rhdh-customizations/configs/dynamic-plugins/dynamic-plugins.override.yaml
+# 2. Sync + restart
+cd rhdh-customizations && ./apply-customizations.sh
+cd .. && ./down.sh && ./up.sh --customized [flags]
+```
+
+**Switch to pristine mode (no customizations):**
+
+```bash
+./down.sh
+./up.sh --baseline
+# Restore when done:
+cd rhdh-customizations && ./apply-customizations.sh
+cd .. && ./down.sh && ./up.sh --customized [flags]
+```
+
+**View logs:**
+
+```bash
+./up.sh --customized --follow-logs         # Auto-tail after startup
+cd rhdh-local
+podman compose logs -f rhdh               # Main RHDH logs
+podman compose logs install-dynamic-plugins  # Plugin installation
+```
+
+**Troubleshooting: customizations not applied:**
+
+```bash
+cd rhdh-customizations && ./apply-customizations.sh
+ls -la ../rhdh-local/.env                 # Verify copy exists
+ls -la ../rhdh-local/configs/dynamic-plugins/dynamic-plugins.override.yaml
+# Verify pristine status clean:
+cd ../rhdh-local && git status
+```
+
+**Troubleshooting: 504 Gateway Timeout:**
+
+```bash
+# Cause: network namespace desync (Lightspeed/Orchestrator running)
+./down.sh && ./up.sh --customized --both [flags]  # Full restart required
+```
+
+**Share setup with team:**
+
+```bash
+./backup.sh  # Creates archive in ~/rhdh-local-backups/
+# Recipients follow RESTORE.md inside the archive
+```
+
+</common_operations>

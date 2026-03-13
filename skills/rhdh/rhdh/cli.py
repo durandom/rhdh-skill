@@ -20,6 +20,7 @@ from .config import (
     SUBMODULE_REPOS,
     get_data_dir,
     get_github_username,
+    get_local_setup_dir,
     get_repo,
     list_submodule_repos,
     save_github_username,
@@ -353,6 +354,73 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         )
         fmt.log_info("jira: not installed (optional, see references/jira-reference.md)")
 
+    # Local Setup (rhdh-local-setup customization system)
+    fmt.header("Local Setup (rhdh-local-setup)")
+
+    local_setup = get_local_setup_dir()
+    if local_setup:
+        checks.append({"name": "local_setup", "status": "pass", "message": str(local_setup)})
+        fmt.log_ok(f"rhdh-local-setup found: {local_setup}")
+
+        # Check rhdh-local is present inside it
+        local_dir = local_setup / "rhdh-local"
+        if local_dir.is_dir():
+            checks.append(
+                {"name": "local_setup_rhdh_local", "status": "pass", "message": str(local_dir)}
+            )
+            fmt.log_ok("  rhdh-local: found")
+        else:
+            checks.append(
+                {"name": "local_setup_rhdh_local", "status": "warn", "message": "not found"}
+            )
+            fmt.log_warn(f"  rhdh-local not found inside {local_setup}")
+
+        # Check customizations dir
+        customizations_dir = local_setup / "rhdh-customizations"
+        if customizations_dir.is_dir():
+            checks.append(
+                {"name": "customizations_dir", "status": "pass", "message": str(customizations_dir)}
+            )
+            fmt.log_ok("  rhdh-customizations: found")
+        else:
+            checks.append({"name": "customizations_dir", "status": "warn", "message": "not found"})
+            fmt.log_warn(f"  rhdh-customizations not found inside {local_setup}")
+
+        # Check if customizations are synced
+        override_yaml = local_dir / "configs" / "dynamic-plugins" / "dynamic-plugins.override.yaml"
+        if override_yaml.exists():
+            checks.append({"name": "customizations_synced", "status": "pass", "message": "synced"})
+            fmt.log_ok("  customizations: synced to rhdh-local")
+        else:
+            checks.append(
+                {"name": "customizations_synced", "status": "info", "message": "not synced"}
+            )
+            fmt.log_info("  customizations: not synced (run apply-customizations.sh)")
+
+        # Check if RHDH is running on port 7007
+        import socket
+
+        rhdh_running = False
+        try:
+            with socket.create_connection(("localhost", 7007), timeout=1):
+                rhdh_running = True
+        except OSError:
+            pass
+
+        if rhdh_running:
+            checks.append({"name": "rhdh_port_7007", "status": "pass", "message": "running"})
+            fmt.log_ok("  RHDH: running on http://localhost:7007")
+        else:
+            checks.append({"name": "rhdh_port_7007", "status": "info", "message": "not running"})
+            fmt.log_info("  RHDH: not running (start with ./up.sh --customized)")
+    else:
+        checks.append(
+            {"name": "local_setup", "status": "info", "message": "not configured (optional)"}
+        )
+        fmt.log_info("rhdh-local-setup: not configured (optional for local testing)")
+        fmt.log_info("  Configure with: rhdh config set local_setup /path/to/rhdh-local-setup")
+        fmt.log_info("  Or set env: RHDH_LOCAL_SETUP_DIR=/path/to/rhdh-local-setup")
+
     # Data Storage
     fmt.header("Data Storage")
     data_dir = get_data_dir()
@@ -392,6 +460,302 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
 
     fmt.success(data, next_steps=next_steps)
     return 0 if all_passed else 1
+
+
+# =============================================================================
+# Local Commands (rhdh-local-setup customization system)
+# =============================================================================
+
+
+def _get_local_setup_or_fail(fmt: OutputFormatter) -> Optional[Path]:
+    """Get local-setup dir, printing error if not found. Returns None on failure."""
+    local_setup = get_local_setup_dir()
+    if not local_setup:
+        fmt.log_fail("rhdh-local-setup not found")
+        fmt.log_info("Configure with: rhdh config set local_setup /path/to/rhdh-local-setup")
+        fmt.log_info("Or set env var: RHDH_LOCAL_SETUP_DIR=/path")
+        fmt.error(
+            "LOCAL_SETUP_NOT_FOUND",
+            "rhdh-local-setup directory not configured",
+            next_steps=[
+                "rhdh config set local_setup /path/to/rhdh-local-setup",
+                "export RHDH_LOCAL_SETUP_DIR=/path/to/rhdh-local-setup",
+            ],
+        )
+    return local_setup
+
+
+def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
+    """Show local RHDH customization sync status."""
+    fmt.header("Local RHDH Status")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    customizations_dir = local_setup / "rhdh-customizations"
+    local_dir = local_setup / "rhdh-local"
+
+    checks: list[dict[str, Any]] = []
+
+    # Check rhdh-local exists
+    if local_dir.is_dir():
+        checks.append({"name": "rhdh_local_dir", "status": "pass", "message": str(local_dir)})
+        fmt.log_ok(f"rhdh-local: {local_dir}")
+
+        # Check git status (should be clean)
+        rc, stdout, _ = run_command(["git", "status", "--porcelain"], cwd=local_dir)
+        if rc == 0:
+            if stdout.strip():
+                checks.append(
+                    {
+                        "name": "rhdh_local_git",
+                        "status": "warn",
+                        "message": "has modifications (customizations applied)",
+                    }
+                )
+                fmt.log_warn("  git status: has modifications (customizations applied)")
+            else:
+                checks.append({"name": "rhdh_local_git", "status": "pass", "message": "clean"})
+                fmt.log_ok("  git status: clean (no customizations applied)")
+    else:
+        checks.append({"name": "rhdh_local_dir", "status": "fail", "message": "not found"})
+        fmt.log_fail(f"rhdh-local not found at: {local_dir}")
+
+    # Check customizations dir
+    if customizations_dir.is_dir():
+        checks.append(
+            {"name": "customizations_dir", "status": "pass", "message": str(customizations_dir)}
+        )
+        fmt.log_ok(f"rhdh-customizations: {customizations_dir}")
+
+        # Check apply script exists
+        apply_script = customizations_dir / "apply-customizations.sh"
+        if apply_script.exists():
+            checks.append({"name": "apply_script", "status": "pass", "message": "found"})
+            fmt.log_ok("  apply-customizations.sh: found")
+        else:
+            checks.append({"name": "apply_script", "status": "warn", "message": "not found"})
+            fmt.log_warn("  apply-customizations.sh: not found")
+
+        # Check if dynamic-plugins.override.yaml exists in rhdh-local (sync applied)
+        override_yaml = local_dir / "configs" / "dynamic-plugins" / "dynamic-plugins.override.yaml"
+        if override_yaml.exists():
+            checks.append(
+                {"name": "sync_status", "status": "pass", "message": "customizations synced"}
+            )
+            fmt.log_ok("  sync status: customizations applied to rhdh-local")
+        else:
+            checks.append(
+                {"name": "sync_status", "status": "info", "message": "customizations not synced"}
+            )
+            fmt.log_info("  sync status: not synced (run apply-customizations.sh)")
+    else:
+        checks.append({"name": "customizations_dir", "status": "fail", "message": "not found"})
+        fmt.log_fail(f"rhdh-customizations not found at: {customizations_dir}")
+
+    # Check if RHDH is running on port 7007
+    import socket
+
+    rhdh_running = False
+    try:
+        with socket.create_connection(("localhost", 7007), timeout=1):
+            rhdh_running = True
+    except OSError:
+        pass
+
+    if rhdh_running:
+        checks.append({"name": "rhdh_running", "status": "pass", "message": "running on :7007"})
+        fmt.log_ok("RHDH: running on http://localhost:7007")
+    else:
+        checks.append({"name": "rhdh_running", "status": "info", "message": "not running"})
+        fmt.log_info("RHDH: not running (port 7007 not open)")
+
+    data: dict[str, Any] = {
+        "local_setup": str(local_setup),
+        "checks": checks,
+        "rhdh_running": rhdh_running,
+    }
+
+    next_steps = [
+        f"cd {customizations_dir} && ./apply-customizations.sh",
+        f"cd {local_setup} && ./up.sh --customized",
+        "rhdh local plugins list",
+    ]
+    fmt.success(data, next_steps=next_steps)
+    return 0
+
+
+def cmd_local_apply(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
+    """Apply customizations (run apply-customizations.sh)."""
+    fmt.header("Apply Customizations")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    apply_script = local_setup / "rhdh-customizations" / "apply-customizations.sh"
+    if not apply_script.exists():
+        fmt.log_fail(f"apply-customizations.sh not found: {apply_script}")
+        fmt.error("SCRIPT_NOT_FOUND", str(apply_script), next_steps=[])
+        return 1
+
+    fmt.log_info(f"Running: {apply_script}")
+    rc, stdout, stderr = run_command(
+        ["bash", str(apply_script)],
+        cwd=local_setup / "rhdh-customizations",
+    )
+
+    if stdout:
+        for line in stdout.splitlines():
+            fmt.log_info(line)
+    if stderr:
+        for line in stderr.splitlines():
+            fmt.log_warn(line)
+
+    if rc == 0:
+        fmt.log_ok("Customizations applied successfully")
+        data: dict[str, Any] = {"status": "applied", "script": str(apply_script)}
+        fmt.success(data, next_steps=[f"cd {local_setup} && ./down.sh && ./up.sh --customized"])
+        return 0
+    else:
+        fmt.log_fail(f"apply-customizations.sh failed (exit {rc})")
+        fmt.error("APPLY_FAILED", f"Script exited with {rc}", next_steps=[])
+        return 1
+
+
+def cmd_local_remove(fmt: OutputFormatter, args: argparse.Namespace) -> int:
+    """Remove customizations (run remove-customizations.sh)."""
+    fmt.header("Remove Customizations")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    remove_script = local_setup / "rhdh-customizations" / "remove-customizations.sh"
+    if not remove_script.exists():
+        fmt.log_fail(f"remove-customizations.sh not found: {remove_script}")
+        fmt.error("SCRIPT_NOT_FOUND", str(remove_script), next_steps=[])
+        return 1
+
+    force = getattr(args, "force", False)
+    if not force:
+        fmt.log_warn(
+            "This removes customization copies from rhdh-local/ (restores pristine state)."
+        )
+        fmt.log_warn("Use --force to confirm, or run remove-customizations.sh directly.")
+        fmt.error(
+            "CONFIRMATION_REQUIRED",
+            "Use --force to remove customizations",
+            next_steps=["rhdh local remove --force"],
+        )
+        return 1
+
+    fmt.log_info(f"Running: {remove_script}")
+    rc, stdout, stderr = run_command(
+        ["bash", str(remove_script)],
+        cwd=local_setup / "rhdh-customizations",
+    )
+
+    if stdout:
+        for line in stdout.splitlines():
+            fmt.log_info(line)
+    if stderr:
+        for line in stderr.splitlines():
+            fmt.log_warn(line)
+
+    if rc == 0:
+        fmt.log_ok("Customizations removed (rhdh-local/ is now pristine)")
+        data: dict[str, Any] = {"status": "removed", "script": str(remove_script)}
+        fmt.success(data, next_steps=[f"cd {local_setup} && ./up.sh --baseline"])
+        return 0
+    else:
+        fmt.log_fail(f"remove-customizations.sh failed (exit {rc})")
+        fmt.error("REMOVE_FAILED", f"Script exited with {rc}", next_steps=[])
+        return 1
+
+
+def cmd_local_plugins_list(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
+    """List plugins from dynamic-plugins.override.yaml."""
+    fmt.header("Dynamic Plugins (Override)")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    override_yaml = (
+        local_setup
+        / "rhdh-customizations"
+        / "configs"
+        / "dynamic-plugins"
+        / "dynamic-plugins.override.yaml"
+    )
+
+    if not override_yaml.exists():
+        fmt.log_info("dynamic-plugins.override.yaml not found")
+        fmt.log_info(f"Expected: {override_yaml}")
+        data: dict[str, Any] = {"plugins": [], "override_yaml": str(override_yaml)}
+        fmt.success(
+            data,
+            next_steps=[
+                "Create the file to add plugins",
+                "See skills/local-testing/workflows/enable-plugin.md",
+            ],
+        )
+        return 0
+
+    # Parse YAML (simple line-by-line — stdlib only, no yaml dependency)
+    try:
+        content = override_yaml.read_text()
+        # Simple extraction: find package: lines and disabled: lines
+        plugin_entries: list[dict[str, Any]] = []
+        current: dict[str, Any] = {}
+
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("- package:"):
+                if current:
+                    plugin_entries.append(current)
+                package = stripped[len("- package:") :].strip().strip("'\"")
+                current = {"package": package, "disabled": False}
+            elif stripped.startswith("disabled:") and current:
+                val = stripped[len("disabled:") :].strip().lower()
+                current["disabled"] = val in ("true", "yes", "1")
+
+        if current:
+            plugin_entries.append(current)
+
+    except Exception as e:
+        fmt.log_fail(f"Failed to parse {override_yaml}: {e}")
+        fmt.error("PARSE_ERROR", str(e), next_steps=[])
+        return 1
+
+    enabled = [p for p in plugin_entries if not p["disabled"]]
+    disabled = [p for p in plugin_entries if p["disabled"]]
+
+    fmt.log_info(f"File: {override_yaml}")
+    fmt.log_info(
+        f"Total: {len(plugin_entries)} packages ({len(enabled)} enabled, {len(disabled)} disabled)"
+    )
+
+    if enabled:
+        fmt.header(f"Enabled ({len(enabled)})")
+        for p in enabled:
+            fmt.log_ok(p["package"])
+
+    if disabled:
+        fmt.header(f"Disabled ({len(disabled)})")
+        for p in disabled:
+            fmt.log_warn(p["package"])
+
+    data = {
+        "override_yaml": str(override_yaml),
+        "plugins": plugin_entries,
+        "enabled_count": len(enabled),
+        "disabled_count": len(disabled),
+    }
+    fmt.success(data, next_steps=["rhdh local status"])
+    return 0
 
 
 # =============================================================================
@@ -1229,6 +1593,41 @@ EXAMPLES:
     todo_show_parser = todo_subparsers.add_parser("show", help="Show raw TODO.md")
     todo_show_parser.set_defaults(func=cmd_todo_show)
 
+    # Local (rhdh-local-setup customization system)
+    local_parser = subparsers.add_parser("local", help="Local RHDH customization operations")
+    local_subparsers = local_parser.add_subparsers(dest="local_command", metavar="SUBCOMMAND")
+
+    # local status
+    local_status_parser = local_subparsers.add_parser(
+        "status", help="Show customization sync status"
+    )
+    local_status_parser.set_defaults(func=cmd_local_status)
+
+    # local apply
+    local_apply_parser = local_subparsers.add_parser(
+        "apply", help="Apply customizations (run apply-customizations.sh)"
+    )
+    local_apply_parser.set_defaults(func=cmd_local_apply)
+
+    # local remove
+    local_remove_parser = local_subparsers.add_parser(
+        "remove", help="Remove customizations (restore pristine state)"
+    )
+    local_remove_parser.add_argument(
+        "--force", "-f", action="store_true", help="Confirm removal without prompting"
+    )
+    local_remove_parser.set_defaults(func=cmd_local_remove)
+
+    # local plugins
+    local_plugins_parser = local_subparsers.add_parser("plugins", help="Plugin operations")
+    local_plugins_subparsers = local_plugins_parser.add_subparsers(
+        dest="local_plugins_command", metavar="SUBCOMMAND"
+    )
+    local_plugins_list_parser = local_plugins_subparsers.add_parser(
+        "list", help="List plugins from dynamic-plugins.override.yaml"
+    )
+    local_plugins_list_parser.set_defaults(func=cmd_local_plugins_list)
+
     # Help command (for compatibility with bash version)
     help_parser = subparsers.add_parser("help", help="Show help")
     help_parser.set_defaults(func=lambda f, a: parser.print_help() or 0)
@@ -1308,6 +1707,33 @@ def main(argv: list[str] | None = None) -> int:
                 "rhdh todo add <title>",
                 "rhdh todo show",
             ],
+        )
+        return 1
+
+    # Local without subcommand
+    if args.command == "local" and getattr(args, "local_command", None) is None:
+        fmt.error(
+            "MISSING_SUBCOMMAND",
+            "Local subcommand required",
+            next_steps=[
+                "rhdh local status",
+                "rhdh local apply",
+                "rhdh local remove --force",
+                "rhdh local plugins list",
+            ],
+        )
+        return 1
+
+    # Local plugins without subcommand
+    if (
+        args.command == "local"
+        and getattr(args, "local_command", None) == "plugins"
+        and getattr(args, "local_plugins_command", None) is None
+    ):
+        fmt.error(
+            "MISSING_SUBCOMMAND",
+            "Local plugins subcommand required",
+            next_steps=["rhdh local plugins list"],
         )
         return 1
 

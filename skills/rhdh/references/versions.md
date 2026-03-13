@@ -1,6 +1,8 @@
 # RHDH Version Compatibility Matrix
 
+<overview>
 This reference provides the complete version compatibility information for RHDH dynamic plugins.
+</overview>
 
 ## Version Summary
 
@@ -83,6 +85,7 @@ npx @backstage/create-app@0.7.6
 Based on [Backstage 1.42.5](https://backstage.io/docs/releases/v1.42.0)
 
 Bootstrap command:
+
 ```bash
 npx @backstage/create-app@0.7.3
 ```
@@ -116,6 +119,7 @@ npx @backstage/create-app@0.7.3
 Based on [Backstage 1.39.1](https://backstage.io/docs/releases/v1.39.0)
 
 Bootstrap command:
+
 ```bash
 npx @backstage/create-app@0.6.2
 ```
@@ -149,6 +153,7 @@ npx @backstage/create-app@0.6.2
 Based on [Backstage 1.36.1](https://backstage.io/docs/releases/v1.36.0)
 
 Bootstrap command:
+
 ```bash
 npx @backstage/create-app@0.5.25
 ```
@@ -182,9 +187,11 @@ npx @backstage/create-app@0.5.25
 To check versions for packages not listed above:
 
 ### Frontend packages
+
 Check the [`package.json`](https://github.com/redhat-developer/rhdh/blob/main/packages/app/package.json) in the `app` package.
 
 ### Backend packages
+
 Check the [`package.json`](https://github.com/redhat-developer/rhdh/blob/main/packages/backend/package.json) in the `backend` package.
 
 For specific RHDH versions, switch to the appropriate branch (e.g., `release-1.9`).

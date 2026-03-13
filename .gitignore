@@ -33,3 +33,6 @@ Thumbs.db
 # Local config (project-specific settings)
 .rhdh/
 .rhdh-plugin/
+
+# Personal workspace wrapper (not part of the skill repo)
+rhdh-local-setup/
