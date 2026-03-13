@@ -57,8 +57,11 @@ class TestFindRepo:
         config.USER_CONFIG_DIR = tmp_path / ".config" / "rhdh"
         config.USER_CONFIG_FILE = config.USER_CONFIG_DIR / "config.json"
 
-        result = config.find_repo("rhdh-plugin-export-overlays", "RHDH_OVERLAY_REPO")
-        assert result is None
+        # Mock find_git_root to tmp_path to prevent picking up real .rhdh/config.json
+        # (find_git_root=None falls back to cwd which may have real project config)
+        with patch.object(config, "find_git_root", return_value=tmp_path):
+            result = config.find_repo("rhdh-plugin-export-overlays", "RHDH_OVERLAY_REPO")
+            assert result is None
 
     def test_user_config_lookup(self, tmp_path, monkeypatch):
         """Should find repo from user config file."""
@@ -83,8 +86,8 @@ class TestFindRepo:
         config.USER_CONFIG_DIR = config_dir
         config.USER_CONFIG_FILE = config_file
 
-        # Mock find_git_root to return None (no project config)
-        with patch.object(config, "find_git_root", return_value=None):
+        # Mock find_git_root to tmp_path (prevents picking up real .rhdh/config.json via cwd fallback)
+        with patch.object(config, "find_git_root", return_value=tmp_path):
             result = config.find_repo("rhdh-plugin-export-overlays", "RHDH_OVERLAY_REPO")
             assert result == repo_dir.resolve()
 
@@ -99,9 +102,29 @@ class TestFindRepo:
         config.USER_CONFIG_DIR = tmp_path / ".config" / "rhdh"
         config.USER_CONFIG_FILE = config.USER_CONFIG_DIR / "config.json"
 
-        with patch.object(config, "find_git_root", return_value=None):
+        # Mock find_git_root to prevent picking up real .rhdh/config.json
+        with patch.object(config, "find_git_root", return_value=tmp_path):
             result = config.find_repo("rhdh-plugin-export-overlays", "RHDH_OVERLAY_REPO")
             assert result is None
+
+    def test_get_repo_by_config_key(self, tmp_path, monkeypatch):
+        """get_repo() should find repos by their config key."""
+        from rhdh import config
+
+        repo_dir = tmp_path / "rhdh-cli"
+        repo_dir.mkdir()
+
+        monkeypatch.setenv("RHDH_CLI_REPO", str(repo_dir))
+
+        result = config.get_repo("cli")
+        assert result == repo_dir.resolve()
+
+    def test_get_repo_returns_none_for_unknown_key(self):
+        """get_repo() should return None for unknown config keys."""
+        from rhdh import config
+
+        result = config.get_repo("nonexistent_key")
+        assert result is None
 
 
 class TestConfigInit:
@@ -166,6 +189,16 @@ class TestConfigSet:
             saved_config = json.loads(project_config.read_text())
             assert saved_config["repos"]["overlay"] == str(repo_dir)
 
+    def test_sets_new_repo_shorthand_keys(self, tmp_path):
+        """Should map all new repo shorthand keys."""
+        from rhdh import config
+
+        with patch.object(config, "find_git_root", return_value=tmp_path):
+            for key in ["rhdh", "downstream", "cli", "plugins", "operator", "chart", "catalog"]:
+                success, message = config.config_set(key, f"/path/to/{key}")
+                assert success is True
+                assert f"repos.{key}" in message
+
     def test_sets_value_with_dotnotation_key(self, tmp_path):
         """Should accept full dot-notation keys."""
         from rhdh import config
@@ -188,6 +221,28 @@ class TestConfigSet:
             project_config = tmp_path / ".rhdh" / "config.json"
             saved_config = json.loads(project_config.read_text())
             assert saved_config["custom"]["deeply"]["nested"]["key"] == "value"
+
+
+class TestDefaultConfig:
+    """Test default configuration generation."""
+
+    def test_default_config_has_all_repo_keys(self):
+        """Default config should have keys for all defined repos."""
+        from rhdh.config import SUBMODULE_REPOS, get_default_config
+
+        default = get_default_config()
+        repos = default["repos"]
+        for info in SUBMODULE_REPOS.values():
+            assert info["config_key"] in repos, f"Missing key: {info['config_key']}"
+
+    def test_default_config_has_core_repos(self):
+        """Default config should include all core RHDH repos."""
+        from rhdh.config import get_default_config
+
+        default = get_default_config()
+        repos = default["repos"]
+        for key in ["rhdh", "downstream", "cli", "plugins", "overlay", "operator", "chart", "local"]:
+            assert key in repos, f"Missing core repo key: {key}"
 
 
 class TestLoadSaveConfig:

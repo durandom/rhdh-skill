@@ -202,6 +202,43 @@ class TestWorkflowStructure:
             )
 
 
+class TestRhdhReposReference:
+    """Test that rhdh-repos.md reference file exists and has required content."""
+
+    @pytest.fixture
+    def rhdh_repos(self, skills_dir):
+        """Load rhdh-repos.md content."""
+        path = skills_dir / "references" / "rhdh-repos.md"
+        assert path.exists(), "rhdh-repos.md must exist in skills/rhdh/references/"
+        return path.read_text()
+
+    def test_rhdh_repos_exists(self, skills_dir):
+        """rhdh-repos.md must exist."""
+        assert (skills_dir / "references" / "rhdh-repos.md").exists()
+
+    def test_has_key_repos(self, rhdh_repos):
+        """Must document the core RHDH repositories."""
+        for repo in ["rhdh", "rhdh-cli", "rhdh-operator", "rhdh-plugins"]:
+            assert repo in rhdh_repos, f"Missing repo: {repo}"
+
+    def test_has_ecosystem_relationships(self, rhdh_repos):
+        """Must contain ecosystem relationships section."""
+        assert "Ecosystem Relationships" in rhdh_repos
+
+    def test_no_hardcoded_user_paths(self, rhdh_repos):
+        """Must not contain hardcoded user-specific paths."""
+        assert "/Users/" not in rhdh_repos
+        assert "/home/" not in rhdh_repos
+
+    def test_no_yaml_frontmatter(self, rhdh_repos):
+        """Reference file should not have YAML frontmatter."""
+        assert not rhdh_repos.startswith("---")
+
+    def test_has_upstream_urls(self, rhdh_repos):
+        """Must include upstream GitHub URLs."""
+        assert "github.com/redhat-developer/" in rhdh_repos
+
+
 class TestReferenceStructure:
     """Test that reference files have required structure."""
 
@@ -220,7 +257,13 @@ class TestReferenceStructure:
     def test_reference_has_xml_sections(self, reference_files):
         """Reference files should use XML tags for structure (optional for cheatsheets)."""
         # Some reference files are practical cheatsheets without XML structure
-        xml_optional = {"jira-reference.md", "jira-structure.md", "github-tips.md"}
+        xml_optional = {
+            "jira-reference.md",
+            "jira-structure.md",
+            "github-tips.md",
+            "rhdh-repos.md",
+            "versions.md",
+        }
 
         for ref in reference_files:
             if ref.name in xml_optional:

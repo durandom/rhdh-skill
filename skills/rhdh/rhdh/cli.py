@@ -19,10 +19,8 @@ from . import __version__
 from .config import (
     SUBMODULE_REPOS,
     get_data_dir,
-    get_factory_repo,
     get_github_username,
-    get_local_repo,
-    get_overlay_repo,
+    get_repo,
     list_submodule_repos,
     save_github_username,
     setup_submodule,
@@ -97,89 +95,45 @@ def cmd_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     next_steps: list[str] = []
     needs_setup = False
 
-    # Check overlay repo
-    overlay_repo = get_overlay_repo()
-    if overlay_repo:
-        branch = get_git_branch(overlay_repo)
-        status = "uncommitted" if has_uncommitted_changes(overlay_repo) else "clean"
-        checks.append(
-            {
-                "name": "overlay_repo",
-                "status": "pass",
-                "message": f"{overlay_repo} ({branch}, {status})",
-                "path": str(overlay_repo),
-                "branch": branch,
-                "clean": status == "clean",
-            }
-        )
-        fmt.log_ok(f"overlay repo: {overlay_repo} ({branch}, {status})")
-    else:
-        checks.append(
-            {
-                "name": "overlay_repo",
-                "status": "fail",
-                "message": "not found",
-            }
-        )
-        fmt.log_fail("overlay repo: not found")
-        needs_setup = True
+    # Check all configured repos
+    for info in SUBMODULE_REPOS.values():
+        config_key = info["config_key"]
+        required = info["required"]
+        repo_path = get_repo(config_key)
 
-    # Check rhdh-local
-    local_repo = get_local_repo()
-    if local_repo:
-        # Check if running (podman)
-        running = False
-        if check_tool("podman"):
-            rc, stdout, _ = run_command(["podman", "ps", "--format", "{{.Names}}"])
-            running = rc == 0 and "rhdh" in stdout
-
-        status_msg = "running" if running else "not running"
-        check_status = "pass" if running else "warn"
-        checks.append(
-            {
-                "name": "rhdh_local",
-                "status": check_status,
-                "message": f"{local_repo} ({status_msg})",
-                "path": str(local_repo),
-                "running": running,
-            }
-        )
-        if running:
-            fmt.log_ok(f"rhdh-local: {local_repo} (running)")
+        if repo_path:
+            branch = get_git_branch(repo_path)
+            status = "uncommitted" if has_uncommitted_changes(repo_path) else "clean"
+            checks.append(
+                {
+                    "name": config_key,
+                    "status": "pass",
+                    "message": f"{repo_path} ({branch}, {status})",
+                    "path": str(repo_path),
+                    "branch": branch,
+                    "clean": status == "clean",
+                }
+            )
+            fmt.log_ok(f"{config_key}: {repo_path} ({branch}, {status})")
+        elif required:
+            checks.append(
+                {
+                    "name": config_key,
+                    "status": "fail",
+                    "message": "not found",
+                }
+            )
+            fmt.log_fail(f"{config_key}: not found")
+            needs_setup = True
         else:
-            fmt.log_warn(f"rhdh-local: {local_repo} (not running)")
-    else:
-        checks.append(
-            {
-                "name": "rhdh_local",
-                "status": "fail",
-                "message": "not found",
-            }
-        )
-        fmt.log_fail("rhdh-local: not found")
-        needs_setup = True
-
-    # Check factory (optional)
-    factory_repo = get_factory_repo()
-    if factory_repo:
-        checks.append(
-            {
-                "name": "factory",
-                "status": "pass",
-                "message": str(factory_repo),
-                "path": str(factory_repo),
-            }
-        )
-        fmt.log_ok(f"factory: {factory_repo}")
-    else:
-        checks.append(
-            {
-                "name": "factory",
-                "status": "info",
-                "message": "not configured (optional)",
-            }
-        )
-        fmt.log_info("factory: not configured (optional)")
+            checks.append(
+                {
+                    "name": config_key,
+                    "status": "info",
+                    "message": "not configured (optional)",
+                }
+            )
+            fmt.log_info(f"{config_key}: not configured (optional)")
 
     # Check tools
     fmt.header("Tools")
@@ -279,56 +233,38 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     checks: list[dict[str, Any]] = []
     issues: list[str] = []
 
-    # Check repos
-    overlay_repo = get_overlay_repo()
-    if overlay_repo:
-        checks.append({"name": "overlay_repo", "status": "pass", "message": str(overlay_repo)})
-        fmt.log_ok(f"Overlay repo found: {overlay_repo}")
+    # Check all repos
+    for info in SUBMODULE_REPOS.values():
+        config_key = info["config_key"]
+        required = info["required"]
+        repo_path = get_repo(config_key)
 
-        # Check it's a git repo
-        rc, _, _ = run_command(["git", "rev-parse", "--git-dir"], cwd=overlay_repo)
-        if rc == 0:
-            checks.append({"name": "overlay_git", "status": "pass", "message": "valid"})
-            fmt.log_ok("  Git repository valid")
-        else:
-            checks.append({"name": "overlay_git", "status": "fail", "message": "invalid"})
-            fmt.log_fail("  Not a valid git repository")
-            issues.append("Overlay repo is not a git repository")
+        if repo_path:
+            checks.append({"name": config_key, "status": "pass", "message": str(repo_path)})
+            fmt.log_ok(f"{config_key} found: {repo_path}")
 
-        # Check remote
-        rc, stdout, _ = run_command(["git", "remote", "get-url", "origin"], cwd=overlay_repo)
-        if rc == 0:
-            remote = stdout.strip()
-            if "rhdh-plugin-export-overlays" in remote:
-                checks.append({"name": "overlay_remote", "status": "pass", "message": remote})
-                fmt.log_ok(f"  Remote: {remote}")
+            # Check it's a git repo
+            rc, _, _ = run_command(["git", "rev-parse", "--git-dir"], cwd=repo_path)
+            if rc == 0:
+                checks.append(
+                    {"name": f"{config_key}_git", "status": "pass", "message": "valid"}
+                )
+                fmt.log_ok("  Git repository valid")
             else:
-                checks.append({"name": "overlay_remote", "status": "warn", "message": remote})
-                fmt.log_warn(f"  Remote may be incorrect: {remote}")
-    else:
-        checks.append({"name": "overlay_repo", "status": "fail", "message": "not found"})
-        fmt.log_fail("Overlay repo not found")
-        issues.append("Configure overlay repo: rhdh config set overlay /path/to/repo")
-
-    local_repo = get_local_repo()
-    if local_repo:
-        checks.append({"name": "rhdh_local", "status": "pass", "message": str(local_repo)})
-        fmt.log_ok(f"rhdh-local found: {local_repo}")
-
-        # Check compose file exists
-        has_compose = (local_repo / "compose.yaml").exists() or (
-            local_repo / "docker-compose.yaml"
-        ).exists()
-        if has_compose:
-            checks.append({"name": "compose_file", "status": "pass", "message": "found"})
-            fmt.log_ok("  Compose file found")
+                checks.append(
+                    {"name": f"{config_key}_git", "status": "fail", "message": "invalid"}
+                )
+                fmt.log_fail("  Not a valid git repository")
+                issues.append(f"{config_key} is not a git repository")
+        elif required:
+            checks.append({"name": config_key, "status": "fail", "message": "not found"})
+            fmt.log_fail(f"{config_key} not found")
+            issues.append(f"Configure {config_key}: rhdh config set {config_key} /path/to/repo")
         else:
-            checks.append({"name": "compose_file", "status": "warn", "message": "not found"})
-            fmt.log_warn("  No compose file found")
-    else:
-        checks.append({"name": "rhdh_local", "status": "fail", "message": "not found"})
-        fmt.log_fail("rhdh-local not found")
-        issues.append("Configure rhdh-local: rhdh config set local /path/to/repo")
+            checks.append(
+                {"name": config_key, "status": "info", "message": "not configured (optional)"}
+            )
+            fmt.log_info(f"{config_key}: not configured (optional)")
 
     fmt.header("GitHub CLI")
 
@@ -479,14 +415,14 @@ def cmd_config_init(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.log_ok(f"Created: {data.get('created', '')}")
         config = data.get("config", {})
         repos = config.get("repos", {})
-        if repos.get("overlay"):
-            fmt.log_ok(f"Auto-detected overlay: {repos['overlay']}")
-        else:
-            fmt.log_info("overlay: not found (configure with: rhdh config set repos.overlay /path)")
-        if repos.get("local"):
-            fmt.log_ok(f"Auto-detected local: {repos['local']}")
-        else:
-            fmt.log_info("local: not found (configure with: rhdh config set repos.local /path)")
+        for info in SUBMODULE_REPOS.values():
+            key = info["config_key"]
+            if repos.get(key):
+                fmt.log_ok(f"Auto-detected {key}: {repos[key]}")
+            elif info["required"]:
+                fmt.log_info(
+                    f"{key}: not found (configure with: rhdh config set {key} /path)"
+                )
         fmt.success(data, next_steps=next_steps)
         return 0
     else:
@@ -511,18 +447,14 @@ def cmd_config_show(fmt: OutputFormatter, args: argparse.Namespace) -> int:
 
         fmt.header("Resolved Paths")
         resolved = data.get("resolved", {})
-        if resolved.get("overlay"):
-            fmt.log_ok(f"overlay: {resolved['overlay']}")
-        else:
-            fmt.log_fail("overlay: not found")
-        if resolved.get("local"):
-            fmt.log_ok(f"local: {resolved['local']}")
-        else:
-            fmt.log_fail("local: not found")
-        if resolved.get("factory"):
-            fmt.log_ok(f"factory: {resolved['factory']}")
-        else:
-            fmt.log_info("factory: not configured")
+        for info in SUBMODULE_REPOS.values():
+            key = info["config_key"]
+            if resolved.get(key):
+                fmt.log_ok(f"{key}: {resolved[key]}")
+            elif info["required"]:
+                fmt.log_fail(f"{key}: not found")
+            else:
+                fmt.log_info(f"{key}: not configured")
 
         fmt.success(data, next_steps=next_steps)
         return 0

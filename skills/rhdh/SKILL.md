@@ -43,6 +43,12 @@ See the `<tracking_system>` section for details.
 These contain critical gotchas (jq escaping, JQL limitations, assignee format) that prevent common errors.
 </principle>
 
+<principle name="understand_rhdh_repos">
+**Before any RHDH-related work**, consult `references/rhdh-repos.md` for a reference of all RHDH-related repositories, what each one is used for, and how they relate to each other.
+Use this when navigating between projects or understanding the overall RHDH ecosystem.
+Use `$RHDH config set` to set the path to the local checkout of the RHDH repositories.
+</principle>
+
 </essential_principles>
 
 <context_scan>
@@ -169,10 +175,17 @@ $RHDH doctor
 **Configuration:**
 
 ```bash
-$RHDH config init              # Create config with auto-detection
-$RHDH config show              # Show resolved paths
-$RHDH config set overlay /path # Set repo location
-$RHDH config set local /path   # Set rhdh-local location
+$RHDH config init                  # Create config with auto-detection
+$RHDH config show                  # Show resolved paths
+$RHDH config set overlay /path     # Set rhdh-plugin-export-overlays location
+$RHDH config set local /path       # Set rhdh-local location
+$RHDH config set rhdh /path        # Set main rhdh repo location
+$RHDH config set downstream /path  # Set rhdh-downstream location
+$RHDH config set cli /path         # Set rhdh-cli location
+$RHDH config set plugins /path     # Set rhdh-plugins location
+$RHDH config set operator /path    # Set rhdh-operator location
+$RHDH config set chart /path       # Set rhdh-chart location
+$RHDH config set catalog /path     # Set rhdh-plugin-catalog location
 ```
 
 **Workspace operations:**
@@ -263,6 +276,7 @@ Todos must be **self-contained**—a new session should understand the task with
 </tracking_system>
 
 <reference_index>
+**RHDH Repos:** references/rhdh-repos.md — repository map, ecosystem relationships, key paths
 **GitHub CLI (PRs, CI, workflows):** references/github-reference.md
 **JIRA CLI (issues, JQL, comments):** references/jira-reference.md
 **JIRA Structure (projects, issue types, filing rules):** references/jira-structure.md
@@ -284,6 +298,7 @@ Todos must be **self-contained**—a new session should understand the task with
 
 | Reference | Purpose | Path |
 |-----------|---------|------|
+| rhdh-repos | Repository map, ecosystem relationships, key paths | `references/rhdh-repos.md` |
 | versions | RHDH/Backstage version compatibility matrix | `references/versions.md` |
 | jira-structure | RHDH Jira projects, issue types, filing rules | `references/jira-structure.md` |
 

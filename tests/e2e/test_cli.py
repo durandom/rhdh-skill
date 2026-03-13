@@ -56,21 +56,15 @@ class TestCliStatus:
         assert response is not None
         assert "next_steps" in response
 
-    def test_status_needs_setup_points_to_doctor(self, unconfigured_cli):
-        """When needs_setup is true, status should point to doctor command.
-
-        Doctor command has all the setup guidance - status just redirects there.
-        """
+    def test_status_unconfigured_is_valid(self, unconfigured_cli):
+        """When no repos are configured, needs_setup should be false (all repos are optional)."""
         result = unconfigured_cli()
 
         response = parse_response(result)
         assert response is not None
-        assert response["data"]["needs_setup"] is True
+        assert response["data"]["needs_setup"] is False
 
-        # next_steps should include doctor command
-        assert "rhdh doctor" in response["next_steps"]
-
-        # Should NOT include setup_options or doctor_workflow (that's doctor's job)
+        # Should NOT include setup_options or doctor_workflow
         assert "setup_options" not in response["data"]
         assert "doctor_workflow" not in response["data"]
 
@@ -106,26 +100,31 @@ class TestCliDoctor:
         assert response is not None
         assert "all_passed" in response["data"]
 
-    def test_doctor_points_to_workflow_when_issues_found(self, unconfigured_cli):
-        """When doctor finds issues, it should point to the workflow file.
+    def test_doctor_checks_all_repos(self, unconfigured_cli):
+        """Doctor should include a check for every configured repository."""
+        from rhdh.config import SUBMODULE_REPOS
 
-        This enables agents to read the workflow for remediation steps.
-        """
+        result = unconfigured_cli("doctor")
+        response = parse_response(result)
+        assert response is not None
+
+        check_names = [c["name"] for c in response["data"]["checks"]]
+        for info in SUBMODULE_REPOS.values():
+            config_key = info["config_key"]
+            assert config_key in check_names, (
+                f"Doctor missing check for repo '{config_key}'"
+            )
+
+    def test_doctor_unconfigured_repos_no_issues(self, unconfigured_cli):
+        """When no repos are configured, doctor should not report repo issues (all optional)."""
         result = unconfigured_cli("doctor")
 
         response = parse_response(result)
         assert response is not None
-        assert response["data"]["all_passed"] is False
 
-        # Should include workflow path for agentic discovery
-        assert "workflow" in response["data"]
-        assert response["data"]["workflow"] == "workflows/doctor.md"
-
-        # Should include instruction for agent
-        assert "agent_instruction" in response["data"]
-
-        # next_steps should point to reading the workflow
-        assert any("workflow" in step.lower() for step in response["next_steps"])
+        # No repo-related issues should appear (all repos are optional)
+        repo_issues = [i for i in response["data"]["issues"] if "config set" in i]
+        assert repo_issues == [], f"Unexpected repo issues: {repo_issues}"
 
 
 class TestCliConfig:

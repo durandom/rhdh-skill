@@ -32,23 +32,82 @@ DATA_DIR_ENV_VAR = "RHDH_SKILL_DATA_DIR"
 # Repos with has_fork=True use user's fork as origin, redhat-developer as upstream
 # Repos with has_fork=False use redhat-developer as origin (no upstream)
 SUBMODULE_REPOS: dict[str, dict] = {
+    "rhdh": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "rhdh",
+        "description": "Main RHDH application (enterprise Backstage distribution)",
+    },
+    "rhdh-downstream": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "downstream",
+        "description": "Downstream productized RHDH build (internal GitLab)",
+        "upstream_host": "gitlab.cee.redhat.com",
+        "upstream_path": "rhidp/rhdh",
+    },
+    "rhdh-cli": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "cli",
+        "description": "CLI for developing/packaging dynamic plugins",
+    },
+    "rhdh-plugins": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "plugins",
+        "description": "Red Hat Backstage plugins (multi-workspace monorepo)",
+    },
     "rhdh-plugin-export-overlays": {
         "has_fork": True,  # Users fork this repo to contribute
-        "required": True,
+        "required": False,
         "config_key": "overlay",
-        "description": "Plugin overlay repository (required for all operations)",
+        "description": "Plugin overlay repository (community plugin packaging)",
+    },
+    "rhdh-plugin-export-utils": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "export-utils",
+        "description": "Reusable GitHub Actions for plugin packaging",
+    },
+    "rhdh-plugin-catalog": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "catalog",
+        "description": "Midstream plugin builds, OCI artifacts & catalog index",
+        "upstream_host": "gitlab.cee.redhat.com",
+        "upstream_path": "rhidp/rhdh-plugin-catalog",
+    },
+    "rhdh-operator": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "operator",
+        "description": "Kubernetes/OpenShift operator for RHDH",
+    },
+    "rhdh-chart": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "chart",
+        "description": "Helm chart for RHDH deployment",
     },
     "rhdh-local": {
         "has_fork": False,  # No fork needed, clone directly
-        "required": True,
+        "required": False,
         "config_key": "local",
-        "description": "Local RHDH testing environment",
+        "description": "Local RHDH testing environment (Docker Compose)",
     },
     "rhdh-dynamic-plugin-factory": {
-        "has_fork": False,  # No fork needed
+        "has_fork": False,
         "required": False,
         "config_key": "factory",
-        "description": "Dynamic plugin factory (optional)",
+        "description": "Container for local dynamic plugin building",
+    },
+    "backstage": {
+        "has_fork": False,
+        "required": False,
+        "config_key": "backstage",
+        "description": "Upstream Backstage framework",
+        "upstream_org": "backstage",
     },
 }
 
@@ -308,6 +367,19 @@ def save_config(config: dict, global_: bool = False) -> bool:
 # =============================================================================
 
 
+def _repo_name_to_config_key(repo_name: str) -> str:
+    """Map a repo directory name to its config key."""
+    repo_info = SUBMODULE_REPOS.get(repo_name)
+    if repo_info:
+        return repo_info["config_key"]
+    return repo_name
+
+
+def _config_key_to_env_var(config_key: str) -> str:
+    """Map a config key to its environment variable name."""
+    return f"RHDH_{config_key.upper().replace('-', '_')}_REPO"
+
+
 def find_repo(repo_name: str, env_var: str) -> Optional[Path]:
     """Find a repository in well-known locations.
 
@@ -333,12 +405,8 @@ def find_repo(repo_name: str, env_var: str) -> Optional[Path]:
 
     # 2. Merged config (project overrides user)
     config = load_merged_config()
-    key_map = {
-        "rhdh-plugin-export-overlays": "overlay",
-        "rhdh-local": "local",
-        "rhdh-dynamic-plugin-factory": "factory",
-    }
-    config_key = key_map.get(repo_name, repo_name)
+    # Map repo directory names to config keys
+    config_key = _repo_name_to_config_key(repo_name)
     config_path = config.get("repos", {}).get(config_key)
     if config_path:
         path = Path(config_path)
@@ -359,19 +427,36 @@ def find_repo(repo_name: str, env_var: str) -> Optional[Path]:
     return None
 
 
+def get_repo(config_key: str) -> Optional[Path]:
+    """Get path to a repo by its config key.
+
+    Args:
+        config_key: The config key (e.g., "overlay", "local", "rhdh", "cli")
+
+    Returns:
+        Path to the repository, or None if not found.
+    """
+    # Find the repo name from the config key
+    for repo_name, info in SUBMODULE_REPOS.items():
+        if info["config_key"] == config_key:
+            env_var = _config_key_to_env_var(config_key)
+            return find_repo(repo_name, env_var)
+    return None
+
+
 def get_overlay_repo() -> Optional[Path]:
     """Get path to rhdh-plugin-export-overlays repo."""
-    return find_repo("rhdh-plugin-export-overlays", "RHDH_OVERLAY_REPO")
+    return get_repo("overlay")
 
 
 def get_local_repo() -> Optional[Path]:
     """Get path to rhdh-local repo."""
-    return find_repo("rhdh-local", "RHDH_LOCAL_REPO")
+    return get_repo("local")
 
 
 def get_factory_repo() -> Optional[Path]:
     """Get path to rhdh-dynamic-plugin-factory repo."""
-    return find_repo("rhdh-dynamic-plugin-factory", "RHDH_FACTORY_REPO")
+    return get_repo("factory")
 
 
 # =============================================================================
@@ -381,13 +466,8 @@ def get_factory_repo() -> Optional[Path]:
 
 def get_default_config() -> dict:
     """Get default configuration values."""
-    return {
-        "repos": {
-            "overlay": "",
-            "local": "",
-            "factory": "",
-        }
-    }
+    repos = {info["config_key"]: "" for info in SUBMODULE_REPOS.values()}
+    return {"repos": repos}
 
 
 def run_config(
@@ -446,17 +526,10 @@ def _config_init(force: bool, global_: bool) -> tuple[bool, dict | str, list[str
 
     if not global_:
         skill_root = get_skill_root()
-        overlay_path = skill_root.parent / "repo" / "rhdh-plugin-export-overlays"
-        if overlay_path.is_dir():
-            config["repos"]["overlay"] = str(overlay_path.resolve())
-
-        local_path = skill_root.parent / "repo" / "rhdh-local"
-        if local_path.is_dir():
-            config["repos"]["local"] = str(local_path.resolve())
-
-        factory_path = skill_root.parent / "repo" / "rhdh-dynamic-plugin-factory"
-        if factory_path.is_dir():
-            config["repos"]["factory"] = str(factory_path.resolve())
+        for repo_name, info in SUBMODULE_REPOS.items():
+            repo_path = skill_root.parent / "repo" / repo_name
+            if repo_path.is_dir():
+                config["repos"][info["config_key"]] = str(repo_path.resolve())
 
     try:
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -474,6 +547,16 @@ def _config_init(force: bool, global_: bool) -> tuple[bool, dict | str, list[str
     return True, data, next_steps
 
 
+def _resolve_all_repos() -> dict[str, str | None]:
+    """Resolve paths for all configured repos."""
+    resolved = {}
+    for info in SUBMODULE_REPOS.values():
+        key = info["config_key"]
+        path = get_repo(key)
+        resolved[key] = str(path) if path else None
+    return resolved
+
+
 def _config_show(global_: bool) -> tuple[bool, dict, list[str]]:
     """Display config."""
     user_config = load_user_config()
@@ -486,11 +569,7 @@ def _config_show(global_: bool) -> tuple[bool, dict, list[str]]:
         "user_config": user_config if user_config else None,
         "project_config": project_config if project_config else None,
         "merged_config": merged_config if merged_config else None,
-        "resolved": {
-            "overlay": str(get_overlay_repo()) if get_overlay_repo() else None,
-            "local": str(get_local_repo()) if get_local_repo() else None,
-            "factory": str(get_factory_repo()) if get_factory_repo() else None,
-        },
+        "resolved": _resolve_all_repos(),
     }
 
     next_steps = ["rhdh config set <key> <value>", "rhdh config keys"]
@@ -552,8 +631,9 @@ def _config_set(
         return False, "Value is required for 'config set'", []
 
     # Map shorthand keys to full dot-notation paths
-    key_map = {"overlay": "repos.overlay", "local": "repos.local", "factory": "repos.factory"}
-    key = key_map.get(key, key)
+    all_config_keys = {info["config_key"] for info in SUBMODULE_REPOS.values()}
+    if key in all_config_keys:
+        key = f"repos.{key}"
 
     # Load appropriate config
     if global_:
@@ -652,8 +732,13 @@ def get_repo_urls(repo_name: str, github_username: str | None = None) -> tuple[s
     repo_info = SUBMODULE_REPOS[repo_name]
     has_fork = repo_info.get("has_fork", False)
 
+    # Determine upstream org/host
+    upstream_org = repo_info.get("upstream_org", GITHUB_ORG)
+    upstream_host = repo_info.get("upstream_host")
+    upstream_path = repo_info.get("upstream_path")
+
     if has_fork:
-        # User's fork as origin, redhat-developer as upstream
+        # User's fork as origin, upstream org as upstream
         if github_username is None:
             github_username = get_github_username()
         if not github_username:
@@ -662,10 +747,15 @@ def get_repo_urls(repo_name: str, github_username: str | None = None) -> tuple[s
                 "Run 'gh auth login' or set github.username in config."
             )
         origin_url = f"git@github.com:{github_username}/{repo_name}.git"
-        upstream_url = f"git@github.com:{GITHUB_ORG}/{repo_name}.git"
+        upstream_url = f"git@github.com:{upstream_org}/{repo_name}.git"
+    elif upstream_host:
+        # Non-GitHub repo (e.g., GitLab)
+        path = upstream_path or repo_name
+        origin_url = f"git@{upstream_host}:{path}.git"
+        upstream_url = None
     else:
-        # Direct clone from redhat-developer
-        origin_url = f"git@github.com:{GITHUB_ORG}/{repo_name}.git"
+        # Direct clone from GitHub org
+        origin_url = f"git@github.com:{upstream_org}/{repo_name}.git"
         upstream_url = None
 
     return origin_url, upstream_url
@@ -880,16 +970,10 @@ def list_submodule_repos() -> list[dict]:
 
         # Also check if configured via other means
         config_key = info["config_key"]
-        key_map = {
-            "overlay": get_overlay_repo,
-            "local": get_local_repo,
-            "factory": get_factory_repo,
-        }
-        if config_key in key_map:
-            discovered = key_map[config_key]()
-            if discovered:
-                status = "configured" if status == "not_configured" else status
-                path = str(discovered) if not path else path
+        discovered = get_repo(config_key)
+        if discovered:
+            status = "configured" if status == "not_configured" else status
+            path = str(discovered) if not path else path
 
         # Get URLs if possible
         has_fork = info.get("has_fork", False)
@@ -956,18 +1040,14 @@ def config_init() -> tuple[bool, list[str]]:
             messages.append(f"Created: {data.get('created', '')}")
             config = data.get("config", {})
             repos = config.get("repos", {})
-            if repos.get("overlay"):
-                messages.append(f"Auto-detected overlay repo: {repos['overlay']}")
-            else:
-                messages.append(
-                    "overlay repo: not found (configure with: rhdh config set repos.overlay /path)"
-                )
-            if repos.get("local"):
-                messages.append(f"Auto-detected rhdh-local: {repos['local']}")
-            else:
-                messages.append(
-                    "rhdh-local: not found (configure with: rhdh config set repos.local /path)"
-                )
+            for info in SUBMODULE_REPOS.values():
+                key = info["config_key"]
+                if repos.get(key):
+                    messages.append(f"Auto-detected {key}: {repos[key]}")
+                elif info["required"]:
+                    messages.append(
+                        f"{key}: not found (configure with: rhdh config set {key} /path)"
+                    )
     else:
         messages.append(str(data))
 
@@ -1005,9 +1085,5 @@ def get_config_info() -> dict:
         "skill_root": str(get_skill_root()),
         "user_config": load_user_config(),
         "project_config": load_project_config(),
-        "resolved": {
-            "overlay": get_overlay_repo(),
-            "local": get_local_repo(),
-            "factory": get_factory_repo(),
-        },
+        "resolved": _resolve_all_repos(),
     }

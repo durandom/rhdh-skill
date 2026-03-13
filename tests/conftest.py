@@ -224,12 +224,11 @@ def unconfigured_cli(isolated_env, monkeypatch):
     """Fixture providing CLI with no repos configured.
 
     Use this to test the "needs setup" state without manual monkeypatching.
-    Mocks get_overlay_repo and get_local_repo to return None.
+    Mocks get_repo to return None for all repos.
     """
     from rhdh import cli as cli_module
 
-    monkeypatch.setattr(cli_module, "get_overlay_repo", lambda: None)
-    monkeypatch.setattr(cli_module, "get_local_repo", lambda: None)
+    monkeypatch.setattr(cli_module, "get_repo", lambda key: None)
 
     def _run_cli(*args, env=None):
         full_env = {}
