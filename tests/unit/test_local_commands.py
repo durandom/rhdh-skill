@@ -53,24 +53,25 @@ class TestLocalSetupConfig:
         assert result == local_setup.resolve()
 
     def test_get_local_setup_dir_autodetect_sibling_of_local(self, tmp_path, monkeypatch):
-        """Auto-detects rhdh-local-setup as sibling of rhdh-local."""
+        """Auto-detects rhdh-local-setup as parent of rhdh-local when rhdh-customizations is present."""
         from rhdh.config import get_local_setup_dir
 
         monkeypatch.delenv("RHDH_LOCAL_SETUP_DIR", raising=False)
+        # Prevent step-4 (skill-root-relative) detection from accidentally matching on dev machines
+        monkeypatch.setenv("SKILL_ROOT", str(tmp_path / "skill"))
 
-        # Create structure: tmp_path/rhdh-local-setup/rhdh-local
+        # Create structure: tmp_path/rhdh-local-setup/{rhdh-local,rhdh-customizations}
         local_setup = tmp_path / "rhdh-local-setup"
         local_setup.mkdir()
         rhdh_local = local_setup / "rhdh-local"
         rhdh_local.mkdir()
+        (local_setup / "rhdh-customizations").mkdir()
 
         with patch("rhdh.config.get_local_repo", return_value=rhdh_local):
             with patch("rhdh.config.load_merged_config", return_value={}):
                 result = get_local_setup_dir()
-        # Should detect local_setup as parent since rhdh-customizations dir check would fail
-        # but rhdh-local-setup sibling check: rhdh_local.parent is local_setup, local_setup.parent/rhdh-local-setup
-        # Let's verify by just checking a valid dir is returned
-        assert result is not None
+
+        assert result == local_setup.resolve()
 
     def test_get_local_setup_dir_returns_none_when_not_found(self, tmp_path, monkeypatch):
         """Returns None when local_setup cannot be found."""
@@ -303,15 +304,15 @@ class TestDoctorLocalSetup:
 
 
 class TestLocalSkillFiles:
-    """Structural tests for local-testing skill files."""
+    """Structural tests for rhdh-local skill files."""
 
     @pytest.fixture
     def local_skill_dir(self, skill_root):
-        """Return path to local-testing skill directory."""
-        return skill_root / "skills" / "local-testing"
+        """Return path to rhdh-local skill directory."""
+        return skill_root / "skills" / "rhdh-local"
 
     def test_skill_md_exists(self, local_skill_dir):
-        """local-testing/SKILL.md must exist."""
+        """rhdh-local/SKILL.md must exist."""
         assert (local_skill_dir / "SKILL.md").exists()
 
     def test_skill_md_has_intake(self, local_skill_dir):

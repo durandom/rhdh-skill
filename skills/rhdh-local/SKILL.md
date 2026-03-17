@@ -1,5 +1,5 @@
 ---
-name: local-testing
+name: rhdh-local
 description: Skill for testing RHDH plugins locally using the rhdh-local-setup customization system. Covers enabling/disabling plugins, switching modes, and running end-to-end plugin tests.
 ---
 

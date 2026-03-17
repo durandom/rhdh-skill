@@ -94,21 +94,15 @@ To see the plugin in the Extensions Catalog at `/extensions/catalog`, follow the
 
 ## Step 8: Cleanup After Testing
 
-If this was a temporary test (e.g. for a PR review), remove the override files:
-
-```bash
-cd rhdh-local
-rm configs/dynamic-plugins/dynamic-plugins.override.yaml
-rm configs/catalog-entities/components.override.yaml
-rm -f compose.override.yaml
-rm -f configs/app-config/app-config.local.yaml
-```
-
-Or use `remove-customizations.sh` to remove all customization copies:
+If this was a temporary test (e.g. for a PR review), remove customizations via the script:
 
 ```bash
 cd rhdh-customizations && ./remove-customizations.sh
 ```
+
+This removes all copied override files from `rhdh-local/` without touching `rhdh-customizations/` source files.
+
+> **Note:** Do not delete files directly from `rhdh-local/` — always use `remove-customizations.sh` to keep the copy-sync invariant intact.
 
 </process>
 

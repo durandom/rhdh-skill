@@ -247,14 +247,10 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
             # Check it's a git repo
             rc, _, _ = run_command(["git", "rev-parse", "--git-dir"], cwd=repo_path)
             if rc == 0:
-                checks.append(
-                    {"name": f"{config_key}_git", "status": "pass", "message": "valid"}
-                )
+                checks.append({"name": f"{config_key}_git", "status": "pass", "message": "valid"})
                 fmt.log_ok("  Git repository valid")
             else:
-                checks.append(
-                    {"name": f"{config_key}_git", "status": "fail", "message": "invalid"}
-                )
+                checks.append({"name": f"{config_key}_git", "status": "fail", "message": "invalid"})
                 fmt.log_fail("  Not a valid git repository")
                 issues.append(f"{config_key} is not a git repository")
         elif required:
@@ -386,16 +382,21 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
             checks.append({"name": "customizations_dir", "status": "warn", "message": "not found"})
             fmt.log_warn(f"  rhdh-customizations not found inside {local_setup}")
 
-        # Check if customizations are synced
-        override_yaml = local_dir / "configs" / "dynamic-plugins" / "dynamic-plugins.override.yaml"
-        if override_yaml.exists():
-            checks.append({"name": "customizations_synced", "status": "pass", "message": "synced"})
-            fmt.log_ok("  customizations: synced to rhdh-local")
-        else:
-            checks.append(
-                {"name": "customizations_synced", "status": "info", "message": "not synced"}
+        # Check if customizations are synced (only meaningful when rhdh-local exists)
+        if local_dir.is_dir():
+            override_yaml = (
+                local_dir / "configs" / "dynamic-plugins" / "dynamic-plugins.override.yaml"
             )
-            fmt.log_info("  customizations: not synced (run apply-customizations.sh)")
+            if override_yaml.exists():
+                checks.append(
+                    {"name": "customizations_synced", "status": "pass", "message": "synced"}
+                )
+                fmt.log_ok("  customizations: synced to rhdh-local")
+            else:
+                checks.append(
+                    {"name": "customizations_synced", "status": "info", "message": "not synced"}
+                )
+                fmt.log_info("  customizations: not synced (run apply-customizations.sh)")
 
         # Check if RHDH is running on port 7007
         import socket
@@ -503,7 +504,7 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         checks.append({"name": "rhdh_local_dir", "status": "pass", "message": str(local_dir)})
         fmt.log_ok(f"rhdh-local: {local_dir}")
 
-        # Check git status (should be clean)
+        # Check git status (override files are gitignored, so should always be clean)
         rc, stdout, _ = run_command(["git", "status", "--porcelain"], cwd=local_dir)
         if rc == 0:
             if stdout.strip():
@@ -511,13 +512,16 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
                     {
                         "name": "rhdh_local_git",
                         "status": "warn",
-                        "message": "has modifications (customizations applied)",
+                        "message": "unexpected tracked modifications (check .gitignore)",
                     }
                 )
-                fmt.log_warn("  git status: has modifications (customizations applied)")
+                fmt.log_warn(
+                    "  git status: unexpected modifications (override files should be gitignored)"
+                )
             else:
                 checks.append({"name": "rhdh_local_git", "status": "pass", "message": "clean"})
-                fmt.log_ok("  git status: clean (no customizations applied)")
+                fmt.log_ok("  git status: clean")
+
     else:
         checks.append({"name": "rhdh_local_dir", "status": "fail", "message": "not found"})
         fmt.log_fail(f"rhdh-local not found at: {local_dir}")
@@ -699,7 +703,7 @@ def cmd_local_plugins_list(fmt: OutputFormatter, _args: argparse.Namespace) -> i
             data,
             next_steps=[
                 "Create the file to add plugins",
-                "See skills/local-testing/workflows/enable-plugin.md",
+                "See skills/rhdh-local/workflows/enable-plugin.md",
             ],
         )
         return 0
@@ -784,9 +788,7 @@ def cmd_config_init(fmt: OutputFormatter, args: argparse.Namespace) -> int:
             if repos.get(key):
                 fmt.log_ok(f"Auto-detected {key}: {repos[key]}")
             elif info["required"]:
-                fmt.log_info(
-                    f"{key}: not found (configure with: rhdh config set {key} /path)"
-                )
+                fmt.log_info(f"{key}: not found (configure with: rhdh config set {key} /path)")
         fmt.success(data, next_steps=next_steps)
         return 0
     else:
