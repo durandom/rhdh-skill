@@ -7,6 +7,8 @@
 </required_reading>
 
 <process>
+> **Bare `rhdh-local` clone?** If `up.sh`/`down.sh` do not exist in your setup root, replace every `./down.sh` with `podman compose down` and every `./up.sh [flags]` with `podman compose up -d`, both run from the `rhdh-local/` directory.
+
 ## Mode Comparison
 
 | Feature | Customized Mode | Pristine Mode |
@@ -33,31 +35,41 @@
 
 ## Switch to Pristine Mode
 
+**With `up.sh`/`down.sh` (full `rhdh-local-setup` layout):**
+
 ```bash
-# Stop and remove customization copies
 ./down.sh
-
-# Start with RHDH defaults only
 ./up.sh --baseline
-
-# Access at http://localhost:7007 (Guest login)
 ```
 
 > `down.sh` automatically removes the customization copies from `rhdh-local/`.
+
+**With bare `rhdh-local` clone (no `up.sh`):**
+
+```bash
+cd rhdh-customizations && ./remove-customizations.sh
+cd ../rhdh-local && podman compose down && podman compose up -d
+```
 
 ---
 
 ## Switch Back to Customized Mode
 
-```bash
-# Sync your customizations back into rhdh-local/
-cd rhdh-customizations && ./apply-customizations.sh
+**With `up.sh`/`down.sh`:**
 
-# Stop (if running) and restart with customizations
+```bash
+cd rhdh-customizations && ./apply-customizations.sh
 cd .. && ./down.sh && ./up.sh --customized [flags]
 ```
 
 Add `--lightspeed`, `--orchestrator`, or `--both` as needed.
+
+**With bare `rhdh-local` clone:**
+
+```bash
+cd rhdh-customizations && ./apply-customizations.sh
+cd ../rhdh-local && podman compose down && podman compose up -d
+```
 
 ---
 

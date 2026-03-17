@@ -44,12 +44,21 @@ If the plugin required environment variables in `rhdh-customizations/.env`, remo
 
 ## Step 4: Apply and Restart
 
+If `up.sh`/`down.sh` exist in the setup root (full `rhdh-local-setup` layout):
+
 ```bash
 cd rhdh-customizations && ./apply-customizations.sh
 cd .. && ./down.sh && ./up.sh --customized
 ```
 
 Add `--lightspeed`, `--orchestrator`, or `--both` flags if those components are enabled.
+
+If using a bare `rhdh-local` clone (no `up.sh`):
+
+```bash
+cd rhdh-local && podman compose down && podman compose up -d
+```
+
 </process>
 
 <success_criteria>

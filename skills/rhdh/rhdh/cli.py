@@ -504,6 +504,27 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         checks.append({"name": "rhdh_local_dir", "status": "pass", "message": str(local_dir)})
         fmt.log_ok(f"rhdh-local: {local_dir}")
 
+        # Check it is a full checkout (has compose.yaml), not just an overlay copy directory
+        compose_yaml = local_dir / "compose.yaml"
+        if compose_yaml.exists():
+            checks.append({"name": "rhdh_local_compose", "status": "pass", "message": "found"})
+            fmt.log_ok("  compose.yaml: found (full checkout)")
+        else:
+            checks.append(
+                {
+                    "name": "rhdh_local_compose",
+                    "status": "warn",
+                    "message": "compose.yaml missing — this looks like an overlay copy, not a full rhdh-local checkout",
+                }
+            )
+            fmt.log_warn(
+                "  compose.yaml not found — rhdh-local/ appears to be a partial overlay directory, not a full checkout"
+            )
+            fmt.log_warn("  The detected rhdh-local-setup may not match the running RHDH instance.")
+            fmt.log_warn(
+                "  Set RHDH_LOCAL_SETUP_DIR or run: rhdh config set local_setup /path/to/correct/setup"
+            )
+
         # Check git status (override files are gitignored, so should always be clean)
         rc, stdout, _ = run_command(["git", "status", "--porcelain"], cwd=local_dir)
         if rc == 0:
@@ -581,9 +602,15 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         "rhdh_running": rhdh_running,
     }
 
+    up_script = local_setup / "up.sh"
+    restart_cmd = (
+        f"cd {local_setup} && ./down.sh && ./up.sh --customized"
+        if up_script.exists()
+        else f"cd {local_dir} && podman compose down && podman compose up -d"
+    )
     next_steps = [
         f"cd {customizations_dir} && ./apply-customizations.sh",
-        f"cd {local_setup} && ./up.sh --customized",
+        restart_cmd,
         "rhdh local plugins list",
     ]
     fmt.success(data, next_steps=next_steps)

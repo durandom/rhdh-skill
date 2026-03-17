@@ -13,6 +13,11 @@ Read before starting:
 
 Ask the user which plugin to enable. If unsure, list available plugins:
 
+> **Pre-installed vs OCI plugins:** Check the plugin YAML for `extensions.backstage.io/pre-installed: 'true'`.
+>
+> - **Pre-installed** — bundled with RHDH, `spec.dynamicArtifact` is a local path like `./dynamic-plugins/dist/...`. No download needed, but may have version-specific issues in a given RHDH build (e.g. `PluginRoot not found`). The `rhdh-local` `CHANGELOG` or known-issues list is the authoritative source.
+> - **OCI** — fetched from `ghcr.io` at startup, always the exact tested version. More reliable for third-party plugins.
+
 ```bash
 curl -s https://api.github.com/repos/redhat-developer/rhdh-plugin-export-overlays/contents/catalog-entities/extensions/plugins \
   | jq -r '.[].name' | sed 's/\.yaml$//'
@@ -150,12 +155,22 @@ Before applying, show the user:
 
 ## Step 8: Apply and Restart
 
+If `up.sh`/`down.sh` exist in the setup root (full `rhdh-local-setup` layout):
+
 ```bash
 cd rhdh-customizations && ./apply-customizations.sh
 cd .. && ./down.sh && ./up.sh --customized
 ```
 
 Add `--lightspeed`, `--orchestrator`, or `--both` flags if those components are enabled.
+
+If using a bare `rhdh-local` clone (no `up.sh`):
+
+```bash
+cd rhdh-local && podman compose down && podman compose up -d
+```
+
+> **Note:** A full restart is always required — both for plugin changes (new `dynamic-plugins.override.yaml`) and for `app-config` changes. Neither hot-reloads inside the container.
 
 **Verify:**
 
