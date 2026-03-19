@@ -2,6 +2,11 @@
 
 The copy-sync system for managing RHDH Local configuration without modifying the upstream `rhdh-local/` git repository.
 
+> **Setup:** `rhdh-local-setup/` is a personal workspace wrapper you create around the `rhdh-local` git clone.
+> It is **not** part of the `rhdh-local` repo itself — `rhdh-local/` is a clean upstream clone inside it.
+> `up.sh`, `down.sh`, and `rhdh-customizations/` are personal files that live alongside it.
+> If you only have a bare `rhdh-local` clone (no `up.sh`), use `podman compose down && podman compose up -d` directly and manage override files manually or with your own scripts.
+
 <architecture>
 **Workspace layout:**
 
