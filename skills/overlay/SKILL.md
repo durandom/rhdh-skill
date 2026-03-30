@@ -1,6 +1,6 @@
 ---
 name: overlay
-description: Manage RHDH plugins in the overlay repository (rhdh-plugin-export-overlays). Onboard, update, maintain, and triage plugins in the Extensions Catalog.
+description: Use when working with the rhdh-plugin-export-overlays repository — onboarding plugins to the Extensions Catalog, updating plugin versions, fixing overlay build failures, triaging and analyzing PRs, triggering publishes, or managing plugin workspaces.
 ---
 
 <cli_setup>

@@ -1,6 +1,6 @@
 ---
 name: rhdh
-description: Orchestrator skill for RHDH plugin development. Provides CLI tooling, activity tracking, and routes to specialized skills (overlay, etc.).
+description: Use for ANY work related to "RHDH", "Red Hat Developer Hub", or "Developer Hub". This is the primary entry point for all RHDH tasks — plugin development, overlay management, environment setup, repo navigation, version compatibility, CI/CD, configuration, debugging, and general RHDH ecosystem knowledge. Routes to specialized sub-skills as needed.
 ---
 
 <cli_setup>
