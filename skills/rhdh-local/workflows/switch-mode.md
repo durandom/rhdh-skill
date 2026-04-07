@@ -62,8 +62,7 @@ rhdh local down && rhdh local up --customized [--lightspeed|--orchestrator|--bot
 **Direct compose fallback:**
 
 ```bash
-cd rhdh-customizations && bash /path/to/skills/rhdh-local/scripts/apply-customizations.sh --workspace ..
-cd ../rhdh-local && podman compose down && podman compose up -d
+cd rhdh-local && podman compose down && podman compose up -d
 ```
 
 ---

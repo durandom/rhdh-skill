@@ -396,7 +396,7 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
                 checks.append(
                     {"name": "customizations_synced", "status": "info", "message": "not synced"}
                 )
-                fmt.log_info("  customizations: not synced (run apply-customizations.sh)")
+                fmt.log_info("  customizations: not synced (run rhdh local apply)")
 
         # Check if RHDH is running on port 7007
         import socket
@@ -1325,7 +1325,7 @@ EXAMPLES:
 
     # local apply
     local_apply_parser = local_subparsers.add_parser(
-        "apply", help="Apply customizations (run apply-customizations.sh)"
+        "apply", help="Apply customizations from rhdh-customizations/ to rhdh-local/"
     )
     local_apply_parser.set_defaults(func=cmd_local_apply)
 

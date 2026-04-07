@@ -5,7 +5,7 @@ The copy-sync system for managing RHDH Local configuration without modifying the
 > **Setup:** `rhdh-local-setup/` is a workspace directory containing your `rhdh-local` git clone and customizations.
 > `rhdh-customizations/` holds your override files. The `rhdh local apply`, `rhdh local up`, and `rhdh local down`
 > commands handle copy-sync and compose orchestration directly via Python — no shell scripts required.
-> The `skills/rhdh-local/scripts/` directory contains standalone bash equivalents for manual use.
+> The standalone CLI entry point is at `skills/rhdh-local/scripts/rhdh-local`.
 > Patterns inspired by Ben Wilcock's [rhdh-lab](https://github.com/benwilcock/rhdh-lab) (Apache 2.0).
 
 <architecture>
@@ -28,25 +28,24 @@ rhdh-local-setup/
         ├── catalog-entities/users.override.yaml
         └── extra-files/github-app-credentials.yaml
 
-# Bundled scripts (shipped with rhdh-skill, called via CLI):
-skills/rhdh-local/scripts/
-├── apply-customizations.sh    # rhdh local apply  → copies files into rhdh-local/
-├── remove-customizations.sh   # rhdh local remove → deletes copies from rhdh-local/
-├── up.sh                      # rhdh local up     → applies customizations + starts containers
-└── down.sh                    # rhdh local down   → stops containers + removes customizations
+# CLI commands:
+# rhdh local apply   → copies files into rhdh-local/
+# rhdh local remove  → deletes copies from rhdh-local/
+# rhdh local up      → applies customizations + starts containers
+# rhdh local down    → stops containers + removes customizations
 ```
 
 **The copy-sync invariant:**
 
 - `rhdh-customizations/` is the single source of truth for all configuration
-- `apply-customizations.sh` physically copies files into `rhdh-local/`
+- `rhdh local apply` copies files into `rhdh-local/`
 - Containers read files from `rhdh-local/` (they cannot access paths outside their mount)
-- `remove-customizations.sh` deletes the copies, restoring pristine state
+- `rhdh local remove` deletes the copies, restoring pristine state
 - `rhdh-local/` git status should always be "working tree clean" — the copied files are gitignored
 </architecture>
 
 <file_mapping>
-**Source → Destination** (what `apply-customizations.sh` copies):
+**Source → Destination** (what `rhdh local apply` copies):
 
 | Edit here (`rhdh-customizations/`) | Copied to (`rhdh-local/`) |
 |------------------------------------|---------------------------|

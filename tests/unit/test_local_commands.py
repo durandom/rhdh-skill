@@ -381,40 +381,23 @@ class TestLocalSkillFiles:
         """rhdh-local/scripts/ must exist."""
         assert (local_skill_dir / "scripts").is_dir()
 
-    def test_bundled_scripts_exist(self, local_skill_dir):
-        """All 4 bundled .sh scripts and NOTICE must exist."""
+    def test_scripts_contain_entry_point_and_notice(self, local_skill_dir):
+        """scripts/ must contain the Python entry point and NOTICE."""
         scripts_dir = local_skill_dir / "scripts"
-        for name in [
-            "apply-customizations.sh",
-            "remove-customizations.sh",
-            "up.sh",
-            "down.sh",
-            "NOTICE",
-        ]:
-            assert (scripts_dir / name).exists(), f"Missing bundled file: {name}"
+        for name in ["rhdh-local", "NOTICE"]:
+            assert (scripts_dir / name).exists(), f"Missing: {name}"
 
-    def test_scripts_are_executable(self, local_skill_dir):
-        """All .sh scripts must have execute permission."""
+    def test_entry_point_is_executable(self, local_skill_dir):
+        """rhdh-local entry point must have execute permission."""
         import stat
 
-        scripts_dir = local_skill_dir / "scripts"
-        for name in ["apply-customizations.sh", "remove-customizations.sh", "up.sh", "down.sh"]:
-            path = scripts_dir / name
-            assert path.stat().st_mode & stat.S_IXUSR, f"{name} is not user-executable"
+        path = local_skill_dir / "scripts" / "rhdh-local"
+        assert path.stat().st_mode & stat.S_IXUSR, "rhdh-local is not user-executable"
 
-    def test_scripts_have_shebang(self, local_skill_dir):
-        """All .sh scripts must start with #!/usr/bin/env bash."""
-        scripts_dir = local_skill_dir / "scripts"
-        for name in ["apply-customizations.sh", "remove-customizations.sh", "up.sh", "down.sh"]:
-            first_line = (scripts_dir / name).read_text().splitlines()[0]
-            assert first_line == "#!/usr/bin/env bash", f"{name} missing shebang, got: {first_line}"
-
-    def test_scripts_support_workspace_flag(self, local_skill_dir):
-        """All .sh scripts must handle --workspace argument."""
-        scripts_dir = local_skill_dir / "scripts"
-        for name in ["apply-customizations.sh", "remove-customizations.sh", "up.sh", "down.sh"]:
-            content = (scripts_dir / name).read_text()
-            assert "--workspace" in content, f"{name} missing --workspace handling"
+    def test_entry_point_has_python_shebang(self, local_skill_dir):
+        """rhdh-local entry point must start with #!/usr/bin/env python3."""
+        first_line = (local_skill_dir / "scripts" / "rhdh-local").read_text().splitlines()[0]
+        assert first_line == "#!/usr/bin/env python3", f"Wrong shebang: {first_line}"
 
 
 class TestLocalNextStepsBug:
