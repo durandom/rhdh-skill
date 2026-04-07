@@ -134,15 +134,6 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         )
         fmt.log_ok(f"rhdh-customizations: {customizations_dir}")
 
-        # Check apply script exists
-        apply_script = customizations_dir / "apply-customizations.sh"
-        if apply_script.exists():
-            checks.append({"name": "apply_script", "status": "pass", "message": "found"})
-            fmt.log_ok("  apply-customizations.sh: found")
-        else:
-            checks.append({"name": "apply_script", "status": "warn", "message": "not found"})
-            fmt.log_warn("  apply-customizations.sh: not found")
-
         # Check if customizations are synced
         if local_dir.is_dir():
             override_yaml = (

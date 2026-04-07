@@ -41,7 +41,7 @@ rhdh local down && rhdh local up --customized
 
 **Cause:** Lightspeed and RHDH share a network namespace. Restarting one container independently desynchronizes the network, causing 504 errors.
 
-**Fix:** Always use `rhdh local down && rhdh local up` instead of `podman compose restart`. The bundled scripts handle the full lifecycle correctly.
+**Fix:** Always use `rhdh local down && rhdh local up` instead of restarting individual services with `podman compose restart`. Stopping and starting the entire compose project together keeps the shared network namespace in sync.
 
 ### Plugin Install Failures
 

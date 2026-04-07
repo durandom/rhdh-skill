@@ -120,6 +120,8 @@ def _run_compose(
 ) -> tuple[int, str, str]:
     """Run a compose command and return (returncode, stdout, stderr)."""
     full_cmd = [*compose_cmd, *compose_args, *action_args]
+    if not cwd.is_dir():
+        return -1, "", f"Working directory not found: {cwd}"
     try:
         proc = subprocess.run(full_cmd, capture_output=True, text=True, cwd=cwd)
         return proc.returncode, proc.stdout, proc.stderr

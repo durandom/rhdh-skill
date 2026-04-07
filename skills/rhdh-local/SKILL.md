@@ -11,9 +11,8 @@ After every edit, run `rhdh local apply` to sync copies. This is the fundamental
 </principle>
 
 <principle name="use_scripts">
-Use `rhdh local up` / `rhdh local down` — never `podman compose restart/up/down` directly when Lightspeed or Orchestrator are enabled. Network namespace sharing causes 504 errors if containers are restarted independently.
-The bundled scripts live in `skills/rhdh-local/scripts/` (Apache 2.0, inspired by Ben Wilcock's rhdh-lab).
-See `references/customization-system.md` for details.
+Use `rhdh local up` / `rhdh local down` — never `podman compose restart/up/down` directly when Lightspeed or Orchestrator are enabled. These commands manage the local compose lifecycle directly through Python; do not bypass them with direct compose commands when shared-network services are enabled.
+See `references/troubleshooting.md` for network namespace details.
 </principle>
 
 <principle name="data_sources">

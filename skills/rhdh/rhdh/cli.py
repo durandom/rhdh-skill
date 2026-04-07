@@ -413,7 +413,7 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
             fmt.log_ok("  RHDH: running on http://localhost:7007")
         else:
             checks.append({"name": "rhdh_port_7007", "status": "info", "message": "not running"})
-            fmt.log_info("  RHDH: not running (start with ./up.sh --customized)")
+            fmt.log_info("  RHDH: not running (start with rhdh local up --customized)")
     else:
         checks.append(
             {"name": "local_setup", "status": "info", "message": "not configured (optional)"}

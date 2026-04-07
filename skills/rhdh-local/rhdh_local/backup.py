@@ -124,17 +124,39 @@ def restore_customizations(
         result.errors.append(f"Archive not found: {archive}")
         return result
 
+    workspace_root = workspace.resolve()
+
     try:
         with tarfile.open(archive, "r:gz") as tar:
-            # Security: filter out absolute paths and path traversal
+            # Security: allow only regular files/directories whose final
+            # extraction path stays within the target workspace.
             members = []
             for m in tar.getmembers():
-                if m.name.startswith("/") or ".." in m.name:
+                member_path = Path(m.name)
+
+                if member_path.is_absolute() or ".." in member_path.parts:
                     result.errors.append(f"Skipping unsafe path: {m.name}")
                     continue
+
+                if m.issym() or m.islnk():
+                    result.errors.append(f"Skipping unsupported link entry: {m.name}")
+                    continue
+
+                if not (m.isdir() or m.isfile()):
+                    result.errors.append(f"Skipping unsupported archive entry: {m.name}")
+                    continue
+
+                destination = (workspace_root / member_path).resolve()
+                try:
+                    destination.relative_to(workspace_root)
+                except ValueError:
+                    result.errors.append(f"Skipping unsafe path: {m.name}")
+                    continue
+
                 members.append(m)
 
-            tar.extractall(path=workspace, members=members)
+            for m in members:
+                tar.extract(m, path=workspace_root)
             result.copied = [m.name for m in members if m.isfile()]
     except (tarfile.TarError, OSError) as e:
         result.errors.append(str(e))

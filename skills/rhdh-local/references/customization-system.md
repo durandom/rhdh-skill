@@ -3,10 +3,10 @@
 The copy-sync system for managing RHDH Local configuration without modifying the upstream `rhdh-local/` git repository.
 
 > **Setup:** `rhdh-local-setup/` is a workspace directory containing your `rhdh-local` git clone and customizations.
-> `rhdh-customizations/` holds your override files. The `apply-customizations.sh`, `remove-customizations.sh`,
-> `up.sh`, and `down.sh` scripts are **bundled with the rhdh-skill** (`skills/rhdh-local/scripts/`) and called
-> automatically by `rhdh local apply`, `rhdh local up`, and `rhdh local down`.
-> Scripts are inspired by Ben Wilcock's [rhdh-lab](https://github.com/benwilcock/rhdh-lab) (Apache 2.0).
+> `rhdh-customizations/` holds your override files. The `rhdh local apply`, `rhdh local up`, and `rhdh local down`
+> commands handle copy-sync and compose orchestration directly via Python — no shell scripts required.
+> The `skills/rhdh-local/scripts/` directory contains standalone bash equivalents for manual use.
+> Patterns inspired by Ben Wilcock's [rhdh-lab](https://github.com/benwilcock/rhdh-lab) (Apache 2.0).
 
 <architecture>
 **Workspace layout:**

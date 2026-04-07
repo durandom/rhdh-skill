@@ -7,7 +7,7 @@
 </required_reading>
 
 <process>
-> **Primary interface:** Use `rhdh local up`/`rhdh local down` — they call the bundled scripts automatically.
+> **Primary interface:** Use `rhdh local up`/`rhdh local down` — they handle copy-sync and compose orchestration directly.
 > Direct compose commands (`podman compose up/down`) are available as a fallback but skip customization sync.
 
 ## Mode Comparison
