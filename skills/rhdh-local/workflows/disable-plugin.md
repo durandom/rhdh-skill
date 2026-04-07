@@ -3,7 +3,7 @@
 <required_reading>
 
 - `references/customization-system.md` — copy-sync rules, file locations
-- `../overlay/references/rhdh-local.md` section `<container_lifecycle>` — restart procedure
+- `references/troubleshooting.md` — restart patterns and network namespace rules
 </required_reading>
 
 <process>

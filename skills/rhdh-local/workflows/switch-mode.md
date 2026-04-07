@@ -3,7 +3,7 @@
 <required_reading>
 
 - `references/customization-system.md` — what customized vs pristine means
-- `../overlay/references/rhdh-local.md` section `<container_lifecycle>` — use scripts, not direct compose commands
+- `references/troubleshooting.md` — use scripts not direct compose commands, network namespace rules
 </required_reading>
 
 <process>

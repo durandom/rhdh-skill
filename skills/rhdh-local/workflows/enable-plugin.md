@@ -5,7 +5,7 @@ Read before starting:
 
 - `references/customization-system.md` — file mapping and edit rules
 - `../overlay/references/rhdh-local.md` section `<dynamic_plugins_config>` — YAML format, OCI references, tag patterns
-- `../overlay/references/rhdh-local.md` section `<container_lifecycle>` — correct restart procedure
+- `references/troubleshooting.md` — restart patterns and network namespace rules
 </required_reading>
 
 <process>

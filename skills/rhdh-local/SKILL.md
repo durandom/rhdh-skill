@@ -58,7 +58,7 @@ What would you like to do with your local RHDH instance?
 **Customization system (copy-sync, file mapping, edit rules):** `references/customization-system.md`
 **Environment variables (.env reference):** `references/env-reference.md`
 **Troubleshooting & comparative testing:** `references/troubleshooting.md`
-**Container lifecycle, startup scripts, network namespace:** `../overlay/references/rhdh-local.md` sections `<container_lifecycle>` and `<common_operations>`
+**Container lifecycle, startup scripts, network namespace:** `references/troubleshooting.md` — restart patterns, 504 debugging, network namespace rules
 **Dynamic plugin YAML format, OCI references:** `../overlay/references/rhdh-local.md` section `<dynamic_plugins_config>`
 </reference_index>
 
