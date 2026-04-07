@@ -9,7 +9,7 @@ from __future__ import annotations
 import socket
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 from .compose import (
@@ -128,6 +128,23 @@ def check_local_health(workspace: Path) -> list[HealthCheck]:
                             message=f"Unexpected response: {body[:100]}",
                         )
                     )
+        except HTTPError as e:
+            if e.code in (401, 403):
+                checks.append(
+                    HealthCheck(
+                        name="backend_health",
+                        status="pass",
+                        message="Backend responding (auth required)",
+                    )
+                )
+            else:
+                checks.append(
+                    HealthCheck(
+                        name="backend_health",
+                        status="warn",
+                        message=f"Health endpoint returned HTTP {e.code}",
+                    )
+                )
         except (URLError, OSError) as e:
             checks.append(
                 HealthCheck(

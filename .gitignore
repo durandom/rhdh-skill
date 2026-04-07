@@ -36,3 +36,6 @@ Thumbs.db
 
 # Personal workspace wrapper (not part of the skill repo)
 rhdh-local-setup/
+
+# Temporary testing checkouts
+tmp/
