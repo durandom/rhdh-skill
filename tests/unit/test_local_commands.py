@@ -355,6 +355,28 @@ class TestLocalSkillFiles:
         content = (local_skill_dir / "references" / "customization-system.md").read_text()
         assert re.search(r"<\w+>", content), "customization-system.md should use XML tags"
 
+    def test_env_reference_exists(self, local_skill_dir):
+        """env-reference.md reference must exist."""
+        assert (local_skill_dir / "references" / "env-reference.md").exists()
+
+    def test_env_reference_has_xml_sections(self, local_skill_dir):
+        """env-reference.md must use XML tags."""
+        import re
+
+        content = (local_skill_dir / "references" / "env-reference.md").read_text()
+        assert re.search(r"<\w+>", content), "env-reference.md should use XML tags"
+
+    def test_troubleshooting_reference_exists(self, local_skill_dir):
+        """troubleshooting.md reference must exist."""
+        assert (local_skill_dir / "references" / "troubleshooting.md").exists()
+
+    def test_troubleshooting_has_xml_sections(self, local_skill_dir):
+        """troubleshooting.md must use XML tags."""
+        import re
+
+        content = (local_skill_dir / "references" / "troubleshooting.md").read_text()
+        assert re.search(r"<\w+>", content), "troubleshooting.md should use XML tags"
+
     def test_scripts_dir_exists(self, local_skill_dir):
         """rhdh-local/scripts/ must exist."""
         assert (local_skill_dir / "scripts").is_dir()

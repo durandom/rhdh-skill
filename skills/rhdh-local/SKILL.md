@@ -47,10 +47,17 @@ What would you like to do with your local RHDH instance?
 | 5, "status", "list plugins", "show plugins" | Read `rhdh-customizations/configs/dynamic-plugins/dynamic-plugins.override.yaml` and list entries |
 | "start", "up", "start rhdh" | Run `rhdh local up` (add `--lightspeed`, `--orchestrator`, or `--both` as needed) |
 | "stop", "down", "stop rhdh" | Run `rhdh local down` |
+| "health", "check health", "is rhdh running" | Run `rhdh local health` |
+| "backup", "save config", "archive" | Run `rhdh local backup` |
+| "restore", "restore backup" | Run `rhdh local restore <archive>` (dry-run by default) |
+| "env", "environment variables", "env vars", ".env" | Read `references/env-reference.md` |
+| "troubleshoot", "debug", "504", "error", "not working" | Read `references/troubleshooting.md` |
 </routing>
 
 <reference_index>
 **Customization system (copy-sync, file mapping, edit rules):** `references/customization-system.md`
+**Environment variables (.env reference):** `references/env-reference.md`
+**Troubleshooting & comparative testing:** `references/troubleshooting.md`
 **Container lifecycle, startup scripts, network namespace:** `../overlay/references/rhdh-local.md` sections `<container_lifecycle>` and `<common_operations>`
 **Dynamic plugin YAML format, OCI references:** `../overlay/references/rhdh-local.md` section `<dynamic_plugins_config>`
 </reference_index>

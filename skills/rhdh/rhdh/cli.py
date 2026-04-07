@@ -22,12 +22,25 @@ from .config import (
     get_github_username,
     get_local_setup_dir,
     get_repo,
-    get_skill_root,
     list_submodule_repos,
     save_github_username,
     setup_submodule,
 )
 from .formatters import OutputFormatter
+from .local import (
+    LastRunSettings,
+    apply_customizations,
+    backup_customizations,
+    check_local_health,
+    list_backups,
+    load_last_run,
+    local_down,
+    local_up,
+    preview_restore,
+    remove_customizations,
+    restore_customizations,
+    save_last_run,
+)
 from .todo import (
     add_note as todo_add_note,
 )
@@ -487,12 +500,6 @@ def _get_local_setup_or_fail(fmt: OutputFormatter) -> Optional[Path]:
     return local_setup
 
 
-def _get_bundled_script(script_name: str) -> Path:
-    """Get path to a bundled script in skills/rhdh-local/scripts/."""
-    # skill_root = skills/rhdh/; parent = skills/
-    return get_skill_root().parent / "rhdh-local" / "scripts" / script_name
-
-
 def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     """Show local RHDH customization sync status."""
     fmt.header("Local RHDH Status")
@@ -626,55 +633,45 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     return 0
 
 
+def _log_sync_result(fmt: OutputFormatter, result: Any) -> None:
+    """Log the results of a copy-sync operation."""
+    for path in result.copied:
+        fmt.log_ok(f"  Copied: {path}")
+    for path in result.removed:
+        fmt.log_ok(f"  Removed: {path}")
+    for path in result.skipped:
+        fmt.log_info(f"  Skipped: {path}")
+    for err in result.errors:
+        fmt.log_fail(f"  Error: {err}")
+
+
 def cmd_local_apply(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
-    """Apply customizations (run apply-customizations.sh)."""
+    """Apply customizations from rhdh-customizations/ to rhdh-local/."""
     fmt.header("Apply Customizations")
 
     local_setup = _get_local_setup_or_fail(fmt)
     if not local_setup:
         return 1
 
-    apply_script = _get_bundled_script("apply-customizations.sh")
-    if not apply_script.exists():
-        fmt.log_fail(f"Bundled apply-customizations.sh not found: {apply_script}")
-        fmt.error("SCRIPT_NOT_FOUND", str(apply_script), next_steps=[])
+    result = apply_customizations(local_setup)
+    _log_sync_result(fmt, result)
+
+    if result.errors:
+        fmt.error("APPLY_FAILED", "\n".join(result.errors), next_steps=[])
         return 1
 
-    fmt.log_info(f"Running: {apply_script} --workspace {local_setup}")
-    rc, stdout, stderr = run_command(
-        ["bash", str(apply_script), "--workspace", str(local_setup)],
-    )
-
-    if stdout:
-        for line in stdout.splitlines():
-            fmt.log_info(line)
-    if stderr:
-        for line in stderr.splitlines():
-            fmt.log_warn(line)
-
-    if rc == 0:
-        fmt.log_ok("Customizations applied successfully")
-        data: dict[str, Any] = {"status": "applied", "script": str(apply_script)}
-        fmt.success(data, next_steps=["rhdh local up --customized"])
-        return 0
-    else:
-        fmt.log_fail(f"apply-customizations.sh failed (exit {rc})")
-        fmt.error("APPLY_FAILED", f"Script exited with {rc}", next_steps=[])
-        return 1
+    fmt.log_ok("Customizations applied successfully")
+    data: dict[str, Any] = {"status": "applied", "copied": result.copied}
+    fmt.success(data, next_steps=["rhdh local up --customized"])
+    return 0
 
 
 def cmd_local_remove(fmt: OutputFormatter, args: argparse.Namespace) -> int:
-    """Remove customizations (run remove-customizations.sh)."""
+    """Remove customization copies from rhdh-local/ (restore pristine state)."""
     fmt.header("Remove Customizations")
 
     local_setup = _get_local_setup_or_fail(fmt)
     if not local_setup:
-        return 1
-
-    remove_script = _get_bundled_script("remove-customizations.sh")
-    if not remove_script.exists():
-        fmt.log_fail(f"Bundled remove-customizations.sh not found: {remove_script}")
-        fmt.error("SCRIPT_NOT_FOUND", str(remove_script), next_steps=[])
         return 1
 
     force = getattr(args, "force", False)
@@ -682,7 +679,7 @@ def cmd_local_remove(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         fmt.log_warn(
             "This removes customization copies from rhdh-local/ (restores pristine state)."
         )
-        fmt.log_warn("Use --force to confirm, or run remove-customizations.sh directly.")
+        fmt.log_warn("Use --force to confirm.")
         fmt.error(
             "CONFIRMATION_REQUIRED",
             "Use --force to remove customizations",
@@ -690,61 +687,77 @@ def cmd_local_remove(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         )
         return 1
 
-    fmt.log_info(f"Running: {remove_script} --workspace {local_setup}")
-    rc, stdout, stderr = run_command(
-        ["bash", str(remove_script), "--workspace", str(local_setup)],
-    )
+    result = remove_customizations(local_setup)
+    _log_sync_result(fmt, result)
 
-    if stdout:
-        for line in stdout.splitlines():
-            fmt.log_info(line)
-    if stderr:
-        for line in stderr.splitlines():
-            fmt.log_warn(line)
-
-    if rc == 0:
-        fmt.log_ok("Customizations removed (rhdh-local/ is now pristine)")
-        data: dict[str, Any] = {"status": "removed", "script": str(remove_script)}
-        fmt.success(data, next_steps=["rhdh local up --baseline"])
-        return 0
-    else:
-        fmt.log_fail(f"remove-customizations.sh failed (exit {rc})")
-        fmt.error("REMOVE_FAILED", f"Script exited with {rc}", next_steps=[])
+    if result.errors:
+        fmt.error("REMOVE_FAILED", "\n".join(result.errors), next_steps=[])
         return 1
+
+    fmt.log_ok("Customizations removed (rhdh-local/ is now pristine)")
+    data: dict[str, Any] = {"status": "removed", "removed": result.removed}
+    fmt.success(data, next_steps=["rhdh local up --baseline"])
+    return 0
 
 
 def cmd_local_up(fmt: OutputFormatter, args: argparse.Namespace) -> int:
-    """Start RHDH Local containers using bundled up.sh."""
+    """Start RHDH Local containers."""
     fmt.header("RHDH Local Up")
 
     local_setup = _get_local_setup_or_fail(fmt)
     if not local_setup:
         return 1
 
-    up_script = _get_bundled_script("up.sh")
-    if not up_script.exists():
-        fmt.log_fail(f"Bundled up.sh not found: {up_script}")
-        fmt.error("SCRIPT_NOT_FOUND", str(up_script), next_steps=[])
+    baseline = getattr(args, "baseline", False)
+    lightspeed = getattr(args, "lightspeed", False)
+    orchestrator_flag = getattr(args, "orchestrator", False)
+    both = getattr(args, "both", False)
+    follow_logs = getattr(args, "follow_logs", False)
+    use_last = getattr(args, "last", False)
+
+    # --last: replay previous settings
+    if use_last:
+        if any([baseline, lightspeed, orchestrator_flag, both]):
+            fmt.error(
+                "INVALID_FLAGS",
+                "--last cannot be combined with --baseline, --lightspeed, --orchestrator, or --both",
+                next_steps=["rhdh local up --last"],
+            )
+            return 1
+        last = load_last_run(local_setup)
+        if not last:
+            fmt.error(
+                "NO_LAST_RUN",
+                "No previous run settings found",
+                next_steps=["rhdh local up --customized"],
+            )
+            return 1
+        baseline = last.mode == "baseline"
+        lightspeed = last.lightspeed
+        orchestrator_flag = last.orchestrator
+        follow_logs = last.follow_logs
+
+    if both:
+        lightspeed = True
+        orchestrator_flag = True
+
+    mode = "baseline" if baseline else "customized"
+    fmt.log_info(f"Starting RHDH ({mode} mode)...")
+
+    try:
+        sync, rc, stdout, stderr = local_up(
+            local_setup,
+            baseline=baseline,
+            lightspeed=lightspeed,
+            orchestrator=orchestrator_flag,
+            follow_logs=follow_logs,
+        )
+    except RuntimeError as e:
+        fmt.log_fail(str(e))
+        fmt.error("RUNTIME_ERROR", str(e), next_steps=["Install podman or docker"])
         return 1
 
-    cmd = ["bash", str(up_script), "--workspace", str(local_setup)]
-
-    if getattr(args, "baseline", False):
-        cmd.append("--baseline")
-    else:
-        cmd.append("--customized")
-
-    if getattr(args, "lightspeed", False):
-        cmd.append("--lightspeed")
-    if getattr(args, "orchestrator", False):
-        cmd.append("--orchestrator")
-    if getattr(args, "both", False):
-        cmd.append("--both")
-    if getattr(args, "follow_logs", False):
-        cmd.append("--follow-logs")
-
-    fmt.log_info(f"Running: {' '.join(cmd)}")
-    rc, stdout, stderr = run_command(cmd)
+    _log_sync_result(fmt, sync)
 
     if stdout:
         for line in stdout.splitlines():
@@ -754,36 +767,41 @@ def cmd_local_up(fmt: OutputFormatter, args: argparse.Namespace) -> int:
             fmt.log_warn(line)
 
     if rc == 0:
-        data: dict[str, Any] = {"status": "started"}
-        fmt.success(data, next_steps=["rhdh local status"])
+        # Save settings for --last replay
+        save_last_run(
+            local_setup,
+            LastRunSettings(
+                mode=mode,
+                lightspeed=lightspeed,
+                orchestrator=orchestrator_flag,
+                follow_logs=follow_logs,
+            ),
+        )
+        data: dict[str, Any] = {"status": "started", "mode": mode}
+        fmt.success(data, next_steps=["rhdh local status", "rhdh local health"])
         return 0
     else:
-        fmt.log_fail(f"up.sh failed (exit {rc})")
-        fmt.error("UP_FAILED", f"Script exited with {rc}", next_steps=[])
+        fmt.log_fail(f"Container start failed (exit {rc})")
+        fmt.error("UP_FAILED", f"Compose exited with {rc}", next_steps=["rhdh local status"])
         return 1
 
 
 def cmd_local_down(fmt: OutputFormatter, args: argparse.Namespace) -> int:
-    """Stop RHDH Local containers using bundled down.sh."""
+    """Stop RHDH Local containers."""
     fmt.header("RHDH Local Down")
 
     local_setup = _get_local_setup_or_fail(fmt)
     if not local_setup:
         return 1
 
-    down_script = _get_bundled_script("down.sh")
-    if not down_script.exists():
-        fmt.log_fail(f"Bundled down.sh not found: {down_script}")
-        fmt.error("SCRIPT_NOT_FOUND", str(down_script), next_steps=[])
+    volumes = getattr(args, "volumes", False)
+
+    try:
+        sync, rc, stdout, stderr = local_down(local_setup, volumes=volumes)
+    except RuntimeError as e:
+        fmt.log_fail(str(e))
+        fmt.error("RUNTIME_ERROR", str(e), next_steps=["Install podman or docker"])
         return 1
-
-    cmd = ["bash", str(down_script), "--workspace", str(local_setup)]
-
-    if getattr(args, "volumes", False):
-        cmd.append("--volumes")
-
-    fmt.log_info(f"Running: {' '.join(cmd)}")
-    rc, stdout, stderr = run_command(cmd)
 
     if stdout:
         for line in stdout.splitlines():
@@ -792,14 +810,155 @@ def cmd_local_down(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         for line in stderr.splitlines():
             fmt.log_warn(line)
 
+    _log_sync_result(fmt, sync)
+
     if rc == 0:
         data: dict[str, Any] = {"status": "stopped"}
         fmt.success(data, next_steps=["rhdh local status"])
         return 0
     else:
-        fmt.log_fail(f"down.sh failed (exit {rc})")
-        fmt.error("DOWN_FAILED", f"Script exited with {rc}", next_steps=[])
+        fmt.log_fail(f"Container stop failed (exit {rc})")
+        fmt.error("DOWN_FAILED", f"Compose exited with {rc}", next_steps=[])
         return 1
+
+
+def cmd_local_health(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
+    """Check health of the local RHDH instance."""
+    fmt.header("RHDH Local Health")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    checks = check_local_health(local_setup)
+
+    for check in checks:
+        if check.status == "pass":
+            fmt.log_ok(f"{check.name}: {check.message}")
+        elif check.status == "fail":
+            fmt.log_fail(f"{check.name}: {check.message}")
+        elif check.status == "warn":
+            fmt.log_warn(f"{check.name}: {check.message}")
+        else:
+            fmt.log_info(f"{check.name}: {check.message}")
+
+    has_failures = any(c.status == "fail" for c in checks)
+    data: dict[str, Any] = {
+        "checks": [{"name": c.name, "status": c.status, "message": c.message} for c in checks],
+        "healthy": not has_failures,
+    }
+    fmt.success(data, next_steps=["rhdh local status", "rhdh local up --last"])
+    return 0 if not has_failures else 1
+
+
+def cmd_local_backup(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
+    """Create a backup of rhdh-customizations/."""
+    fmt.header("Backup Customizations")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    try:
+        info = backup_customizations(local_setup)
+    except FileNotFoundError as e:
+        fmt.log_fail(str(e))
+        fmt.error("BACKUP_FAILED", str(e), next_steps=[])
+        return 1
+
+    size_kb = info.size_bytes / 1024
+    fmt.log_ok(f"Backup created: {info.path}")
+    fmt.log_info(f"  Size: {size_kb:.1f} KB")
+    fmt.log_info(f"  Timestamp: {info.timestamp}")
+
+    # Warn about credentials
+    env_file = local_setup / "rhdh-customizations" / ".env"
+    if env_file.is_file():
+        fmt.log_warn("  Archive contains .env (may include credentials)")
+
+    data: dict[str, Any] = {
+        "path": str(info.path),
+        "timestamp": info.timestamp,
+        "size_bytes": info.size_bytes,
+    }
+    fmt.success(data, next_steps=["rhdh local backup list"])
+    return 0
+
+
+def cmd_local_backup_list(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
+    """List available backups."""
+    fmt.header("Available Backups")
+
+    backups = list_backups()
+
+    if not backups:
+        fmt.log_info("No backups found")
+        fmt.success({"count": 0, "backups": []}, next_steps=["rhdh local backup"])
+        return 0
+
+    for b in backups:
+        size_kb = b.size_bytes / 1024
+        fmt.log_info(f"  {b.timestamp}  {size_kb:>8.1f} KB  {b.path}")
+
+    data: dict[str, Any] = {
+        "count": len(backups),
+        "backups": [
+            {"path": str(b.path), "timestamp": b.timestamp, "size_bytes": b.size_bytes}
+            for b in backups
+        ],
+    }
+    fmt.success(data, next_steps=["rhdh local restore <archive>"])
+    return 0
+
+
+def cmd_local_restore(fmt: OutputFormatter, args: argparse.Namespace) -> int:
+    """Restore customizations from a backup archive."""
+    fmt.header("Restore Customizations")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    archive = Path(getattr(args, "archive", ""))
+    force = getattr(args, "force", False)
+
+    if not archive.is_file():
+        fmt.log_fail(f"Archive not found: {archive}")
+        fmt.error("ARCHIVE_NOT_FOUND", str(archive), next_steps=["rhdh local backup list"])
+        return 1
+
+    if not force:
+        # Dry-run: show what would be restored
+        try:
+            files = preview_restore(archive)
+        except FileNotFoundError as e:
+            fmt.log_fail(str(e))
+            fmt.error("PREVIEW_FAILED", str(e), next_steps=[])
+            return 1
+
+        fmt.log_info(f"Would restore {len(files)} files from: {archive}")
+        for f in files:
+            fmt.log_info(f"  {f}")
+
+        fmt.error(
+            "CONFIRMATION_REQUIRED",
+            "Use --force to restore",
+            next_steps=[f"rhdh local restore {archive} --force"],
+        )
+        return 1
+
+    result = restore_customizations(local_setup, archive)
+
+    if result.errors:
+        for err in result.errors:
+            fmt.log_fail(err)
+        fmt.error("RESTORE_FAILED", "\n".join(result.errors), next_steps=[])
+        return 1
+
+    fmt.log_ok(f"Restored {len(result.copied)} files from {archive}")
+    data: dict[str, Any] = {"status": "restored", "files": result.copied}
+    fmt.success(data, next_steps=["rhdh local apply", "rhdh local status"])
+    return 0
 
 
 def cmd_local_plugins_list(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
@@ -1767,6 +1926,11 @@ EXAMPLES:
         dest="follow_logs",
         help="Follow logs after start",
     )
+    local_up_parser.add_argument(
+        "--last",
+        action="store_true",
+        help="Replay last successful run settings",
+    )
     local_up_parser.set_defaults(func=cmd_local_up)
 
     # local down
@@ -1791,6 +1955,33 @@ EXAMPLES:
         "list", help="List plugins from dynamic-plugins.override.yaml"
     )
     local_plugins_list_parser.set_defaults(func=cmd_local_plugins_list)
+
+    # local health
+    local_health_parser = local_subparsers.add_parser(
+        "health", help="Check health of running RHDH instance"
+    )
+    local_health_parser.set_defaults(func=cmd_local_health)
+
+    # local backup
+    local_backup_parser = local_subparsers.add_parser("backup", help="Backup rhdh-customizations/")
+    local_backup_subparsers = local_backup_parser.add_subparsers(
+        dest="local_backup_command", metavar="SUBCOMMAND"
+    )
+    local_backup_parser.set_defaults(func=cmd_local_backup)
+
+    # local backup list
+    local_backup_list_parser = local_backup_subparsers.add_parser(
+        "list", help="List available backups"
+    )
+    local_backup_list_parser.set_defaults(func=cmd_local_backup_list)
+
+    # local restore
+    local_restore_parser = local_subparsers.add_parser(
+        "restore", help="Restore customizations from backup"
+    )
+    local_restore_parser.add_argument("archive", help="Path to backup .tar.gz file")
+    local_restore_parser.add_argument("--force", action="store_true", help=argparse.SUPPRESS)
+    local_restore_parser.set_defaults(func=cmd_local_restore)
 
     # Help command (for compatibility with bash version)
     help_parser = subparsers.add_parser("help", help="Show help")
@@ -1885,6 +2076,8 @@ def main(argv: list[str] | None = None) -> int:
                 "rhdh local down",
                 "rhdh local apply",
                 "rhdh local remove --force",
+                "rhdh local health",
+                "rhdh local backup",
                 "rhdh local plugins list",
             ],
         )

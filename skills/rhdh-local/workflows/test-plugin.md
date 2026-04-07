@@ -6,6 +6,7 @@
 - `../overlay/references/rhdh-local.md` section `<dynamic_plugins_config>` — plugin YAML format
 - `../overlay/references/rhdh-local.md` section `<verification_checklist>` — what to verify
 - `../overlay/references/rhdh-local.md` section `<extensions_catalog_visibility>` — optional Extensions Catalog setup
+- `references/troubleshooting.md` — comparative testing and common error patterns
 </required_reading>
 
 <process>
