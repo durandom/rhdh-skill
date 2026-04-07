@@ -20,6 +20,7 @@ from .config import (
     SUBMODULE_REPOS,
     get_data_dir,
     get_github_username,
+    get_local_setup_dir,
     get_repo,
     list_submodule_repos,
     save_github_username,
@@ -246,14 +247,10 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
             # Check it's a git repo
             rc, _, _ = run_command(["git", "rev-parse", "--git-dir"], cwd=repo_path)
             if rc == 0:
-                checks.append(
-                    {"name": f"{config_key}_git", "status": "pass", "message": "valid"}
-                )
+                checks.append({"name": f"{config_key}_git", "status": "pass", "message": "valid"})
                 fmt.log_ok("  Git repository valid")
             else:
-                checks.append(
-                    {"name": f"{config_key}_git", "status": "fail", "message": "invalid"}
-                )
+                checks.append({"name": f"{config_key}_git", "status": "fail", "message": "invalid"})
                 fmt.log_fail("  Not a valid git repository")
                 issues.append(f"{config_key} is not a git repository")
         elif required:
@@ -353,6 +350,78 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         )
         fmt.log_info("jira: not installed (optional, see references/jira-reference.md)")
 
+    # Local Setup (rhdh-local-setup customization system)
+    fmt.header("Local Setup (rhdh-local-setup)")
+
+    local_setup = get_local_setup_dir()
+    if local_setup:
+        checks.append({"name": "local_setup", "status": "pass", "message": str(local_setup)})
+        fmt.log_ok(f"rhdh-local-setup found: {local_setup}")
+
+        # Check rhdh-local is present inside it
+        local_dir = local_setup / "rhdh-local"
+        if local_dir.is_dir():
+            checks.append(
+                {"name": "local_setup_rhdh_local", "status": "pass", "message": str(local_dir)}
+            )
+            fmt.log_ok("  rhdh-local: found")
+        else:
+            checks.append(
+                {"name": "local_setup_rhdh_local", "status": "warn", "message": "not found"}
+            )
+            fmt.log_warn(f"  rhdh-local not found inside {local_setup}")
+
+        # Check customizations dir
+        customizations_dir = local_setup / "rhdh-customizations"
+        if customizations_dir.is_dir():
+            checks.append(
+                {"name": "customizations_dir", "status": "pass", "message": str(customizations_dir)}
+            )
+            fmt.log_ok("  rhdh-customizations: found")
+        else:
+            checks.append({"name": "customizations_dir", "status": "warn", "message": "not found"})
+            fmt.log_warn(f"  rhdh-customizations not found inside {local_setup}")
+
+        # Check if customizations are synced (only meaningful when rhdh-local exists)
+        if local_dir.is_dir():
+            override_yaml = (
+                local_dir / "configs" / "dynamic-plugins" / "dynamic-plugins.override.yaml"
+            )
+            if override_yaml.exists():
+                checks.append(
+                    {"name": "customizations_synced", "status": "pass", "message": "synced"}
+                )
+                fmt.log_ok("  customizations: synced to rhdh-local")
+            else:
+                checks.append(
+                    {"name": "customizations_synced", "status": "info", "message": "not synced"}
+                )
+                fmt.log_info("  customizations: not synced (run rhdh local apply)")
+
+        # Check if RHDH is running on port 7007
+        import socket
+
+        rhdh_running = False
+        try:
+            with socket.create_connection(("localhost", 7007), timeout=1):
+                rhdh_running = True
+        except OSError:
+            pass
+
+        if rhdh_running:
+            checks.append({"name": "rhdh_port_7007", "status": "pass", "message": "running"})
+            fmt.log_ok("  RHDH: running on http://localhost:7007")
+        else:
+            checks.append({"name": "rhdh_port_7007", "status": "info", "message": "not running"})
+            fmt.log_info("  RHDH: not running (start with rhdh local up --customized)")
+    else:
+        checks.append(
+            {"name": "local_setup", "status": "info", "message": "not configured (optional)"}
+        )
+        fmt.log_info("rhdh-local-setup: not configured (optional for local testing)")
+        fmt.log_info("  Configure with: rhdh config set local_setup /path/to/rhdh-local-setup")
+        fmt.log_info("  Or set env: RHDH_LOCAL_SETUP_DIR=/path/to/rhdh-local-setup")
+
     # Data Storage
     fmt.header("Data Storage")
     data_dir = get_data_dir()
@@ -395,6 +464,23 @@ def cmd_doctor(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
 
 
 # =============================================================================
+# Local Commands — thin delegation to rhdh_local.cli
+# =============================================================================
+
+from rhdh_local.cli import (  # noqa: E402
+    cmd_local_apply,
+    cmd_local_backup,
+    cmd_local_backup_list,
+    cmd_local_down,
+    cmd_local_health,
+    cmd_local_plugins_list,
+    cmd_local_remove,
+    cmd_local_restore,
+    cmd_local_status,
+    cmd_local_up,
+)
+
+# =============================================================================
 # Config Commands
 # =============================================================================
 
@@ -420,9 +506,7 @@ def cmd_config_init(fmt: OutputFormatter, args: argparse.Namespace) -> int:
             if repos.get(key):
                 fmt.log_ok(f"Auto-detected {key}: {repos[key]}")
             elif info["required"]:
-                fmt.log_info(
-                    f"{key}: not found (configure with: rhdh config set {key} /path)"
-                )
+                fmt.log_info(f"{key}: not found (configure with: rhdh config set {key} /path)")
         fmt.success(data, next_steps=next_steps)
         return 0
     else:
@@ -1229,6 +1313,123 @@ EXAMPLES:
     todo_show_parser = todo_subparsers.add_parser("show", help="Show raw TODO.md")
     todo_show_parser.set_defaults(func=cmd_todo_show)
 
+    # Local (rhdh-local-setup customization system)
+    local_parser = subparsers.add_parser("local", help="Local RHDH customization operations")
+    local_subparsers = local_parser.add_subparsers(dest="local_command", metavar="SUBCOMMAND")
+
+    # local status
+    local_status_parser = local_subparsers.add_parser(
+        "status", help="Show customization sync status"
+    )
+    local_status_parser.set_defaults(func=cmd_local_status)
+
+    # local apply
+    local_apply_parser = local_subparsers.add_parser(
+        "apply", help="Apply customizations from rhdh-customizations/ to rhdh-local/"
+    )
+    local_apply_parser.set_defaults(func=cmd_local_apply)
+
+    # local remove
+    local_remove_parser = local_subparsers.add_parser(
+        "remove", help="Remove customizations (restore pristine state)"
+    )
+    local_remove_parser.add_argument(
+        "--force", "-f", action="store_true", help="Confirm removal without prompting"
+    )
+    local_remove_parser.set_defaults(func=cmd_local_remove)
+
+    # local up
+    local_up_parser = local_subparsers.add_parser("up", help="Start RHDH Local containers")
+    local_up_parser.add_argument(
+        "--baseline", action="store_true", help="Start without customizations (pristine RHDH)"
+    )
+    local_up_parser.add_argument(
+        "--customized", action="store_true", help="Start with customizations applied (default)"
+    )
+    local_up_parser.add_argument(
+        "--lightspeed", action="store_true", help="Include Lightspeed compose file"
+    )
+    local_up_parser.add_argument(
+        "--orchestrator", action="store_true", help="Include Orchestrator compose file"
+    )
+    local_up_parser.add_argument(
+        "--both", action="store_true", help="Include both Lightspeed and Orchestrator"
+    )
+    local_up_parser.add_argument(
+        "--ollama",
+        action="store_true",
+        help="Use Ollama as Lightspeed provider (implies --lightspeed)",
+    )
+    local_up_parser.add_argument(
+        "--safety-guard",
+        action="store_true",
+        dest="safety_guard",
+        help="Enable Llama Guard safety filtering (implies --lightspeed)",
+    )
+    local_up_parser.add_argument(
+        "--follow-logs",
+        "-f",
+        action="store_true",
+        dest="follow_logs",
+        help="Follow logs after start",
+    )
+    local_up_parser.add_argument(
+        "--last",
+        action="store_true",
+        help="Replay last successful run settings",
+    )
+    local_up_parser.set_defaults(func=cmd_local_up)
+
+    # local down
+    local_down_parser = local_subparsers.add_parser("down", help="Stop RHDH Local containers")
+    local_down_parser.add_argument(
+        "--volumes", "-v", action="store_true", help="Remove named volumes on stop"
+    )
+    local_down_parser.add_argument(
+        "--keep-volumes",
+        action="store_true",
+        dest="keep_volumes",
+        help="Keep volumes on stop (default)",
+    )
+    local_down_parser.set_defaults(func=cmd_local_down)
+
+    # local plugins
+    local_plugins_parser = local_subparsers.add_parser("plugins", help="Plugin operations")
+    local_plugins_subparsers = local_plugins_parser.add_subparsers(
+        dest="local_plugins_command", metavar="SUBCOMMAND"
+    )
+    local_plugins_list_parser = local_plugins_subparsers.add_parser(
+        "list", help="List plugins from dynamic-plugins.override.yaml"
+    )
+    local_plugins_list_parser.set_defaults(func=cmd_local_plugins_list)
+
+    # local health
+    local_health_parser = local_subparsers.add_parser(
+        "health", help="Check health of running RHDH instance"
+    )
+    local_health_parser.set_defaults(func=cmd_local_health)
+
+    # local backup
+    local_backup_parser = local_subparsers.add_parser("backup", help="Backup rhdh-customizations/")
+    local_backup_subparsers = local_backup_parser.add_subparsers(
+        dest="local_backup_command", metavar="SUBCOMMAND"
+    )
+    local_backup_parser.set_defaults(func=cmd_local_backup)
+
+    # local backup list
+    local_backup_list_parser = local_backup_subparsers.add_parser(
+        "list", help="List available backups"
+    )
+    local_backup_list_parser.set_defaults(func=cmd_local_backup_list)
+
+    # local restore
+    local_restore_parser = local_subparsers.add_parser(
+        "restore", help="Restore customizations from backup"
+    )
+    local_restore_parser.add_argument("archive", help="Path to backup .tar.gz file")
+    local_restore_parser.add_argument("--force", action="store_true", help=argparse.SUPPRESS)
+    local_restore_parser.set_defaults(func=cmd_local_restore)
+
     # Help command (for compatibility with bash version)
     help_parser = subparsers.add_parser("help", help="Show help")
     help_parser.set_defaults(func=lambda f, a: parser.print_help() or 0)
@@ -1308,6 +1509,37 @@ def main(argv: list[str] | None = None) -> int:
                 "rhdh todo add <title>",
                 "rhdh todo show",
             ],
+        )
+        return 1
+
+    # Local without subcommand
+    if args.command == "local" and getattr(args, "local_command", None) is None:
+        fmt.error(
+            "MISSING_SUBCOMMAND",
+            "Local subcommand required",
+            next_steps=[
+                "rhdh local status",
+                "rhdh local up",
+                "rhdh local down",
+                "rhdh local apply",
+                "rhdh local remove --force",
+                "rhdh local health",
+                "rhdh local backup",
+                "rhdh local plugins list",
+            ],
+        )
+        return 1
+
+    # Local plugins without subcommand
+    if (
+        args.command == "local"
+        and getattr(args, "local_command", None) == "plugins"
+        and getattr(args, "local_plugins_command", None) is None
+    ):
+        fmt.error(
+            "MISSING_SUBCOMMAND",
+            "Local plugins subcommand required",
+            next_steps=["rhdh local plugins list"],
         )
         return 1
 

@@ -301,6 +301,7 @@ sha512-9WlbgEdadJNeQxdn1973r5E4kNFvnT9GjLD627GWgrhCaxjCmxqdNW08cj+Bf47mwAtZMt1Tt
 ### 1. Use OCI for Production
 
 Provides:
+
 - Standard tooling
 - Digest-based integrity
 - Easy updates

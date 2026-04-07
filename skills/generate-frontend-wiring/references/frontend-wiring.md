@@ -116,6 +116,7 @@ Extend existing pages with additional components.
 ### Mount Point Variants
 
 Each `entity.page.*` has two variants:
+
 - `entity.page.overview/cards` - Regular components
 - `entity.page.overview/context` - React context providers
 

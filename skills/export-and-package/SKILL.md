@@ -12,6 +12,7 @@ Export and package Backstage plugins as RHDH dynamic plugins for deployment. Thi
 ## When to Use
 
 Use this skill when you need to:
+
 - Export a plugin as a dynamic plugin package
 - Package a plugin as an OCI container image
 - Create a tgz archive for HTTP distribution
@@ -23,6 +24,7 @@ Use this skill when you need to:
 ## Prerequisites
 
 Before starting, ensure:
+
 - Plugin is built and compiles without errors (`yarn build`)
 - Container runtime installed (`podman` or `docker`)
 - Access to a container registry (e.g., quay.io) if publishing OCI images
@@ -56,6 +58,7 @@ npx @red-hat-developer-hub/cli@latest plugin export
 ```
 
 This creates a `dist-dynamic/` directory containing:
+
 - Compiled JavaScript optimized for dynamic loading
 - Modified `package.json` with peer/bundled dependencies
 - Config schema (if defined)
@@ -212,6 +215,7 @@ yarn workspace backend start
 ```
 
 Check logs for:
+
 - `loaded dynamic backend plugin` - Success
 - `Skipping disabled dynamic plugin` - Plugin disabled in config
 - Error messages during initialization
@@ -271,18 +275,21 @@ See `examples/dynamic-plugins.yaml` for complete examples.
 ### Export Fails
 
 **Missing dependencies:**
+
 ```bash
 yarn add -D <missing-package>
 npx @red-hat-developer-hub/cli@latest plugin export
 ```
 
 **TypeScript errors:**
+
 ```bash
 yarn tsc
 # Fix errors, then retry export
 ```
 
 **Clear stale artifacts:**
+
 ```bash
 rm -rf dist dist-dynamic
 yarn build
@@ -292,6 +299,7 @@ npx @red-hat-developer-hub/cli@latest plugin export
 ### Package Fails
 
 **Container tool not found:**
+
 ```bash
 # Specify available tool
 npx @red-hat-developer-hub/cli@latest plugin package \
@@ -300,6 +308,7 @@ npx @red-hat-developer-hub/cli@latest plugin package \
 ```
 
 **Permission denied:**
+
 ```bash
 # Check registry login
 podman login quay.io
@@ -316,6 +325,7 @@ podman login quay.io
 ### Integrity Hash Mismatch
 
 Regenerate the hash:
+
 ```bash
 cd dist-dynamic
 npm pack --json | jq -r '.[0].integrity'

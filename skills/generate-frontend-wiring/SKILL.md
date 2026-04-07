@@ -10,6 +10,7 @@ Analyze an existing Backstage frontend plugin and generate the RHDH dynamic plug
 ## When to Use
 
 Use this skill when:
+
 - User has an existing Backstage frontend plugin
 - User wants to deploy it to RHDH as a dynamic plugin
 - User needs the wiring configuration for `dynamic-plugins.yaml`
@@ -17,6 +18,7 @@ Use this skill when:
 ## Prerequisites
 
 The plugin directory must contain:
+
 - `package.json` with plugin metadata
 - `src/plugin.ts` or `src/plugin.tsx` with plugin definition
 - `src/index.ts` exporting plugin components
@@ -47,21 +49,25 @@ The scalprum name is used to reference the plugin in RHDH configuration:
 Analyze the plugin source to find:
 
 **Routable Extensions** (pages):
+
 - Look for `createRoutableExtension` in `plugin.ts`
 - These become `dynamicRoutes` entries
 - Extract the export name (e.g., `MyPluginPage`)
 
 **Entity Cards/Content**:
+
 - Look for `createComponentExtension` in `plugin.ts`
 - These become `mountPoints` entries
 - Identify if they use `useEntity` (entity-scoped)
 
 **API Factories**:
+
 - Look for `createApiFactory` and `createApiRef` in `plugin.ts` or `api.ts`
 - These become `apiFactories` entries
 - Extract the `apiRef` export name
 
 **Icons**:
+
 - Look for icon exports (React components returning SVG/Icon)
 - These become `appIcons` entries
 
@@ -102,6 +108,7 @@ dynamicPlugins:
 ### Step 5: Present to User
 
 Show the generated configuration with:
+
 1. The YAML configuration block
 2. A table explaining each entry and its source
 3. Notes about any optional configurations
@@ -110,6 +117,7 @@ Show the generated configuration with:
 ## Example Output
 
 For a plugin with:
+
 - Package: `@internal/backstage-plugin-demoplugin`
 - Page: `DemopluginPage`
 - API: `todoApiRef`

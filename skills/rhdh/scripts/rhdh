@@ -13,6 +13,10 @@ from pathlib import Path
 skill_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(skill_dir))
 
+# Add the rhdh-local skill directory (where rhdh_local package lives)
+rhdh_local_dir = Path(__file__).parent.parent.parent / "rhdh-local"
+sys.path.insert(0, str(rhdh_local_dir))
+
 from rhdh.cli import main  # noqa: E402
 
 if __name__ == "__main__":

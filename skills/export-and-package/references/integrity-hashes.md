@@ -25,6 +25,7 @@ npm pack --json | jq -r '.[0].integrity'
 ```
 
 Example output:
+
 ```
 sha512-9WlbgEdadJNeQxdn1973r5E4kNFvnT9GjLD627GWgrhCaxjCmxqdNW08cj+Bf47mwAtZMt1Ttyo+ZhDRDj9PoA==
 ```
@@ -60,6 +61,7 @@ skopeo inspect docker://quay.io/<namespace>/<plugin>:v1.0.0 | jq -r '.Digest'
 ```
 
 Example digest:
+
 ```
 sha256:28036abec4dffc714394e4ee433f16a59493db8017795049c831be41c02eb5dc
 ```
@@ -128,6 +130,7 @@ shasum -a 512 my-plugin-1.0.0.tgz | awk '{print $1}' | xxd -r -p | base64
 ### RHDH Verification
 
 RHDH automatically verifies integrity when:
+
 1. Package is downloaded from URL
 2. Integrity hash is provided in configuration
 3. Calculated hash must match exactly
@@ -141,11 +144,13 @@ Mismatch results in plugin load failure with error in logs.
 **Symptom:** Plugin fails to load with integrity error
 
 **Causes:**
+
 1. Package was modified after hash generated
 2. Wrong version specified
 3. Hash from different build
 
 **Solution:**
+
 ```bash
 # Regenerate hash
 cd dist-dynamic
@@ -172,6 +177,7 @@ plugins:
 **Symptom:** Hash format not recognized
 
 **Solution:** Use SHA-512 for tgz/npm:
+
 ```
 sha512-<base64>
 ```

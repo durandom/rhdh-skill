@@ -111,9 +111,7 @@ class TestCliDoctor:
         check_names = [c["name"] for c in response["data"]["checks"]]
         for info in SUBMODULE_REPOS.values():
             config_key = info["config_key"]
-            assert config_key in check_names, (
-                f"Doctor missing check for repo '{config_key}'"
-            )
+            assert config_key in check_names, f"Doctor missing check for repo '{config_key}'"
 
     def test_doctor_unconfigured_repos_no_issues(self, unconfigured_cli):
         """When no repos are configured, doctor should not report repo issues (all optional)."""

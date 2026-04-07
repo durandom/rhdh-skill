@@ -5,6 +5,7 @@ Customize the Backstage catalog entity pages with dynamic plugins.
 ## Entity Page Structure
 
 Entity pages in RHDH consist of:
+
 - **Tabs**: Major sections (Overview, CI, Docs, etc.)
 - **Cards**: Content within tabs
 - **Context Menu**: Actions in the top-right menu
@@ -48,6 +49,7 @@ mountPoints:
 ### Tab Visibility
 
 Tabs become visible when:
+
 1. At least one plugin contributes to their mount point, OR
 2. They have static content (like Overview)
 
@@ -423,6 +425,7 @@ if:
 ### 5. Consistent Styling
 
 Use Backstage core components for consistent look:
+
 - `InfoCard` for cards
 - `Content` and `ContentHeader` for tabs
 - `Progress` and `Alert` for states

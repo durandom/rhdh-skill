@@ -2,6 +2,15 @@
 
 Patterns for testing dynamic plugins locally using [RHDH Local](https://github.com/redhat-developer/rhdh-local).
 
+> **For setup, operations, and troubleshooting**, see the **rhdh-local skill** (`skills/rhdh-local/`):
+>
+> - `references/customization-system.md` — copy-sync architecture, file mapping, edit rules
+> - `references/troubleshooting.md` — debugging patterns, common errors, health checks
+> - `references/env-reference.md` — environment variable reference
+> - `workflows/enable-plugin.md` / `disable-plugin.md` — plugin management
+> - `workflows/switch-mode.md` — baseline vs customized mode
+> - CLI: `rhdh local status`, `rhdh local up`, `rhdh local health`
+
 <overview>
 **Purpose:** Test dynamic plugins before PR merge using PR artifacts from the overlay repo CI.
 
@@ -18,22 +27,6 @@ Patterns for testing dynamic plugins locally using [RHDH Local](https://github.c
 - Plugin appears in Extensions Catalog
 - Backend health endpoints respond
 </overview>
-
-<setup>
-**Prerequisites:**
-- Podman 5.4.1+ or Docker 28.1.0+ with Compose
-- RHDH Local cloned as submodule in `repo/rhdh-local`
-
-**Basic startup:**
-
-```bash
-cd repo/rhdh-local
-podman compose up -d
-# Access at http://localhost:7007
-# Login as Guest
-```
-
-</setup>
 
 <dynamic_plugins_config>
 **File:** `configs/dynamic-plugins/dynamic-plugins.override.yaml`
@@ -116,7 +109,7 @@ spec:
 | Tekton | `janus-idp.io/tekton` | `<namespace>` |
 | ArgoCD | `argocd/app-name` | `<app-name>` |
 
-> ⚠️ Check the plugin's README or metadata file for required annotations.
+> Check the plugin's README or metadata file for required annotations.
 </test_entities>
 
 <extensions_catalog_visibility>
@@ -137,7 +130,7 @@ services:
         read_only: true
 ```
 
-> ⚠️ The path is `extensions/plugins/` not `marketplace/plugins/`. Adjust `source:` if repos are in different locations.
+> The path is `extensions/plugins/` not `marketplace/plugins/`. Adjust `source:` if repos are in different locations.
 
 **2. `configs/app-config/app-config.local.yaml`:**
 
@@ -184,65 +177,6 @@ catalog:
 **Critical:** The `rules` must include both `Location` (for the index file) and `Plugin` (for individual entities).
 </extensions_catalog_visibility>
 
-<commands>
-**Start/stop:**
-```bash
-podman compose up -d                    # Start
-podman compose down                     # Stop
-podman compose down && podman compose up -d  # Full restart (required for volume changes)
-```
-
-**Reinstall plugins (after changing dynamic-plugins.override.yaml):**
-
-```bash
-podman compose run install-dynamic-plugins
-podman compose restart rhdh
-```
-
-**View logs:**
-
-```bash
-podman compose logs rhdh                        # All logs
-podman compose logs rhdh 2>&1 | tail -50        # Recent logs
-podman compose logs rhdh 2>&1 | grep -i <plugin> # Plugin-specific
-podman compose logs install-dynamic-plugins     # Plugin installation logs
-```
-
-**Check mounts inside container:**
-
-```bash
-podman exec rhdh ls -la /marketplace/catalog-entities/plugins/
-podman exec rhdh ls -la /opt/app-root/src/configs/
-```
-
-**Verify backend health:**
-
-```bash
-curl http://localhost:7007/api/<plugin>/health
-# Expected: {"status":"ok"}
-```
-
-</commands>
-
-<troubleshooting>
-
-| Symptom | Cause | Solution |
-|---------|-------|----------|
-| File not found in container | Volume mounted before file created | Full restart: `podman compose down && podman compose up -d` |
-| Plugin not loading | Package name mismatch | Check OCI URL matches exactly from PR comment |
-| Card not appearing on entity | Missing annotation | Add required annotation to test entity |
-| Plugin not in Extensions Catalog | Missing app-config.local.yaml | Create file with `Plugin` in rules and locations |
-| "Location not allowed" error | Missing `Location` in rules | Add `Location` to catalog rules allow list |
-| Plugin validation error in logs | Schema mismatch | Check Plugin entity YAML against schema |
-
-**Debug steps:**
-
-1. Check plugin installer logs: `podman compose logs install-dynamic-plugins`
-2. Check RHDH startup logs: `podman compose logs rhdh | head -100`
-3. Verify files mounted: `podman exec rhdh ls /path/to/expected/file`
-4. Check catalog processing: `podman compose logs rhdh 2>&1 | grep -i catalog`
-</troubleshooting>
-
 <verification_checklist>
 **Plugin loads correctly:**
 
@@ -260,14 +194,3 @@ curl http://localhost:7007/api/<plugin>/health
 - [ ] Plugin appears in `/extensions/catalog`
 - [ ] Plugin name, description, categories display correctly
 </verification_checklist>
-
-<cleanup>
-After testing, remove override files (don't commit to rhdh-local):
-```bash
-rm configs/dynamic-plugins/dynamic-plugins.override.yaml
-rm configs/catalog-entities/components.override.yaml
-rm compose.override.yaml
-rm configs/app-config/app-config.local.yaml
-podman compose down
-```
-</cleanup>

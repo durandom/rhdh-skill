@@ -459,6 +459,57 @@ def get_factory_repo() -> Optional[Path]:
     return get_repo("factory")
 
 
+def find_local_setup_dir() -> Optional[Path]:
+    """Find the rhdh-local-setup workspace directory.
+
+    rhdh-local-setup is a personal workspace wrapper (not a GitHub repo/submodule).
+
+    Discovery order:
+    1. RHDH_LOCAL_SETUP_DIR environment variable
+    2. repos.local_setup in merged config
+    3. Auto-detect: <repos.local>/../rhdh-local-setup (sibling of rhdh-local)
+    4. Auto-detect: <skill_root>/../../rhdh-local-setup
+    """
+    # 1. Environment variable
+    env_value = os.environ.get("RHDH_LOCAL_SETUP_DIR")
+    if env_value:
+        path = Path(env_value)
+        if path.is_dir():
+            return path.resolve()
+
+    # 2. Merged config
+    config = load_merged_config()
+    config_path = config.get("repos", {}).get("local_setup")
+    if config_path:
+        path = Path(config_path)
+        if path.is_dir():
+            return path.resolve()
+
+    # 3. Auto-detect: sibling of rhdh-local
+    local_repo = get_local_repo()
+    if local_repo:
+        candidate = local_repo.parent / "rhdh-local-setup"
+        if candidate.is_dir():
+            return candidate.resolve()
+        # rhdh-local may be inside rhdh-local-setup/
+        candidate2 = local_repo.parent
+        if (candidate2 / "rhdh-customizations").is_dir():
+            return candidate2.resolve()
+
+    # 4. Auto-detect: relative to skill root
+    skill_root = get_skill_root()
+    candidate = skill_root.parent.parent / "rhdh-local-setup"
+    if candidate.is_dir():
+        return candidate.resolve()
+
+    return None
+
+
+def get_local_setup_dir() -> Optional[Path]:
+    """Get path to rhdh-local-setup workspace directory."""
+    return find_local_setup_dir()
+
+
 # =============================================================================
 # Config Commands
 # =============================================================================
@@ -467,6 +518,7 @@ def get_factory_repo() -> Optional[Path]:
 def get_default_config() -> dict:
     """Get default configuration values."""
     repos = {info["config_key"]: "" for info in SUBMODULE_REPOS.values()}
+    repos["local_setup"] = ""
     return {"repos": repos}
 
 
@@ -569,7 +621,10 @@ def _config_show(global_: bool) -> tuple[bool, dict, list[str]]:
         "user_config": user_config if user_config else None,
         "project_config": project_config if project_config else None,
         "merged_config": merged_config if merged_config else None,
-        "resolved": _resolve_all_repos(),
+        "resolved": {
+            **_resolve_all_repos(),
+            "local_setup": str(get_local_setup_dir()) if get_local_setup_dir() else None,
+        },
     }
 
     next_steps = ["rhdh config set <key> <value>", "rhdh config keys"]
@@ -632,6 +687,7 @@ def _config_set(
 
     # Map shorthand keys to full dot-notation paths
     all_config_keys = {info["config_key"] for info in SUBMODULE_REPOS.values()}
+    all_config_keys.add("local_setup")
     if key in all_config_keys:
         key = f"repos.{key}"
 
@@ -1085,5 +1141,5 @@ def get_config_info() -> dict:
         "skill_root": str(get_skill_root()),
         "user_config": load_user_config(),
         "project_config": load_project_config(),
-        "resolved": _resolve_all_repos(),
+        "resolved": {**_resolve_all_repos(), "local_setup": get_local_setup_dir()},
     }

@@ -241,7 +241,16 @@ class TestDefaultConfig:
 
         default = get_default_config()
         repos = default["repos"]
-        for key in ["rhdh", "downstream", "cli", "plugins", "overlay", "operator", "chart", "local"]:
+        for key in [
+            "rhdh",
+            "downstream",
+            "cli",
+            "plugins",
+            "overlay",
+            "operator",
+            "chart",
+            "local",
+        ]:
             assert key in repos, f"Missing core repo key: {key}"
 
 

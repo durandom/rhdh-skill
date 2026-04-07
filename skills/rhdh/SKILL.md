@@ -106,10 +106,16 @@ What would you like to do?
 
 10. **Jira structure** — Projects and issue types
 
+### Local Testing Tasks
+
+*For testing plugins in a local RHDH instance using rhdh-local-setup*
+
+11. **Local testing** — Enable/disable/test plugins in local RHDH
+
 ### General Tasks
 
-11. **Check environment** — Run doctor, configure paths
-12. **View/search activity** — Review worklog, todos
+12. **Check environment** — Run doctor, configure paths
+13. **View/search activity** — Review worklog, todos
 
 **Wait for response before proceeding.**
 </intake>
@@ -148,12 +154,20 @@ What would you like to do?
 |----------|--------|
 | 10, "jira", "jira projects", "issue types", "RHIDP", "RHDHPLAN", "RHDHBUGS", "RHDHSUPP" | Read `references/jira-structure.md` and use it as context |
 
+### Local Testing Routes
+
+| Response | Skill |
+|----------|-------|
+| 11, "local", "test locally", "enable plugin", "disable plugin", "local testing", "rhdh-local-setup" | Route to `@rhdh-local` skill |
+
+**To route:** Read `../rhdh-local/SKILL.md` and follow its intake process.
+
 ### General Routes
 
 | Response | Action |
 |----------|--------|
-| 11, "doctor", "setup", "config" | Use CLI commands below |
-| 12, "log", "todo", "activity" | Use tracking commands below |
+| 12, "doctor", "setup", "config" | Use CLI commands below |
+| 13, "log", "todo", "activity" | Use tracking commands below |
 
 </routing>
 
@@ -293,6 +307,7 @@ Todos must be **self-contained**—a new session should understand the task with
 | create-frontend-plugin | Bootstrap new RHDH frontend dynamic plugins | `../create-frontend-plugin/SKILL.md` |
 | export-and-package | Export and package plugins as OCI/tgz/npm | `../export-and-package/SKILL.md` |
 | generate-frontend-wiring | Configure frontend mount points, routes, tabs | `../generate-frontend-wiring/SKILL.md` |
+| rhdh-local | Enable/disable/test plugins in local RHDH | `../rhdh-local/SKILL.md` |
 
 ### Shared References
 

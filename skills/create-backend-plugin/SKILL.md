@@ -12,6 +12,7 @@ Bootstrap a new **backend** dynamic plugin for Red Hat Developer Hub (RHDH). RHD
 ## When to Use
 
 Use this skill when creating a new **backend** plugin intended for RHDH dynamic plugin deployment. This includes:
+
 - New backend API plugins
 - Backend modules for existing plugins (e.g., `catalog-backend-module-*`)
 - Scaffolder actions and templates
@@ -20,6 +21,7 @@ Use this skill when creating a new **backend** plugin intended for RHDH dynamic 
 - Any server-side functionality for RHDH
 
 **Do NOT use this skill for:**
+
 - Frontend plugins (UI components, pages, cards)
 - Frontend plugin wiring (mount points, dynamic routes)
 - Themes or frontend customizations
@@ -27,6 +29,7 @@ Use this skill when creating a new **backend** plugin intended for RHDH dynamic 
 ## Prerequisites
 
 Before starting, ensure the following are available:
+
 - Node.js 22+ and Yarn
 - Container runtime (`podman` or `docker`)
 - Access to a container registry (e.g., quay.io) for publishing
@@ -41,6 +44,7 @@ Before starting, ensure the following are available:
 6. **Configure for RHDH** - Create dynamic-plugins.yaml configuration
 
 ## Step 1: Determine RHDH Version
+
 Check the target RHDH version and find the compatible Backstage version. Consult  `../rhdh/references/versions.md` file for the version compatibility matrix and available RHDH versions.
 
 Ask the user which RHDH version they are targeting if not specified.
@@ -62,7 +66,6 @@ yarn install
 
  The only purpose this serves is to ensure you can later create the plugin using the correct version of the Backstage CLI. All development and testing will be done in the plugin directory.
 
-
 ## Step 3: Create Backend Plugin
 
 Generate a new backend plugin using the Backstage CLI:
@@ -72,6 +75,7 @@ yarn new
 ```
 
 When prompted:
+
 1. Select **"backend-plugin"** as the plugin type
 2. Enter a plugin ID (e.g., `my-plugin`)
 3. The plugin will be created at `plugins/<plugin-id>-backend/`
@@ -192,15 +196,18 @@ See `examples/dynamic-plugins.yaml` for a complete configuration example.
 ## Common Issues
 
 ### Plugin Not Loading
+
 - Verify plugin uses new backend system (`createBackendPlugin`)
 - Check plugin is exported as default export
 - Ensure version compatibility with target RHDH
 
 ### Dependency Conflicts
+
 - Use `--shared-package` to exclude problematic shared deps
 - Use `--embed-package` to bundle required deps
 
 ### Build Failures
+
 - Run `yarn tsc` to check TypeScript errors before export
 - Ensure all `@backstage/*` versions match target RHDH
 
