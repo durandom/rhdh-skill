@@ -6,7 +6,7 @@ The copy-sync system for managing RHDH Local configuration without modifying the
 > `rhdh-customizations/` holds your override files. The `rhdh local apply`, `rhdh local up`, and `rhdh local down`
 > commands handle copy-sync and compose orchestration directly via Python — no shell scripts required.
 > The standalone CLI entry point is at `skills/rhdh-local/scripts/rhdh-local`.
-> Patterns inspired by Ben Wilcock's [rhdh-lab](https://github.com/benwilcock/rhdh-lab) (Apache 2.0).
+> See `scripts/NOTICE` for attribution.
 
 <architecture>
 **Workspace layout:**

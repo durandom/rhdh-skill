@@ -1,7 +1,7 @@
 # Troubleshooting Local RHDH
 
 Common issues and debugging patterns for local RHDH development.
-Testing methodology adapted from Ben Wilcock's [rhdh-lab](https://github.com/benwilcock/rhdh-lab) (Apache 2.0).
+See `scripts/NOTICE` for attribution.
 
 <comparative_testing>
 

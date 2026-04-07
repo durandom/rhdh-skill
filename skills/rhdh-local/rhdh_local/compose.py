@@ -2,9 +2,6 @@
 
 Handles podman/docker detection, compose file selection (including
 Lightspeed and Orchestrator variants), and container lifecycle.
-
-Patterns inspired by Ben Wilcock's rhdh-lab (https://github.com/benwilcock/rhdh-lab),
-licensed under Apache 2.0. See scripts/NOTICE for details.
 """
 
 from __future__ import annotations

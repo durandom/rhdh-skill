@@ -1,8 +1,6 @@
 """rhdh_local -- Local RHDH operations (copy-sync, container lifecycle).
 
 Standalone package for the rhdh-local-setup customization system.
-Patterns inspired by Ben Wilcock's rhdh-lab (https://github.com/benwilcock/rhdh-lab),
-licensed under Apache 2.0.
 """
 
 __version__ = "1.0.0"

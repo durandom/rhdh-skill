@@ -1,7 +1,7 @@
 # Environment Variable Reference
 
 Environment variables for configuring local RHDH instances via `rhdh-customizations/.env`.
-Reference derived from Ben Wilcock's [rhdh-lab](https://github.com/benwilcock/rhdh-lab) (Apache 2.0).
+See `scripts/NOTICE` for attribution.
 
 <variables>
 

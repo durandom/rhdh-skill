@@ -2,9 +2,6 @@
 
 Manages the file mapping between rhdh-customizations/ and rhdh-local/,
 including apply (copy) and remove operations.
-
-Patterns inspired by Ben Wilcock's rhdh-lab (https://github.com/benwilcock/rhdh-lab),
-licensed under Apache 2.0. See scripts/NOTICE for details.
 """
 
 from __future__ import annotations
