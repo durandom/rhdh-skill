@@ -44,27 +44,19 @@ If the plugin required environment variables in `rhdh-customizations/.env`, remo
 
 ## Step 4: Apply and Restart
 
-If `up.sh`/`down.sh` exist in the setup root (full `rhdh-local-setup` layout):
-
 ```bash
-cd rhdh-customizations && ./apply-customizations.sh
-cd .. && ./down.sh && ./up.sh --customized
+rhdh local apply
+rhdh local down && rhdh local up --customized
 ```
 
 Add `--lightspeed`, `--orchestrator`, or `--both` flags if those components are enabled.
-
-If using a bare `rhdh-local` clone (no `up.sh`):
-
-```bash
-cd rhdh-local && podman compose down && podman compose up -d
-```
 
 </process>
 
 <success_criteria>
 
 - [ ] Plugin entry shows `disabled: true` or is removed from `dynamic-plugins.override.yaml`
-- [ ] `apply-customizations.sh` ran without errors
+- [ ] `rhdh local apply` ran without errors
 - [ ] RHDH starts cleanly — no errors referencing the disabled plugin
 - [ ] Plugin no longer appears in the Extensions Catalog or entity pages
 </success_criteria>

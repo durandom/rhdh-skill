@@ -155,20 +155,12 @@ Before applying, show the user:
 
 ## Step 8: Apply and Restart
 
-If `up.sh`/`down.sh` exist in the setup root (full `rhdh-local-setup` layout):
-
 ```bash
-cd rhdh-customizations && ./apply-customizations.sh
-cd .. && ./down.sh && ./up.sh --customized
+rhdh local apply
+rhdh local down && rhdh local up --customized
 ```
 
 Add `--lightspeed`, `--orchestrator`, or `--both` flags if those components are enabled.
-
-If using a bare `rhdh-local` clone (no `up.sh`):
-
-```bash
-cd rhdh-local && podman compose down && podman compose up -d
-```
 
 > **Note:** A full restart is always required — both for plugin changes (new `dynamic-plugins.override.yaml`) and for `app-config` changes. Neither hot-reloads inside the container.
 
@@ -185,7 +177,7 @@ podman compose logs rhdh 2>&1 | tail -50       # RHDH startup
 <success_criteria>
 
 - [ ] Plugin packages appear in `dynamic-plugins.override.yaml` with `disabled: false`
-- [ ] `apply-customizations.sh` ran without errors
+- [ ] `rhdh local apply` ran without errors
 - [ ] No errors in `podman compose logs install-dynamic-plugins`
 - [ ] No errors in `podman compose logs rhdh` related to the plugin
 - [ ] RHDH accessible at `http://localhost:7007`

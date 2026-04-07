@@ -50,8 +50,8 @@ Find the required annotation from the plugin's `spec.appConfigExamples` or the p
 ## Step 3: Apply and Restart
 
 ```bash
-cd rhdh-customizations && ./apply-customizations.sh
-cd .. && ./down.sh && ./up.sh --customized [flags]
+rhdh local apply
+rhdh local down && rhdh local up --customized [--lightspeed|--orchestrator|--both]
 ```
 
 ---
@@ -94,15 +94,15 @@ To see the plugin in the Extensions Catalog at `/extensions/catalog`, follow the
 
 ## Step 8: Cleanup After Testing
 
-If this was a temporary test (e.g. for a PR review), remove customizations via the script:
+If this was a temporary test (e.g. for a PR review), remove customizations:
 
 ```bash
-cd rhdh-customizations && ./remove-customizations.sh
+rhdh local remove --force
 ```
 
 This removes all copied override files from `rhdh-local/` without touching `rhdh-customizations/` source files.
 
-> **Note:** Do not delete files directly from `rhdh-local/` — always use `remove-customizations.sh` to keep the copy-sync invariant intact.
+> **Note:** Do not delete files directly from `rhdh-local/` — always use `rhdh local remove` to keep the copy-sync invariant intact.
 
 </process>
 

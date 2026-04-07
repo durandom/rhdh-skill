@@ -250,8 +250,8 @@ class TestLocalApplyRemoveCommands:
         assert result.returncode == 1
         assert "force" in result.stdout.lower()
 
-    def test_apply_fails_when_script_missing(self, tmp_path, isolated_env, monkeypatch):
-        """local apply fails when apply-customizations.sh is missing."""
+    def test_apply_succeeds_with_minimal_workspace(self, tmp_path, isolated_env, monkeypatch):
+        """local apply succeeds with a minimal workspace; bundled scripts are always available."""
         local_setup = tmp_path / "rhdh-local-setup"
         local_setup.mkdir()
         (local_setup / "rhdh-customizations").mkdir()
@@ -260,7 +260,8 @@ class TestLocalApplyRemoveCommands:
         monkeypatch.setenv("RHDH_LOCAL_SETUP_DIR", str(local_setup))
 
         result = run_cli_python("local", "apply", isolated_env=isolated_env)
-        assert result.returncode == 1
+        # Bundled scripts are always available; empty workspace → nothing to copy → success
+        assert result.returncode == 0
 
 
 class TestLocalCommandMissingSubcommand:
@@ -353,3 +354,126 @@ class TestLocalSkillFiles:
 
         content = (local_skill_dir / "references" / "customization-system.md").read_text()
         assert re.search(r"<\w+>", content), "customization-system.md should use XML tags"
+
+    def test_scripts_dir_exists(self, local_skill_dir):
+        """rhdh-local/scripts/ must exist."""
+        assert (local_skill_dir / "scripts").is_dir()
+
+    def test_bundled_scripts_exist(self, local_skill_dir):
+        """All 4 bundled .sh scripts and NOTICE must exist."""
+        scripts_dir = local_skill_dir / "scripts"
+        for name in [
+            "apply-customizations.sh",
+            "remove-customizations.sh",
+            "up.sh",
+            "down.sh",
+            "NOTICE",
+        ]:
+            assert (scripts_dir / name).exists(), f"Missing bundled file: {name}"
+
+    def test_scripts_are_executable(self, local_skill_dir):
+        """All .sh scripts must have execute permission."""
+        import stat
+
+        scripts_dir = local_skill_dir / "scripts"
+        for name in ["apply-customizations.sh", "remove-customizations.sh", "up.sh", "down.sh"]:
+            path = scripts_dir / name
+            assert path.stat().st_mode & stat.S_IXUSR, f"{name} is not user-executable"
+
+    def test_scripts_have_shebang(self, local_skill_dir):
+        """All .sh scripts must start with #!/usr/bin/env bash."""
+        scripts_dir = local_skill_dir / "scripts"
+        for name in ["apply-customizations.sh", "remove-customizations.sh", "up.sh", "down.sh"]:
+            first_line = (scripts_dir / name).read_text().splitlines()[0]
+            assert first_line == "#!/usr/bin/env bash", f"{name} missing shebang, got: {first_line}"
+
+    def test_scripts_support_workspace_flag(self, local_skill_dir):
+        """All .sh scripts must handle --workspace argument."""
+        scripts_dir = local_skill_dir / "scripts"
+        for name in ["apply-customizations.sh", "remove-customizations.sh", "up.sh", "down.sh"]:
+            content = (scripts_dir / name).read_text()
+            assert "--workspace" in content, f"{name} missing --workspace handling"
+
+
+class TestLocalNextStepsBug:
+    """Regression tests for next_steps hardcoded ./up.sh bug."""
+
+    def test_apply_next_steps_without_up_sh(self, tmp_path, isolated_env, monkeypatch):
+        """local apply next_steps must not hardcode ./up.sh when workspace has no up.sh."""
+        import json
+
+        local_setup = tmp_path / "rhdh-local-setup"
+        local_setup.mkdir()
+        (local_setup / "rhdh-customizations").mkdir()
+        (local_setup / "rhdh-local").mkdir()
+        # Deliberately no up.sh in workspace
+
+        monkeypatch.setenv("RHDH_LOCAL_SETUP_DIR", str(local_setup))
+
+        result = run_cli_python("--json", "local", "apply", isolated_env=isolated_env)
+        assert result.returncode == 0, f"Expected success, got: {result.stdout}"
+
+        data = json.loads(result.stdout)
+        next_steps = data.get("next_steps", [])
+        assert not any("./up.sh" in s for s in next_steps), (
+            f"next_steps hardcodes ./up.sh: {next_steps}"
+        )
+
+    def test_remove_next_steps_without_up_sh(self, tmp_path, isolated_env, monkeypatch):
+        """local remove next_steps must not hardcode ./up.sh when workspace has no up.sh."""
+        import json
+        from unittest.mock import patch as mock_patch
+
+        local_setup = tmp_path / "rhdh-local-setup"
+        local_setup.mkdir()
+        (local_setup / "rhdh-customizations").mkdir()
+        (local_setup / "rhdh-local").mkdir()
+        # Deliberately no up.sh in workspace
+
+        monkeypatch.setenv("RHDH_LOCAL_SETUP_DIR", str(local_setup))
+
+        with mock_patch("rhdh.cli.run_command", return_value=(0, "done", "")):
+            result = run_cli_python(
+                "--json", "local", "remove", "--force", isolated_env=isolated_env
+            )
+
+        assert result.returncode == 0, f"Expected success, got: {result.stdout}"
+        data = json.loads(result.stdout)
+        next_steps = data.get("next_steps", [])
+        assert not any("./up.sh" in s for s in next_steps), (
+            f"next_steps hardcodes ./up.sh: {next_steps}"
+        )
+
+
+class TestLocalUpDownCommands:
+    """Tests for rhdh local up and rhdh local down."""
+
+    def test_up_fails_no_setup(self, isolated_env, monkeypatch):
+        """local up fails when local_setup not configured."""
+        monkeypatch.setenv("SKILL_ROOT", str(isolated_env["root"] / "skill"))
+        monkeypatch.delenv("RHDH_LOCAL_SETUP_DIR", raising=False)
+        result = run_cli_python("local", "up", isolated_env=isolated_env)
+        assert result.returncode == 1
+
+    def test_down_fails_no_setup(self, isolated_env, monkeypatch):
+        """local down fails when local_setup not configured."""
+        monkeypatch.setenv("SKILL_ROOT", str(isolated_env["root"] / "skill"))
+        monkeypatch.delenv("RHDH_LOCAL_SETUP_DIR", raising=False)
+        result = run_cli_python("local", "down", isolated_env=isolated_env)
+        assert result.returncode == 1
+
+    def test_up_subcommand_exists(self):
+        """Parser must accept 'local up' subcommand."""
+        from rhdh.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["local", "up"])
+        assert hasattr(args, "func")
+
+    def test_down_subcommand_exists(self):
+        """Parser must accept 'local down' subcommand."""
+        from rhdh.cli import create_parser
+
+        parser = create_parser()
+        args = parser.parse_args(["local", "down"])
+        assert hasattr(args, "func")

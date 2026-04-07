@@ -2,10 +2,11 @@
 
 The copy-sync system for managing RHDH Local configuration without modifying the upstream `rhdh-local/` git repository.
 
-> **Setup:** `rhdh-local-setup/` is a personal workspace wrapper you create around the `rhdh-local` git clone.
-> It is **not** part of the `rhdh-local` repo itself — `rhdh-local/` is a clean upstream clone inside it.
-> `up.sh`, `down.sh`, and `rhdh-customizations/` are personal files that live alongside it.
-> If you only have a bare `rhdh-local` clone (no `up.sh`), use `podman compose down && podman compose up -d` directly and manage override files manually or with your own scripts.
+> **Setup:** `rhdh-local-setup/` is a workspace directory containing your `rhdh-local` git clone and customizations.
+> `rhdh-customizations/` holds your override files. The `apply-customizations.sh`, `remove-customizations.sh`,
+> `up.sh`, and `down.sh` scripts are **bundled with the rhdh-skill** (`skills/rhdh-local/scripts/`) and called
+> automatically by `rhdh local apply`, `rhdh local up`, and `rhdh local down`.
+> Scripts are inspired by Ben Wilcock's [rhdh-lab](https://github.com/benwilcock/rhdh-lab) (Apache 2.0).
 
 <architecture>
 **Workspace layout:**
@@ -18,19 +19,21 @@ rhdh-local-setup/
 │   └── configs/
 │       ├── app-config/app-config.yaml
 │       └── dynamic-plugins/dynamic-plugins.default.yaml
-├── rhdh-customizations/           # Your overrides — ALWAYS edit here
-│   ├── apply-customizations.sh    # Copies files into rhdh-local/
-│   ├── remove-customizations.sh   # Deletes copies from rhdh-local/
-│   ├── .env
-│   ├── compose.override.yaml
-│   └── configs/
-│       ├── app-config/app-config.local.yaml
-│       ├── dynamic-plugins/dynamic-plugins.override.yaml
-│       ├── catalog-entities/users.override.yaml
-│       └── extra-files/github-app-credentials.yaml
-├── up.sh                          # Start containers (use instead of podman compose up)
-├── down.sh                        # Stop containers (use instead of podman compose down)
-└── backup.sh                      # Archive this workspace
+└── rhdh-customizations/           # Your overrides — ALWAYS edit here
+    ├── .env
+    ├── compose.override.yaml
+    └── configs/
+        ├── app-config/app-config.local.yaml
+        ├── dynamic-plugins/dynamic-plugins.override.yaml
+        ├── catalog-entities/users.override.yaml
+        └── extra-files/github-app-credentials.yaml
+
+# Bundled scripts (shipped with rhdh-skill, called via CLI):
+skills/rhdh-local/scripts/
+├── apply-customizations.sh    # rhdh local apply  → copies files into rhdh-local/
+├── remove-customizations.sh   # rhdh local remove → deletes copies from rhdh-local/
+├── up.sh                      # rhdh local up     → applies customizations + starts containers
+└── down.sh                    # rhdh local down   → stops containers + removes customizations
 ```
 
 **The copy-sync invariant:**
@@ -71,16 +74,16 @@ rhdh-local-setup/
 **ALWAYS:**
 
 - Edit customization files in `rhdh-customizations/` directory
-- Run `apply-customizations.sh` after every edit
+- Run `rhdh local apply` after every edit
 - Verify pristine state: `cd rhdh-local && git status` → "working tree clean"
-- Use `./up.sh` and `./down.sh` scripts for container lifecycle
+- Use `rhdh local up` / `rhdh local down` for container lifecycle
 
 **NEVER:**
 
 - Modify files in `rhdh-local/` for customization purposes
-- Manually copy files (use `apply-customizations.sh`)
+- Manually copy files (use `rhdh local apply`)
 - Commit `*.local.yaml`, `*.override.yaml`, or `.env` to the rhdh-local repository
-- Edit the copied files in `rhdh-local/` — they get overwritten on the next `apply-customizations.sh`
+- Edit the copied files in `rhdh-local/` — they get overwritten on the next `rhdh local apply`
 </edit_rules>
 
 <quick_reference>
@@ -100,19 +103,17 @@ rhdh-local-setup/
 
 ```bash
 # 1. Edit the file in rhdh-customizations/
-# 2. Sync into rhdh-local/
-cd rhdh-customizations && ./apply-customizations.sh
-# 3. Restart
-cd .. && ./down.sh && ./up.sh --customized [flags]
+# 2. Sync into rhdh-local/ and restart
+rhdh local apply
+rhdh local down && rhdh local up --customized [--lightspeed|--orchestrator|--both]
 ```
 
 **Update rhdh-local from upstream:**
 
 ```bash
-./down.sh
-cd rhdh-local && git pull && cd ..
-cd rhdh-customizations && ./apply-customizations.sh
-cd .. && ./up.sh --customized [flags]
+rhdh local down
+cd rhdh-local-setup/rhdh-local && git pull && cd ../..
+rhdh local up --customized [flags]
 ```
 
 </quick_reference>

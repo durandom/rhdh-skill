@@ -7,7 +7,8 @@
 </required_reading>
 
 <process>
-> **Bare `rhdh-local` clone?** If `up.sh`/`down.sh` do not exist in your setup root, replace every `./down.sh` with `podman compose down` and every `./up.sh [flags]` with `podman compose up -d`, both run from the `rhdh-local/` directory.
+> **Primary interface:** Use `rhdh local up`/`rhdh local down` — they call the bundled scripts automatically.
+> Direct compose commands (`podman compose up/down`) are available as a fallback but skip customization sync.
 
 ## Mode Comparison
 
@@ -35,39 +36,33 @@
 
 ## Switch to Pristine Mode
 
-**With `up.sh`/`down.sh` (full `rhdh-local-setup` layout):**
-
 ```bash
-./down.sh
-./up.sh --baseline
+rhdh local down
+rhdh local up --baseline
 ```
 
-> `down.sh` automatically removes the customization copies from `rhdh-local/`.
+> `rhdh local down` automatically removes customization copies from `rhdh-local/`.
+> `rhdh local up --baseline` starts RHDH with default configuration only.
 
-**With bare `rhdh-local` clone (no `up.sh`):**
+**Direct compose fallback (skips customization sync):**
 
 ```bash
-cd rhdh-customizations && ./remove-customizations.sh
-cd ../rhdh-local && podman compose down && podman compose up -d
+cd rhdh-local && podman compose down && podman compose up -d
 ```
 
 ---
 
 ## Switch Back to Customized Mode
 
-**With `up.sh`/`down.sh`:**
-
 ```bash
-cd rhdh-customizations && ./apply-customizations.sh
-cd .. && ./down.sh && ./up.sh --customized [flags]
+rhdh local apply
+rhdh local down && rhdh local up --customized [--lightspeed|--orchestrator|--both]
 ```
 
-Add `--lightspeed`, `--orchestrator`, or `--both` as needed.
-
-**With bare `rhdh-local` clone:**
+**Direct compose fallback:**
 
 ```bash
-cd rhdh-customizations && ./apply-customizations.sh
+cd rhdh-customizations && bash /path/to/skills/rhdh-local/scripts/apply-customizations.sh --workspace ..
 cd ../rhdh-local && podman compose down && podman compose up -d
 ```
 
@@ -92,16 +87,16 @@ If something isn't working in your customized setup:
 
 ```bash
 # 1. Stop and switch to pristine
-./down.sh
-./up.sh --baseline
+rhdh local down
+rhdh local up --baseline
 
 # 2. Test at http://localhost:7007
 # If it works → issue is in your customizations
 # If it doesn't → issue is in RHDH itself
 
 # 3. Restore customized mode
-cd rhdh-customizations && ./apply-customizations.sh
-cd .. && ./down.sh && ./up.sh --customized [flags]
+rhdh local apply
+rhdh local down && rhdh local up --customized [flags]
 
 # 4. Re-enable customizations one at a time to isolate the problem
 ```
@@ -111,19 +106,21 @@ cd .. && ./down.sh && ./up.sh --customized [flags]
 ## Workflow: Test a RHDH Update
 
 ```bash
-# 1. Stop and switch to pristine
-./down.sh
-cd rhdh-local && git pull && cd ..
+# 1. Stop
+rhdh local down
 
-# 2. Start pristine and verify new version works
-./up.sh --baseline
+# 2. Pull upstream changes
+cd rhdh-local-setup/rhdh-local && git pull && cd ../..
 
-# 3. Reapply customizations and test
-cd rhdh-customizations && ./apply-customizations.sh
-cd .. && ./down.sh && ./up.sh --customized [flags]
+# 3. Start pristine and verify new version works
+rhdh local up --baseline
 
-# 4. Check for deprecation warnings in logs
-cd rhdh-local && podman compose logs rhdh 2>&1 | grep -i deprecat
+# 4. Reapply customizations and test
+rhdh local apply
+rhdh local down && rhdh local up --customized [flags]
+
+# 5. Check for deprecation warnings in logs
+cd rhdh-local-setup/rhdh-local && podman compose logs rhdh 2>&1 | grep -i deprecat
 ```
 
 </process>
@@ -137,7 +134,7 @@ cd rhdh-local && podman compose logs rhdh 2>&1 | grep -i deprecat
 
 **Customized mode:**
 
-- [ ] `rhdh-customizations/apply-customizations.sh` ran without errors
+- [ ] `rhdh local apply` ran without errors
 - [ ] Override files exist in `rhdh-local/` (e.g. `rhdh-local/.env` exists)
 - [ ] RHDH starts with your custom configuration
 - [ ] Your plugins and entities are visible

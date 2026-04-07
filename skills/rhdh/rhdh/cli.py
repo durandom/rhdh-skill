@@ -22,6 +22,7 @@ from .config import (
     get_github_username,
     get_local_setup_dir,
     get_repo,
+    get_skill_root,
     list_submodule_repos,
     save_github_username,
     setup_submodule,
@@ -486,6 +487,12 @@ def _get_local_setup_or_fail(fmt: OutputFormatter) -> Optional[Path]:
     return local_setup
 
 
+def _get_bundled_script(script_name: str) -> Path:
+    """Get path to a bundled script in skills/rhdh-local/scripts/."""
+    # skill_root = skills/rhdh/; parent = skills/
+    return get_skill_root().parent / "rhdh-local" / "scripts" / script_name
+
+
 def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     """Show local RHDH customization sync status."""
     fmt.header("Local RHDH Status")
@@ -564,17 +571,25 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
             fmt.log_warn("  apply-customizations.sh: not found")
 
         # Check if dynamic-plugins.override.yaml exists in rhdh-local (sync applied)
-        override_yaml = local_dir / "configs" / "dynamic-plugins" / "dynamic-plugins.override.yaml"
-        if override_yaml.exists():
-            checks.append(
-                {"name": "sync_status", "status": "pass", "message": "customizations synced"}
+        # Only meaningful when rhdh-local/ actually exists
+        if local_dir.is_dir():
+            override_yaml = (
+                local_dir / "configs" / "dynamic-plugins" / "dynamic-plugins.override.yaml"
             )
-            fmt.log_ok("  sync status: customizations applied to rhdh-local")
-        else:
-            checks.append(
-                {"name": "sync_status", "status": "info", "message": "customizations not synced"}
-            )
-            fmt.log_info("  sync status: not synced (run apply-customizations.sh)")
+            if override_yaml.exists():
+                checks.append(
+                    {"name": "sync_status", "status": "pass", "message": "customizations synced"}
+                )
+                fmt.log_ok("  sync status: customizations applied to rhdh-local")
+            else:
+                checks.append(
+                    {
+                        "name": "sync_status",
+                        "status": "info",
+                        "message": "customizations not synced",
+                    }
+                )
+                fmt.log_info("  sync status: not synced (run rhdh local apply)")
     else:
         checks.append({"name": "customizations_dir", "status": "fail", "message": "not found"})
         fmt.log_fail(f"rhdh-customizations not found at: {customizations_dir}")
@@ -602,15 +617,9 @@ def cmd_local_status(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
         "rhdh_running": rhdh_running,
     }
 
-    up_script = local_setup / "up.sh"
-    restart_cmd = (
-        f"cd {local_setup} && ./down.sh && ./up.sh --customized"
-        if up_script.exists()
-        else f"cd {local_dir} && podman compose down && podman compose up -d"
-    )
     next_steps = [
-        f"cd {customizations_dir} && ./apply-customizations.sh",
-        restart_cmd,
+        "rhdh local apply",
+        "rhdh local up --customized",
         "rhdh local plugins list",
     ]
     fmt.success(data, next_steps=next_steps)
@@ -625,16 +634,15 @@ def cmd_local_apply(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     if not local_setup:
         return 1
 
-    apply_script = local_setup / "rhdh-customizations" / "apply-customizations.sh"
+    apply_script = _get_bundled_script("apply-customizations.sh")
     if not apply_script.exists():
-        fmt.log_fail(f"apply-customizations.sh not found: {apply_script}")
+        fmt.log_fail(f"Bundled apply-customizations.sh not found: {apply_script}")
         fmt.error("SCRIPT_NOT_FOUND", str(apply_script), next_steps=[])
         return 1
 
-    fmt.log_info(f"Running: {apply_script}")
+    fmt.log_info(f"Running: {apply_script} --workspace {local_setup}")
     rc, stdout, stderr = run_command(
-        ["bash", str(apply_script)],
-        cwd=local_setup / "rhdh-customizations",
+        ["bash", str(apply_script), "--workspace", str(local_setup)],
     )
 
     if stdout:
@@ -647,7 +655,7 @@ def cmd_local_apply(fmt: OutputFormatter, _args: argparse.Namespace) -> int:
     if rc == 0:
         fmt.log_ok("Customizations applied successfully")
         data: dict[str, Any] = {"status": "applied", "script": str(apply_script)}
-        fmt.success(data, next_steps=[f"cd {local_setup} && ./down.sh && ./up.sh --customized"])
+        fmt.success(data, next_steps=["rhdh local up --customized"])
         return 0
     else:
         fmt.log_fail(f"apply-customizations.sh failed (exit {rc})")
@@ -663,9 +671,9 @@ def cmd_local_remove(fmt: OutputFormatter, args: argparse.Namespace) -> int:
     if not local_setup:
         return 1
 
-    remove_script = local_setup / "rhdh-customizations" / "remove-customizations.sh"
+    remove_script = _get_bundled_script("remove-customizations.sh")
     if not remove_script.exists():
-        fmt.log_fail(f"remove-customizations.sh not found: {remove_script}")
+        fmt.log_fail(f"Bundled remove-customizations.sh not found: {remove_script}")
         fmt.error("SCRIPT_NOT_FOUND", str(remove_script), next_steps=[])
         return 1
 
@@ -682,10 +690,9 @@ def cmd_local_remove(fmt: OutputFormatter, args: argparse.Namespace) -> int:
         )
         return 1
 
-    fmt.log_info(f"Running: {remove_script}")
+    fmt.log_info(f"Running: {remove_script} --workspace {local_setup}")
     rc, stdout, stderr = run_command(
-        ["bash", str(remove_script)],
-        cwd=local_setup / "rhdh-customizations",
+        ["bash", str(remove_script), "--workspace", str(local_setup)],
     )
 
     if stdout:
@@ -698,11 +705,100 @@ def cmd_local_remove(fmt: OutputFormatter, args: argparse.Namespace) -> int:
     if rc == 0:
         fmt.log_ok("Customizations removed (rhdh-local/ is now pristine)")
         data: dict[str, Any] = {"status": "removed", "script": str(remove_script)}
-        fmt.success(data, next_steps=[f"cd {local_setup} && ./up.sh --baseline"])
+        fmt.success(data, next_steps=["rhdh local up --baseline"])
         return 0
     else:
         fmt.log_fail(f"remove-customizations.sh failed (exit {rc})")
         fmt.error("REMOVE_FAILED", f"Script exited with {rc}", next_steps=[])
+        return 1
+
+
+def cmd_local_up(fmt: OutputFormatter, args: argparse.Namespace) -> int:
+    """Start RHDH Local containers using bundled up.sh."""
+    fmt.header("RHDH Local Up")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    up_script = _get_bundled_script("up.sh")
+    if not up_script.exists():
+        fmt.log_fail(f"Bundled up.sh not found: {up_script}")
+        fmt.error("SCRIPT_NOT_FOUND", str(up_script), next_steps=[])
+        return 1
+
+    cmd = ["bash", str(up_script), "--workspace", str(local_setup)]
+
+    if getattr(args, "baseline", False):
+        cmd.append("--baseline")
+    else:
+        cmd.append("--customized")
+
+    if getattr(args, "lightspeed", False):
+        cmd.append("--lightspeed")
+    if getattr(args, "orchestrator", False):
+        cmd.append("--orchestrator")
+    if getattr(args, "both", False):
+        cmd.append("--both")
+    if getattr(args, "follow_logs", False):
+        cmd.append("--follow-logs")
+
+    fmt.log_info(f"Running: {' '.join(cmd)}")
+    rc, stdout, stderr = run_command(cmd)
+
+    if stdout:
+        for line in stdout.splitlines():
+            fmt.log_info(line)
+    if stderr:
+        for line in stderr.splitlines():
+            fmt.log_warn(line)
+
+    if rc == 0:
+        data: dict[str, Any] = {"status": "started"}
+        fmt.success(data, next_steps=["rhdh local status"])
+        return 0
+    else:
+        fmt.log_fail(f"up.sh failed (exit {rc})")
+        fmt.error("UP_FAILED", f"Script exited with {rc}", next_steps=[])
+        return 1
+
+
+def cmd_local_down(fmt: OutputFormatter, args: argparse.Namespace) -> int:
+    """Stop RHDH Local containers using bundled down.sh."""
+    fmt.header("RHDH Local Down")
+
+    local_setup = _get_local_setup_or_fail(fmt)
+    if not local_setup:
+        return 1
+
+    down_script = _get_bundled_script("down.sh")
+    if not down_script.exists():
+        fmt.log_fail(f"Bundled down.sh not found: {down_script}")
+        fmt.error("SCRIPT_NOT_FOUND", str(down_script), next_steps=[])
+        return 1
+
+    cmd = ["bash", str(down_script), "--workspace", str(local_setup)]
+
+    if getattr(args, "volumes", False):
+        cmd.append("--volumes")
+
+    fmt.log_info(f"Running: {' '.join(cmd)}")
+    rc, stdout, stderr = run_command(cmd)
+
+    if stdout:
+        for line in stdout.splitlines():
+            fmt.log_info(line)
+    if stderr:
+        for line in stderr.splitlines():
+            fmt.log_warn(line)
+
+    if rc == 0:
+        data: dict[str, Any] = {"status": "stopped"}
+        fmt.success(data, next_steps=["rhdh local status"])
+        return 0
+    else:
+        fmt.log_fail(f"down.sh failed (exit {rc})")
+        fmt.error("DOWN_FAILED", f"Script exited with {rc}", next_steps=[])
         return 1
 
 
@@ -1647,6 +1743,45 @@ EXAMPLES:
     )
     local_remove_parser.set_defaults(func=cmd_local_remove)
 
+    # local up
+    local_up_parser = local_subparsers.add_parser("up", help="Start RHDH Local containers")
+    local_up_parser.add_argument(
+        "--baseline", action="store_true", help="Start without customizations (pristine RHDH)"
+    )
+    local_up_parser.add_argument(
+        "--customized", action="store_true", help="Start with customizations applied (default)"
+    )
+    local_up_parser.add_argument(
+        "--lightspeed", action="store_true", help="Include Lightspeed compose file"
+    )
+    local_up_parser.add_argument(
+        "--orchestrator", action="store_true", help="Include Orchestrator compose file"
+    )
+    local_up_parser.add_argument(
+        "--both", action="store_true", help="Include both Lightspeed and Orchestrator"
+    )
+    local_up_parser.add_argument(
+        "--follow-logs",
+        "-f",
+        action="store_true",
+        dest="follow_logs",
+        help="Follow logs after start",
+    )
+    local_up_parser.set_defaults(func=cmd_local_up)
+
+    # local down
+    local_down_parser = local_subparsers.add_parser("down", help="Stop RHDH Local containers")
+    local_down_parser.add_argument(
+        "--volumes", "-v", action="store_true", help="Remove named volumes on stop"
+    )
+    local_down_parser.add_argument(
+        "--keep-volumes",
+        action="store_true",
+        dest="keep_volumes",
+        help="Keep volumes on stop (default)",
+    )
+    local_down_parser.set_defaults(func=cmd_local_down)
+
     # local plugins
     local_plugins_parser = local_subparsers.add_parser("plugins", help="Plugin operations")
     local_plugins_subparsers = local_plugins_parser.add_subparsers(
@@ -1746,6 +1881,8 @@ def main(argv: list[str] | None = None) -> int:
             "Local subcommand required",
             next_steps=[
                 "rhdh local status",
+                "rhdh local up",
+                "rhdh local down",
                 "rhdh local apply",
                 "rhdh local remove --force",
                 "rhdh local plugins list",

@@ -7,11 +7,12 @@ description: Skill for testing RHDH plugins locally using the rhdh-local-setup c
 
 <principle name="copy_sync_first">
 All configuration edits go in `rhdh-customizations/`, never in `rhdh-local/` directly.
-After every edit, run `apply-customizations.sh` to sync copies. This is the fundamental invariant.
+After every edit, run `rhdh local apply` to sync copies. This is the fundamental invariant.
 </principle>
 
 <principle name="use_scripts">
-Use `./up.sh` and `./down.sh` — never `podman compose restart/up/down` directly when Lightspeed or Orchestrator are enabled. Network namespace sharing causes 504 errors if containers are restarted independently.
+Use `rhdh local up` / `rhdh local down` — never `podman compose restart/up/down` directly when Lightspeed or Orchestrator are enabled. Network namespace sharing causes 504 errors if containers are restarted independently.
+The bundled scripts live in `skills/rhdh-local/scripts/` (Apache 2.0, inspired by Ben Wilcock's rhdh-lab).
 See `references/customization-system.md` for details.
 </principle>
 
@@ -44,6 +45,8 @@ What would you like to do with your local RHDH instance?
 | 3, "switch", "pristine", "customized", "mode" | `workflows/switch-mode.md` |
 | 4, "test", "verify", "check plugin" | `workflows/test-plugin.md` |
 | 5, "status", "list plugins", "show plugins" | Read `rhdh-customizations/configs/dynamic-plugins/dynamic-plugins.override.yaml` and list entries |
+| "start", "up", "start rhdh" | Run `rhdh local up` (add `--lightspeed`, `--orchestrator`, or `--both` as needed) |
+| "stop", "down", "stop rhdh" | Run `rhdh local down` |
 </routing>
 
 <reference_index>
