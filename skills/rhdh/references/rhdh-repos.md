@@ -6,7 +6,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh
 
-- **Upstream:** https://github.com/redhat-developer/rhdh
+- **Upstream:** <https://github.com/redhat-developer/rhdh>
 - **Description:** The main Red Hat Developer Hub application. Enterprise Internal Developer Portal built on Backstage. Formerly `janus-idp/backstage-showcase`.
 - **Tech stack:** Node.js 22, TypeScript, React, Yarn 4, Turbo monorepo
 - **Key concepts:**
@@ -20,13 +20,13 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-downstream
 
-- **Upstream:** https://gitlab.cee.redhat.com/rhidp/rhdh
+- **Upstream:** <https://gitlab.cee.redhat.com/rhidp/rhdh>
 - **Description:** Downstream (productized) build of RHDH. Internal GitLab repository that produces the official Red Hat-supported container images published to `registry.redhat.io`. Syncs from the upstream `redhat-developer/rhdh` GitHub repo and applies Red Hat-specific patches, branding, and build configuration for Konflux/Brew pipelines.
 - **Note:** Requires Red Hat VPN / internal network access.
 
 ### rhdh-cli
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-cli
+- **Upstream:** <https://github.com/redhat-developer/rhdh-cli>
 - **Description:** CLI tool for developing, packaging, and distributing dynamic plugins for RHDH. Successor to `@janus-idp/cli`. Published as `@red-hat-developer-hub/cli` on npm. Extends/wraps `@backstage/cli`.
 - **Tech stack:** Node.js 22, TypeScript, Webpack, esbuild, Commander.js, Yarn 3
 - **Key concepts:**
@@ -40,7 +40,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-local
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-local
+- **Upstream:** <https://github.com/redhat-developer/rhdh-local>
 - **Description:** Docker Compose-based local development and testing environment for RHDH. The fastest way to run RHDH locally without a Kubernetes cluster. Not for production use.
 - **Tech stack:** Docker/Podman Compose, PostgreSQL (optional), Bash scripts
 - **Key concepts:**
@@ -54,7 +54,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-operator
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-operator
+- **Upstream:** <https://github.com/redhat-developer/rhdh-operator>
 - **Description:** Kubernetes Operator for automated installation, configuration, and lifecycle management of RHDH instances on Kubernetes and OpenShift. CRD group is `rhdh.redhat.com`, primary CR kind is `Backstage` (API version `v1alpha5`).
 - **Tech stack:** Go, Kubernetes client libraries, Ginkgo/Gomega testing, OpenShift API integration, kustomize
 - **Key concepts:**
@@ -69,7 +69,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-chart
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-chart
+- **Upstream:** <https://github.com/redhat-developer/rhdh-chart>
 - **Description:** Helm chart for deploying RHDH on Kubernetes and OpenShift. Alternative deployment method to the operator. The chart is a **wrapper** around the upstream Backstage Helm chart (pulled as subchart with alias `upstream`).
 - **Tech stack:** Helm 3, Kubernetes/OpenShift YAML manifests, chart-testing, KinD
 - **Key concepts:**
@@ -82,7 +82,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-plugin-export-overlays
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-plugin-export-overlays
+- **Upstream:** <https://github.com/redhat-developer/rhdh-plugin-export-overlays>
 - **Description:** Metadata and automation hub for packaging community Backstage plugins as dynamic plugins for RHDH. Contains workspace definitions that point to upstream plugin repos and uses overlays/patches to customize them for dynamic loading. Automated workflows publish OCI container images to `ghcr.io`.
 - **Tech stack:** GitHub Actions, YAML/JSON configuration, OCI container images, Bash scripting
 - **Key concepts:**
@@ -95,7 +95,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-plugin-export-utils
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-plugin-export-utils
+- **Upstream:** <https://github.com/redhat-developer/rhdh-plugin-export-utils>
 - **Description:** Collection of reusable GitHub Actions and callable workflows for exporting, packaging, and validating Backstage plugins as dynamic plugins for RHDH. Primary consumer is `rhdh-plugin-export-overlays`.
 - **Tech stack:** GitHub Actions (composite actions), Bash scripting, TypeScript (validate-metadata)
 - **Key concepts:**
@@ -108,7 +108,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-plugin-catalog
 
-- **Upstream:** https://gitlab.cee.redhat.com/rhidp/rhdh-plugin-catalog
+- **Upstream:** <https://gitlab.cee.redhat.com/rhidp/rhdh-plugin-catalog>
 - **Description:** Midstream infrastructure repository that manages building, packaging, and publishing Backstage plugins as OCI artifacts for RHDH. Syncs plugin source from `rhdh-plugin-export-overlays`, builds plugins via Konflux CI/CD, and maintains a catalog index of all available plugins. Publishes to `quay.io/rhdh/` and `registry.redhat.io/rhdh/`.
 - **Tech stack:** Node.js, TypeScript, Yarn 3, Backstage CLI, Python (build scripts), Tekton/Konflux pipelines, Docker/Podman
 - **Key concepts:**
@@ -121,7 +121,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-plugins
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-plugins
+- **Upstream:** <https://github.com/redhat-developer/rhdh-plugins>
 - **Description:** Central repository for Backstage plugins developed by Red Hat for use with RHDH. Multi-workspace monorepo modeled after `backstage/community-plugins`. Each workspace is an independent mini-monorepo with its own `yarn.lock`, release cycle, and changeset history. Publishes to `@red-hat-developer-hub` npm namespace.
 - **Tech stack:** Node.js 22, TypeScript, Yarn 4 (Berry, `node-modules` linker), Backstage plugin SDK, Jest, Playwright
 - **Key concepts:**
@@ -135,7 +135,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### rhdh-dynamic-plugin-factory
 
-- **Upstream:** https://github.com/redhat-developer/rhdh-dynamic-plugin-factory
+- **Upstream:** <https://github.com/redhat-developer/rhdh-dynamic-plugin-factory>
 - **Description:** Container image and tooling for building dynamic plugins locally. Provides a pre-configured build environment with all necessary dependencies (Node.js, Yarn, Backstage CLI) so plugin authors can export and package plugins without setting up a full development environment. Used via `podman` or `docker`.
 - **Tech stack:** Container (Podman/Docker), Node.js, Yarn, Backstage CLI
 - **Key concepts:**
@@ -145,7 +145,7 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
 
 ### backstage
 
-- **Upstream:** https://github.com/backstage/backstage
+- **Upstream:** <https://github.com/backstage/backstage>
 - **Description:** The upstream Backstage framework — the CNCF open-source foundation that RHDH is built upon. Originally created by Spotify. Provides the core Software Catalog, Software Templates, TechDocs, Search, and the plugin system.
 - **Tech stack:** Node.js, TypeScript, React, Yarn Berry, PostgreSQL
 - **Key concepts:**

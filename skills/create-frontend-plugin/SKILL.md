@@ -12,6 +12,7 @@ Bootstrap a new **frontend** dynamic plugin for Red Hat Developer Hub (RHDH). Fr
 ## When to Use
 
 Use this skill when creating a new **frontend** plugin intended for RHDH dynamic plugin deployment. This includes:
+
 - New pages and routes
 - Entity page cards and tabs
 - Sidebar menu items
@@ -22,6 +23,7 @@ Use this skill when creating a new **frontend** plugin intended for RHDH dynamic
 - Any UI component for RHDH
 
 **Do NOT use this skill for:**
+
 - Backend API plugins
 - Scaffolder actions (server-side)
 - Catalog processors or providers
@@ -30,6 +32,7 @@ Use this skill when creating a new **frontend** plugin intended for RHDH dynamic
 ## Prerequisites
 
 Before starting, ensure the following are available:
+
 - Node.js 22+ and Yarn
 - Container runtime (`podman` or `docker`)
 - Access to a container registry (e.g., quay.io) for publishing
@@ -65,8 +68,7 @@ After creation, install dependencies:
 yarn install
 ```
 
-
-## Step 3: Decide if you want to use RHDH themes. 
+## Step 3: Decide if you want to use RHDH themes
 
 If you want to use RHDH themes, follow the steps below. If you don't want to use RHDH themes, skip to Step 4.
 
@@ -115,7 +117,6 @@ plugins/<plugin-id>/
     └── index.tsx             # Development harness
 ```
 
-
 ## Step 4: If you decided to use RHDH themes, add RHDH Theme to Development Harness
 
 By default, `yarn start` uses standard Backstage themes. To preview your plugin with RHDH styling during local development, configure the RHDH theme package.
@@ -154,8 +155,6 @@ createDevApp()
 - `useLoaderTheme()` - Returns Material-UI v5 theme object
 
 > **Note:** When deployed to RHDH, the application shell provides theming automatically. This configuration is only needed for local development.
-
-
 
 ## Step 5: Implement Plugin Components
 

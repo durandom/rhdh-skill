@@ -621,7 +621,10 @@ def _config_show(global_: bool) -> tuple[bool, dict, list[str]]:
         "user_config": user_config if user_config else None,
         "project_config": project_config if project_config else None,
         "merged_config": merged_config if merged_config else None,
-        "resolved": {**_resolve_all_repos(), "local_setup": str(get_local_setup_dir()) if get_local_setup_dir() else None},
+        "resolved": {
+            **_resolve_all_repos(),
+            "local_setup": str(get_local_setup_dir()) if get_local_setup_dir() else None,
+        },
     }
 
     next_steps = ["rhdh config set <key> <value>", "rhdh config keys"]

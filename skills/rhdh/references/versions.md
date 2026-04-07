@@ -19,6 +19,7 @@ This reference provides the complete version compatibility information for RHDH 
 Based on [Backstage 1.45.3](https://backstage.io/docs/releases/v1.45.0)
 
 Bootstrap command:
+
 ```bash
 npx @backstage/create-app@0.7.6
 ```
@@ -52,6 +53,7 @@ npx @backstage/create-app@0.7.6
 Based on [Backstage 1.45.3](https://backstage.io/docs/releases/v1.45.0)
 
 Bootstrap command:
+
 ```bash
 npx @backstage/create-app@0.7.6
 ```

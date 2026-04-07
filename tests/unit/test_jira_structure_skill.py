@@ -5,11 +5,7 @@ from pathlib import Path
 import pytest
 
 JIRA_STRUCTURE_REF = (
-    Path(__file__).parent.parent.parent
-    / "skills"
-    / "rhdh"
-    / "references"
-    / "jira-structure.md"
+    Path(__file__).parent.parent.parent / "skills" / "rhdh" / "references" / "jira-structure.md"
 )
 
 
@@ -33,7 +29,6 @@ class TestJiraStructureReference:
         assert "RHDHSUPP" in jira_structure_content
         assert "RHDHBUGS" in jira_structure_content
 
-
     def test_mentions_issue_types(self, jira_structure_content):
         """Reference should list issue types."""
         assert "Story" in jira_structure_content
@@ -48,9 +43,7 @@ class TestJiraStructureReference:
 
     def test_old_skill_directory_removed(self):
         """The separate rhdh-jira-structure skill directory should not exist."""
-        old_skill_dir = (
-            Path(__file__).parent.parent.parent / "skills" / "rhdh-jira-structure"
-        )
+        old_skill_dir = Path(__file__).parent.parent.parent / "skills" / "rhdh-jira-structure"
         assert not old_skill_dir.exists(), (
             "skills/rhdh-jira-structure/ should be removed — "
             "content moved to skills/rhdh/references/jira-structure.md"

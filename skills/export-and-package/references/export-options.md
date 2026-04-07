@@ -34,6 +34,7 @@ npx @red-hat-developer-hub/cli@latest plugin export \
 ```
 
 **Pattern syntax:**
+
 - Prefix with `!` to negate (exclude from shared)
 - Use regex patterns: `'!/@backstage\/plugin-notifications/'`
 
@@ -55,6 +56,7 @@ npx @red-hat-developer-hub/cli@latest plugin export \
 ```
 
 **Use cases:**
+
 - Workspace packages that aren't published
 - Third-party packages that need modification
 - Packages with version conflicts
@@ -69,6 +71,7 @@ npx @red-hat-developer-hub/cli@latest plugin export \
 - Must be version-compatible with target RHDH
 
 **Default shared:**
+
 - All `@backstage/*` packages
 
 ### Private Dependencies
@@ -78,6 +81,7 @@ npx @red-hat-developer-hub/cli@latest plugin export \
 - Isolated from RHDH's dependencies
 
 **Default private:**
+
 - Non-backstage dependencies
 - Dependencies explicitly excluded from shared
 
@@ -88,6 +92,7 @@ npx @red-hat-developer-hub/cli@latest plugin export \
 - Dependencies hoisted to plugin level
 
 **Default embedded:**
+
 - Packages with `-node` suffix
 - Packages with `-common` suffix
 
@@ -200,6 +205,7 @@ npx @red-hat-developer-hub/cli@latest plugin export
 ### Version Conflicts
 
 Check target RHDH version compatibility:
+
 1. Identify target RHDH version
 2. Match `@backstage/*` versions to that RHDH
 3. Update package.json dependencies

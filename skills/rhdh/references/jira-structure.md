@@ -10,7 +10,6 @@ and rules for which project to file issues in.
 - **RHDHBUGS** — Bug Tracking: Tracking bugs and other defects in RHDH
 - **RHDHSUPP** — Customer Support: Communication between customer support team to track customer reported issues and support requests
 
-
 ## Issue Types by Project
 
 ### RHIDP — Core Engineering

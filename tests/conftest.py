@@ -23,6 +23,13 @@ OVERLAY_SKILL_DIR = PROJECT_ROOT / "skills" / "overlay"
 if str(RHDH_SKILL_DIR) not in sys.path:
     sys.path.insert(0, str(RHDH_SKILL_DIR))
 
+# Path to the rhdh-local skill directory (where rhdh_local package lives)
+RHDH_LOCAL_SKILL_DIR = PROJECT_ROOT / "skills" / "rhdh-local"
+
+# Add rhdh-local skill directory to path for testing
+if str(RHDH_LOCAL_SKILL_DIR) not in sys.path:
+    sys.path.insert(0, str(RHDH_LOCAL_SKILL_DIR))
+
 SCRIPTS_DIR = RHDH_SKILL_DIR / "scripts"
 SKILLS_DIR = RHDH_SKILL_DIR  # Legacy alias
 SKILL_DIR = RHDH_SKILL_DIR  # Legacy alias
