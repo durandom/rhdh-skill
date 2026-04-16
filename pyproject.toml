@@ -16,6 +16,7 @@ include = ["rhdh*"]
 dev = [
     "pytest>=7.0",
     "pyyaml>=6.0",  # Only for SKILL.md structure tests
+    "ruff>=0.4.0",
 ]
 
 [project.scripts]
