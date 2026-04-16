@@ -41,3 +41,13 @@ Auto-detects output format: **TTY** → human-readable, **Piped** → JSON.
 - `OutputFormatter` handles JSON/human rendering — commands build data dicts
 - Workflows live in `skills/overlay/workflows/` — doctor points agents there for setup
 - Config discovery: env vars → project config → user config → auto-detection
+
+## Versioning
+
+Single version (`0.2.0`) kept in sync across three files:
+
+- `pyproject.toml` — Python package version
+- `.claude-plugin/plugin.json` — plugin manifest
+- `.claude-plugin/marketplace.json` — marketplace listing (2 occurrences)
+
+Bump all three when releasing.
