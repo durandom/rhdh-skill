@@ -1,20 +1,42 @@
 # RHDH Skill
 
-A Claude Code skill for managing Red Hat Developer Hub plugins — onboarding, updating, and triaging plugins in the Extensions Catalog.
+Agent skills for managing Red Hat Developer Hub plugins — onboarding, updating, and triaging plugins in the Extensions Catalog.
 
 ## Installation
+
+### Via Skills CLI (any agent)
+
+Install skills into any [supported coding agent](https://github.com/vercel-labs/skills#supported-agents) (Claude Code, Cursor, Codex, Pi, and 50+ more):
+
+```bash
+# Install all skills
+npx skills add redhat-developer/rhdh-skill
+
+# List available skills without installing
+npx skills add redhat-developer/rhdh-skill --list
+
+# Install a specific skill
+npx skills add redhat-developer/rhdh-skill --skill rhdh
+
+# Install to a specific agent
+npx skills add redhat-developer/rhdh-skill -a claude-code
+```
+
+### Via Claude Code Plugin Marketplace
+
+```bash
+claude plugin marketplace add redhat-developer/rhdh-skill
+claude plugin install --scope project rhdh
+```
 
 ### From Local Checkout (Development)
 
 ```bash
+# Via skills CLI
+npx skills add ./path/to/rhdh-skill
+
+# Via Claude Code
 claude plugin marketplace add ~/src/rhdh/rhdh-skill
-claude plugin install --scope project rhdh
-```
-
-### From Published Plugin
-
-```bash
-claude plugin marketplace add redhat-developer/rhdh-skill
 claude plugin install --scope project rhdh
 ```
 
