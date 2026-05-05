@@ -56,33 +56,13 @@ Ask the user which RHDH version they are targeting if not specified.
 
 ## Step 2: Create Backstage Application
 
-> **Automated:** This step plus Step 4 (and optionally Step 3) are automated by the scaffold script.
-> Run it from the directory where the app should be created:
->
-> ```bash
-> python scripts/scaffold.py --rhdh-version 1.9 --plugin-id my-plugin
-> # With RHDH theme:
-> python scripts/scaffold.py --rhdh-version 1.9 --plugin-id my-plugin --with-theme
-> # JSON output:
-> python scripts/scaffold.py --rhdh-version 1.9 --plugin-id my-plugin --json
-> ```
->
-> See `python scripts/scaffold.py --help` for all options.
-
-### Manual method
-
-Create a new Backstage application in the current directory using the version-appropriate create-app:
+Run the scaffold script from the directory where the app should be created. This handles app creation, dependency installation, and plugin generation (Step 4) in one command:
 
 ```bash
-# For RHDH 1.8 (adjust version as needed)
-echo "backstage" | npx @backstage/create-app@0.7.3 --path .
+python scripts/scaffold.py --rhdh-version 1.9 --plugin-id my-plugin
 ```
 
-After creation, install dependencies:
-
-```bash
-yarn install
-```
+Add `--with-theme` to also install the RHDH theme package (Step 3). Run `python scripts/scaffold.py --help` for all options.
 
 ## Step 3: Configure RHDH Themes (Optional)
 
@@ -110,17 +90,13 @@ const app = createApp({
 
 ## Step 4: Create Frontend Dynamic Plugin
 
-> **Automated:** If you used the scaffold script in Step 2, this step was already completed. Skip to Step 5.
+If you used the scaffold script in Step 2, this step was already completed — skip to Step 5.
 
-### Manual method
-
-Generate a new frontend plugin:
+Otherwise, generate the plugin manually:
 
 ```bash
 yarn new --select frontend-plugin --option id=<plugin-id>
 ```
-
-The plugin will be created at `plugins/<plugin-id>/`
 
 Generated structure:
 

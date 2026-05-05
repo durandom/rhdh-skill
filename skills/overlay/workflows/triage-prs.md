@@ -2,24 +2,14 @@
 
 Prioritize open PRs in the overlay repository by criticality and surface actionable next steps.
 
-## Quick Start (Script)
-
-Use the consolidated script as the primary method:
+Run the triage script to generate a full prioritized report:
 
 ```bash
-# Human-readable markdown triage report
-python skills/overlay/scripts/triage-prs.py
-
-# Structured JSON for programmatic use
-python skills/overlay/scripts/triage-prs.py --json
-
-# Custom repo
-python skills/overlay/scripts/triage-prs.py --repo owner/repo
+python scripts/triage-prs.py              # markdown report
+python scripts/triage-prs.py --json        # structured JSON
 ```
 
-The script fetches all open PRs, classifies by priority, checks staleness, and
-generates the grouped report from Phase 4. Use the manual steps below only when
-debugging or when taking actions described in Phase 5.
+The manual phases below explain the classification logic and cover Phase 5 (taking action).
 
 <required_reading>
 **Read these reference files NOW:**

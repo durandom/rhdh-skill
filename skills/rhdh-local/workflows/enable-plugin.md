@@ -14,29 +14,14 @@ Read before starting:
 
 ## Step 1: Identify Plugin & Fetch Metadata
 
-Ask the user which plugin to enable. Use the `fetch-plugin-metadata.py` script to list plugins and retrieve all metadata in one step:
-
-**List available plugins:**
+Ask the user which plugin to enable, then fetch its metadata:
 
 ```bash
-python "$SKILL_DIR/scripts/fetch-plugin-metadata.py" --list
+python "$SKILL_DIR/scripts/fetch-plugin-metadata.py" --list          # list available plugins
+python "$SKILL_DIR/scripts/fetch-plugin-metadata.py" <plugin-name>    # fetch metadata
 ```
 
-**Fetch full metadata for a plugin (human-readable):**
-
-```bash
-python "$SKILL_DIR/scripts/fetch-plugin-metadata.py" <plugin-name>
-```
-
-**Fetch full metadata as structured JSON:**
-
-```bash
-python "$SKILL_DIR/scripts/fetch-plugin-metadata.py" <plugin-name> --json
-```
-
-The script fetches the plugin definition and all per-package metadata (OCI artifacts, roles, appConfigExamples) automatically. It handles cross-workspace package resolution.
-
-Validate the plugin name exists. If not found (exit code 1), try similar names and ask user to confirm.
+Add `--json` for structured output. If exit code 1 (not found), try similar names and ask user to confirm.
 
 > **Pre-installed vs OCI plugins:** Check the output for the pre-installed flag or the `preInstalled` JSON field.
 >
@@ -48,36 +33,6 @@ From the output, extract:
 - `plugin` / `metadata.name` — canonical plugin name
 - `packages` — list of packages with `dynamicArtifact`, `role`, `appConfigExamples`, `partOf`
 - `categories` — plugin category
-
-<details>
-<summary>Manual alternative (curl chain)</summary>
-
-**Step 1 — List plugins:**
-
-```bash
-curl -s https://api.github.com/repos/redhat-developer/rhdh-plugin-export-overlays/contents/catalog-entities/extensions/plugins \
-  | jq -r '.[].name' | sed 's/\.yaml$//'
-```
-
-**Step 2 — Fetch plugin definition:**
-
-```bash
-curl -s https://raw.githubusercontent.com/redhat-developer/rhdh-plugin-export-overlays/main/catalog-entities/extensions/plugins/<plugin-name>.yaml
-```
-
-Extract: `metadata.name`, `spec.packages`, `spec.categories`
-
-**Step 3 — Fetch package metadata** (for each package in `spec.packages`):
-
-```bash
-curl -s https://raw.githubusercontent.com/redhat-developer/rhdh-plugin-export-overlays/main/workspaces/<plugin-name>/metadata/<package-name>.yaml
-```
-
-Extract: `spec.dynamicArtifact`, `spec.backstage.role`, `spec.appConfigExamples`, `spec.partOf`
-
-> **Note:** Some packages live in a different workspace. If not found under `<plugin-name>`, try the workspace derived from the package name (e.g. `backstage-plugin-kubernetes-backend` → `workspaces/backstage/`) or the `backstage` workspace as a fallback.
-
-</details>
 
 ---
 

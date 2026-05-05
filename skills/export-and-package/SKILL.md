@@ -33,21 +33,16 @@ Before starting, ensure:
 
 ## Workflow Overview
 
-> **Automation script:** `scripts/export-plugin.py` automates Steps 1-4 below in
-> a single command. Run `python scripts/export-plugin.py --help` for usage, or
-> see examples:
->
-> ```bash
-> # OCI (default) — build, export, package, push
-> python scripts/export-plugin.py --plugin-dir plugins/my-plugin \
->   --tag quay.io/ns/my-plugin:v0.1.0 --push --clean
->
-> # tgz archive with integrity hash
-> python scripts/export-plugin.py --format tgz --clean
->
-> # JSON output for CI pipelines
-> python scripts/export-plugin.py --tag quay.io/ns/my-plugin:v0.1.0 --json
-> ```
+For the common case, use the automation script:
+
+```bash
+python scripts/export-plugin.py --plugin-dir plugins/my-plugin \
+  --tag quay.io/ns/my-plugin:v0.1.0 --push --clean
+```
+
+Run `python scripts/export-plugin.py --help` for all options (`--format tgz`, `--shared-package`, `--embed-package`, `--json`).
+
+The steps below explain each phase for advanced use cases (custom shared deps, multi-plugin bundles, npm publishing).
 
 1. **Build Plugin** - Compile TypeScript and verify no errors
 2. **Export as Dynamic Plugin** - Create `dist-dynamic/` with RHDH CLI

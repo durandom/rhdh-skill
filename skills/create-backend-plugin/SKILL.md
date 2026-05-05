@@ -50,38 +50,17 @@ Ask the user which RHDH version they are targeting if not specified.
 
 ## Step 2: Scaffold App and Plugin
 
-Use the scaffold script to automate app creation, dependency installation, and plugin generation in one command:
+Run the scaffold script from the directory where the app should be created:
 
 ```bash
-python skills/create-backend-plugin/scripts/scaffold.py \
+python scripts/scaffold.py \
   --rhdh-version 1.9 \
-  --plugin-id my-plugin \
-  --path ./my-app
+  --plugin-id my-plugin
 ```
 
-The script:
-- Looks up the correct `@backstage/create-app` version for the target RHDH release
-- Creates the Backstage app (idempotent — skips if `package.json` already exists)
-- Runs `yarn install`
-- Generates the backend plugin via `yarn new --select backend-plugin --option id=<plugin-id>`
+Run `python scripts/scaffold.py --help` for all options (e.g., `--path`, `--create-app-version`, `--json`).
 
-Use `--json` for structured output, or `--create-app-version` to override the auto-detected version. Run with `--help` for all options.
-
-### Manual alternative
-
-If you prefer to run the commands manually:
-
-```bash
-# Step 2: Create Backstage app
-# Consult ../rhdh/references/versions.md for the correct create-app version
-echo "backstage" | npx @backstage/create-app@0.7.3 --path .
-yarn install
-
-# Step 3: Create backend plugin
-yarn new --select backend-plugin --option id=my-plugin
-```
-
-The only purpose of the Backstage app is to ensure you can create the plugin using the correct version of the Backstage CLI. All development and testing will be done in the plugin directory.
+The Backstage app exists only to provide the correct CLI version for plugin generation. All development and testing happens in the plugin directory.
 
 The generated plugin structure:
 

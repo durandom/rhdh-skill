@@ -2,24 +2,14 @@
 
 Deep-dive analysis of a single overlay repository PR — check assignment, compatibility, and merge readiness.
 
-## Quick Start (Script)
-
-Use the consolidated script as the primary method:
+Run the analysis script to get a full report in one pass:
 
 ```bash
-# Human-readable markdown report
-python skills/overlay/scripts/analyze-pr.py 1234
-
-# Structured JSON for programmatic use
-python skills/overlay/scripts/analyze-pr.py 1234 --json
-
-# Custom repo
-python skills/overlay/scripts/analyze-pr.py 1234 --repo owner/repo
+python scripts/analyze-pr.py <pr-number>           # markdown report
+python scripts/analyze-pr.py <pr-number> --json     # structured JSON
 ```
 
-The script consolidates all `gh` API calls below into a single pass and produces
-the output template from Step 8. Use the manual steps below only when debugging
-or when the script output needs deeper investigation.
+The steps below explain the manual approach for debugging or deeper investigation.
 
 <required_reading>
 **Read these reference files NOW:**
