@@ -72,26 +72,26 @@ Log fix attempts for debugging patterns:
 
 ```bash
 # Problem identified
-rhdh-plugin log add "Build failure: <error-type> on <workspace>" --tag fix-build --tag <workspace>
+$RHDH log add "Build failure: <error-type> on <workspace>" --tag fix-build --tag <workspace>
 
 # Fix applied
-rhdh-plugin log add "Applied fix: <what-was-fixed> on <workspace>" --tag fix-build --tag <workspace>
+$RHDH log add "Applied fix: <what-was-fixed> on <workspace>" --tag fix-build --tag <workspace>
 
 # Resolution
-rhdh-plugin log add "Build fixed: <workspace> now passing" --tag fix-build --tag <workspace>
+$RHDH log add "Build fixed: <workspace> now passing" --tag fix-build --tag <workspace>
 ```
 
 ## Follow-up Todos
 
 ```bash
 # If fix requires upstream change
-rhdh-plugin todo add "Open upstream issue for <problem>" --context "<workspace>"
+$RHDH todo add "Open upstream issue for <problem>" --context "<workspace>"
 
 # If fix is a workaround
-rhdh-plugin todo add "Remove workaround when upstream releases <version>" --context "<workspace>"
+$RHDH todo add "Remove workaround when upstream releases <version>" --context "<workspace>"
 
 # Track flaky builds
-rhdh-plugin todo add "Investigate flaky build on <workspace>" --context "<workspace>"
+$RHDH todo add "Investigate flaky build on <workspace>" --context "<workspace>"
 ```
 
 </tracking>

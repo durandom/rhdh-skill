@@ -1,11 +1,11 @@
 ---
-name: RHDH Backend Dynamic Plugin Bootstrap
-description: This skill should be used when the user asks to "create RHDH backend plugin", "bootstrap backend dynamic plugin", "create backstage backend plugin for RHDH", "new backend plugin for Red Hat Developer Hub", "create dynamic backend plugin", "scaffold RHDH backend plugin", "new scaffolder action", "create catalog processor", or mentions creating a new backend plugin, backend module, or server-side functionality for Red Hat Developer Hub or RHDH. This skill is specifically for backend plugins - for frontend plugins, use the separate frontend plugin skill.
+name: create-backend-plugin
+description: Bootstraps a new backend dynamic plugin for Red Hat Developer Hub (RHDH). Use when the user asks to "create RHDH backend plugin", "bootstrap backend dynamic plugin", "create backstage backend plugin for RHDH", "new backend plugin for Red Hat Developer Hub", "create dynamic backend plugin", "scaffold RHDH backend plugin", "new scaffolder action", "create catalog processor", or mentions creating a new backend plugin, backend module, or server-side functionality for Red Hat Developer Hub or RHDH. This skill is specifically for backend plugins - for frontend plugins, use the separate frontend plugin skill.
 ---
 
 ## Purpose
 
-Bootstrap a new **backend** dynamic plugin for Red Hat Developer Hub (RHDH). RHDH is the enterprise-ready Backstage applicationthat supports dynamic plugins - plugins that can be installed or uninstalled without rebuilding the application.
+Bootstrap a new **backend** dynamic plugin for Red Hat Developer Hub (RHDH). RHDH is the enterprise-ready Backstage application that supports dynamic plugins - plugins that can be installed or uninstalled without rebuilding the application.
 
 > **Note:** This skill covers **backend plugins only**. Frontend dynamic plugins have different requirements (Scalprum configuration, mount points, dynamic routes) and are covered in a separate skill.
 
@@ -37,11 +37,10 @@ Before starting, ensure the following are available:
 ## Workflow Overview
 
 1. **Determine RHDH Version** - Identify target RHDH version for compatibility
-2. **Create Backstage App** - Scaffold Backstage app with matching version
-3. **Create Backend Plugin** - Generate new backend plugin using Backstage CLI
-4. **Implement Plugin Logic** - Write the plugin code using new backend system
-5. **Export and Package** - Build, export, and package using RHDH CLI (see export-and-package skill)
-6. **Configure for RHDH** - Create dynamic-plugins.yaml configuration
+2. **Scaffold App and Plugin** - Create Backstage app and generate backend plugin
+3. **Implement Plugin Logic** - Write the plugin code using new backend system
+4. **Export and Package** - Build, export, and package using RHDH CLI (see export-and-package skill)
+5. **Configure for RHDH** - Create dynamic-plugins.yaml configuration
 
 ## Step 1: Determine RHDH Version
 
@@ -49,36 +48,19 @@ Check the target RHDH version and find the compatible Backstage version. Consult
 
 Ask the user which RHDH version they are targeting if not specified.
 
-## Step 2: Create Backstage Application
+## Step 2: Scaffold App and Plugin
 
-Create a new Backstage application in the current directory using the version-appropriate create-app:
-
-```bash
-# For RHDH 1.8 (adjust version as needed)
-echo "backstage" | npx @backstage/create-app@0.7.3 --path .
-```
-
-After creation, install dependencies:
+Run the scaffold script from the directory where the app should be created:
 
 ```bash
-yarn install
+python scripts/scaffold.py \
+  --rhdh-version 1.9 \
+  --plugin-id my-plugin
 ```
 
- The only purpose this serves is to ensure you can later create the plugin using the correct version of the Backstage CLI. All development and testing will be done in the plugin directory.
+Run `python scripts/scaffold.py --help` for all options (e.g., `--path`, `--create-app-version`, `--json`).
 
-## Step 3: Create Backend Plugin
-
-Generate a new backend plugin using the Backstage CLI:
-
-```bash
-yarn new
-```
-
-When prompted:
-
-1. Select **"backend-plugin"** as the plugin type
-2. Enter a plugin ID (e.g., `my-plugin`)
-3. The plugin will be created at `plugins/<plugin-id>-backend/`
+The Backstage app exists only to provide the correct CLI version for plugin generation. All development and testing happens in the plugin directory.
 
 The generated plugin structure:
 
@@ -93,7 +75,7 @@ plugins/<plugin-id>-backend/
 └── README.md
 ```
 
-## Step 4: Implement Plugin Logic
+## Step 3: Implement Plugin Logic
 
 Backend plugins must use the **new backend system** for dynamic plugin compatibility. The plugin entry point should export a default using `createBackendPlugin()` or `createBackendModule()`.
 
@@ -147,7 +129,7 @@ cd plugins/<plugin-id>-backend
 yarn build
 ```
 
-## Step 5: Export and Package
+## Step 4: Export and Package
 
 Export the plugin as a dynamic plugin and package it for deployment. For detailed export and packaging options, see the **export-and-package** skill.
 
@@ -171,7 +153,7 @@ podman push quay.io/<namespace>/<plugin-name>:v0.1.0
 
 For advanced options (dependency handling, multi-plugin bundles, tgz/npm packaging), consult the **export-and-package** skill.
 
-## Step 6: Configure for RHDH
+## Step 5: Configure for RHDH
 
 Create the dynamic plugin configuration for RHDH. Add to `dynamic-plugins.yaml`:
 
@@ -190,6 +172,8 @@ For local development/testing, copy `dist-dynamic` to RHDH's `dynamic-plugins-ro
 ```bash
 cp -r dist-dynamic /path/to/rhdh/dynamic-plugins-root/<plugin-id>-backend-dynamic
 ```
+
+> **Windows note:** Use `xcopy /E /I dist-dynamic \path\to\rhdh\dynamic-plugins-root\<plugin-id>-backend-dynamic` or `robocopy dist-dynamic \path\to\rhdh\dynamic-plugins-root\<plugin-id>-backend-dynamic /E` instead of `cp -r`.
 
 See `examples/dynamic-plugins.yaml` for a complete configuration example.
 

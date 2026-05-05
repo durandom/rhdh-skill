@@ -2,10 +2,19 @@
 
 Deep-dive analysis of a single overlay repository PR — check assignment, compatibility, and merge readiness.
 
+Run the analysis script to get a full report in one pass:
+
+```bash
+python scripts/analyze-pr.py <pr-number>           # markdown report
+python scripts/analyze-pr.py <pr-number> --json     # structured JSON
+```
+
+The steps below explain the manual approach for debugging or deeper investigation.
+
 <required_reading>
 **Read these reference files NOW:**
 
-1. `references/github-queries.md` — gh CLI patterns
+1. `../../rhdh/references/github-reference.md` — gh CLI patterns
 2. `references/label-priority.md` — Priority classification
 </required_reading>
 
@@ -226,25 +235,25 @@ Log PR analysis for tracking review patterns:
 
 ```bash
 # Analysis complete
-rhdh-plugin log add "Analyzed PR #<number>: <status> (<plugin-name>)" --tag analyze-pr --tag <plugin-name>
+$RHDH log add "Analyzed PR #<number>: <status> (<plugin-name>)" --tag analyze-pr --tag <plugin-name>
 
 # Actions taken
-rhdh-plugin log add "Triggered /publish on PR #<number>" --tag analyze-pr --tag publish
-rhdh-plugin log add "Requested changes on PR #<number>: <reason>" --tag analyze-pr --tag review
-rhdh-plugin log add "Approved PR #<number>" --tag analyze-pr --tag review
+$RHDH log add "Triggered /publish on PR #<number>" --tag analyze-pr --tag publish
+$RHDH log add "Requested changes on PR #<number>: <reason>" --tag analyze-pr --tag review
+$RHDH log add "Approved PR #<number>" --tag analyze-pr --tag review
 ```
 
 ## Follow-up Todos
 
 ```bash
 # If PR needs external input
-rhdh-plugin todo add "Request CODEOWNERS entry from @<author> on PR #<number>" --context "PR #<number>"
+$RHDH todo add "Request CODEOWNERS entry from @<author> on PR #<number>" --context "PR #<number>"
 
 # If compatibility concern
-rhdh-plugin todo add "Verify <plugin> compat after backstage bump" --context "PR #<number>"
+$RHDH todo add "Verify <plugin> compat after backstage bump" --context "PR #<number>"
 
 # If waiting on contributor
-rhdh-plugin todo add "Follow up with @<author> on PR #<number> feedback" --context "PR #<number>"
+$RHDH todo add "Follow up with @<author> on PR #<number> feedback" --context "PR #<number>"
 ```
 
 </tracking>

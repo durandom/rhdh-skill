@@ -389,8 +389,12 @@ class TestLocalSkillFiles:
 
     def test_entry_point_is_executable(self, local_skill_dir):
         """rhdh-local entry point must have execute permission."""
+        import os
         import stat
 
+        if os.name == "nt":
+            # Windows doesn't support Unix permission bits; skip gracefully.
+            return
         path = local_skill_dir / "scripts" / "rhdh-local"
         assert path.stat().st_mode & stat.S_IXUSR, "rhdh-local is not user-executable"
 

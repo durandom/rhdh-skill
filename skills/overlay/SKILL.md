@@ -1,6 +1,6 @@
 ---
 name: overlay
-description: Use when working with the rhdh-plugin-export-overlays repository — onboarding plugins to the Extensions Catalog, updating plugin versions, fixing overlay build failures, triaging and analyzing PRs, triggering publishes, or managing plugin workspaces.
+description: Manages the rhdh-plugin-export-overlays repository — onboards plugins to the Extensions Catalog, updates plugin versions, fixes overlay build failures, triages and analyzes PRs, triggers publishes, and manages plugin workspaces. Use when working with overlays, importing plugins, debugging CI, checking PRs, or bumping versions.
 ---
 
 <cli_setup>
@@ -136,7 +136,7 @@ gh pr view <number> --repo $REPO --json statusCheckRollup \
 2. No `do-not-merge` label
 3. Publish check not already successful
 
-See `references/github-reference.md` (in rhdh skill) for full patterns.
+See `../rhdh/references/github-reference.md` for full patterns.
 </inline_publish_trigger>
 
 <reference_index>

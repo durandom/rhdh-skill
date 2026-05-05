@@ -1,5 +1,5 @@
 ---
-name: Generate Frontend Wiring
+name: generate-frontend-wiring
 description: This skill should be used when the user asks to "generate frontend wiring", "show frontend wiring", "create RHDH binding", "generate dynamic plugin config", "show plugin wiring for RHDH", "create app-config for frontend plugin", or wants to generate the RHDH dynamic plugin wiring configuration for an existing Backstage frontend plugin. The skill analyzes the plugin's source code and generates the appropriate configuration.
 ---
 
@@ -30,7 +30,7 @@ The plugin directory must contain:
 Find and read the essential plugin files:
 
 1. **`package.json`** - Get package name
-2. **`src/plugin.ts`** - Find exported extensions (pages, cards)
+2. **`src/plugin.ts`** or **`src/plugin.tsx`** - Find exported extensions (pages, cards)
 3. **`src/index.ts`** - Find public exports (APIs, components)
 4. **`dist-dynamic/dist-scalprum/plugin-manifest.json`** - Get scalprum name if built
 
@@ -231,6 +231,20 @@ appIcons:
   - name: myIcon
     importName: MyIcon
 ```
+
+## Gotchas
+
+### Plugin File Extensions
+
+The plugin definition may be in `src/plugin.ts` or `src/plugin.tsx`. Always check both extensions when searching for plugin exports.
+
+### Unscoped Package Names
+
+The scalprum name derivation in Step 2 assumes scoped packages (`@org/name`). For unscoped packages (e.g., `backstage-plugin-foo`), the scalprum name is the package name as-is — no dot-separated transformation needed.
+
+### New vs Legacy Frontend System
+
+Plugins using the new Backstage frontend system (`createPlugin` from `@backstage/frontend-plugin-api`) have different export patterns than the legacy system (`createPlugin` from `@backstage/core-plugin-api`). Check which system the plugin uses — new system plugins export extensions via `createExtension` rather than `createRoutableExtension`/`createComponentExtension`.
 
 ## Notes
 

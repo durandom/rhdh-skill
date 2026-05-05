@@ -75,26 +75,26 @@ Log version updates for release tracking:
 
 ```bash
 # Update started
-rhdh-plugin log add "Updating <plugin-name>: <old-ref> → <new-ref>" --tag update --tag <plugin-name>
+$RHDH log add "Updating <plugin-name>: <old-ref> → <new-ref>" --tag update --tag <plugin-name>
 
 # PR created
-rhdh-plugin log add "Update PR opened: #<number> for <plugin-name>" --tag update --tag <plugin-name>
+$RHDH log add "Update PR opened: #<number> for <plugin-name>" --tag update --tag <plugin-name>
 
 # Update complete
-rhdh-plugin log add "Update complete: <plugin-name> now at <new-ref>" --tag update --tag <plugin-name>
+$RHDH log add "Update complete: <plugin-name> now at <new-ref>" --tag update --tag <plugin-name>
 ```
 
 ## Follow-up Todos
 
 ```bash
 # If update blocked by compatibility
-rhdh-plugin todo add "Wait for RHDH backstage bump before updating <plugin>" --context "<plugin-name>"
+$RHDH todo add "Wait for RHDH backstage bump before updating <plugin>" --context "<plugin-name>"
 
 # If upstream has breaking changes
-rhdh-plugin todo add "Review breaking changes in <plugin> <version>" --context "<plugin-name>"
+$RHDH todo add "Review breaking changes in <plugin> <version>" --context "<plugin-name>"
 
 # Post-update verification
-rhdh-plugin todo add "Verify <plugin> in staging after release" --context "<plugin-name>"
+$RHDH todo add "Verify <plugin> in staging after release" --context "<plugin-name>"
 ```
 
 </tracking>

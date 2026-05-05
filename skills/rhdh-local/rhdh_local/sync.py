@@ -66,7 +66,7 @@ def apply_customizations(workspace: Path) -> SyncResult:
         for src_file in src.glob(pattern):
             if not src_file.is_file():
                 continue
-            rel = str(src_file.relative_to(src))
+            rel = src_file.relative_to(src).as_posix()
             _copy_file(src_file, dst / rel, rel, result)
 
     return result
@@ -98,7 +98,7 @@ def remove_customizations(workspace: Path) -> SyncResult:
             for src_file in src.glob(pattern):
                 if not src_file.is_file():
                     continue
-                rel = str(src_file.relative_to(src))
+                rel = src_file.relative_to(src).as_posix()
                 _remove_file(dst / rel, rel, result)
 
     return result

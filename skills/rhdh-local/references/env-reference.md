@@ -67,8 +67,8 @@ Override to pin specific RHDH versions.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `RHDH_IMAGE` | `quay.io/rhdh-community/rhdh:1.9` | RHDH container image |
-| `CATALOG_INDEX_IMAGE` | `quay.io/rhdh/plugin-catalog-index:1.9` | Extensions Catalog image |
+| `RHDH_IMAGE` | `quay.io/rhdh-community/rhdh:<version>` | RHDH container image (check `rhdh-local/default.env` for current default) |
+| `CATALOG_INDEX_IMAGE` | `quay.io/rhdh/plugin-catalog-index:<version>` | Extensions Catalog image (check `rhdh-local/default.env` for current default) |
 | `CATALOG_ENTITIES_EXTRACT_DIR` | `/extensions` | Catalog entities extract path |
 
 ## Lightspeed / AI

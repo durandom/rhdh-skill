@@ -1,6 +1,6 @@
 ---
 name: rhdh
-description: Use for ANY work related to "RHDH", "Red Hat Developer Hub", or "Developer Hub". This is the primary entry point for all RHDH tasks — plugin development, overlay management, environment setup, repo navigation, version compatibility, CI/CD, configuration, debugging, and general RHDH ecosystem knowledge. Routes to specialized sub-skills as needed.
+description: Handles all RHDH-related work — "RHDH", "Red Hat Developer Hub", or "Developer Hub". Primary entry point for plugin development, overlay management, environment setup, repo navigation, version compatibility, CI/CD, configuration, debugging, and general RHDH ecosystem knowledge. Routes to specialized sub-skills as needed.
 ---
 
 <cli_setup>
@@ -294,6 +294,8 @@ Todos must be **self-contained**—a new session should understand the task with
 **GitHub CLI (PRs, CI, workflows):** references/github-reference.md
 **JIRA CLI (issues, JQL, comments):** references/jira-reference.md
 **JIRA Structure (projects, issue types, filing rules):** references/jira-structure.md
+**Version Matrix:** references/versions.md — RHDH/Backstage version compatibility, create-app versions
+**Slack Notifications:** references/slack-notification.md — Slack ping templates, handle mapping, channel routing
 </reference_index>
 
 <skills_index>

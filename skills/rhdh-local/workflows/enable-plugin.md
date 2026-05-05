@@ -9,58 +9,34 @@ Read before starting:
 </required_reading>
 
 <process>
-## Step 1: Identify the Plugin
 
-Ask the user which plugin to enable. If unsure, list available plugins:
+> **Note:** This sequence involves multiple API calls to GitHub. If any step fails, check GitHub API rate limits and authentication.
 
-> **Pre-installed vs OCI plugins:** Check the plugin YAML for `extensions.backstage.io/pre-installed: 'true'`.
+## Step 1: Identify Plugin & Fetch Metadata
+
+Ask the user which plugin to enable, then fetch its metadata:
+
+```bash
+python "$SKILL_DIR/scripts/fetch-plugin-metadata.py" --list          # list available plugins
+python "$SKILL_DIR/scripts/fetch-plugin-metadata.py" <plugin-name>    # fetch metadata
+```
+
+Add `--json` for structured output. If exit code 1 (not found), try similar names and ask user to confirm.
+
+> **Pre-installed vs OCI plugins:** Check the output for the pre-installed flag or the `preInstalled` JSON field.
 >
 > - **Pre-installed** — bundled with RHDH, `spec.dynamicArtifact` is a local path like `./dynamic-plugins/dist/...`. No download needed, but may have version-specific issues in a given RHDH build (e.g. `PluginRoot not found`). The `rhdh-local` `CHANGELOG` or known-issues list is the authoritative source.
 > - **OCI** — fetched from `ghcr.io` at startup, always the exact tested version. More reliable for third-party plugins.
 
-```bash
-curl -s https://api.github.com/repos/redhat-developer/rhdh-plugin-export-overlays/contents/catalog-entities/extensions/plugins \
-  | jq -r '.[].name' | sed 's/\.yaml$//'
-```
+From the output, extract:
 
-Validate the plugin name exists. If not found, try similar names and ask user to confirm.
-
----
-
-## Step 2: Fetch Plugin Definition
-
-```bash
-curl -s https://raw.githubusercontent.com/redhat-developer/rhdh-plugin-export-overlays/main/catalog-entities/extensions/plugins/<plugin-name>.yaml
-```
-
-Extract:
-
-- `metadata.name` — canonical plugin name
-- `spec.packages` — list of package names that make up this plugin
-- `spec.categories` — plugin category
+- `plugin` / `metadata.name` — canonical plugin name
+- `packages` — list of packages with `dynamicArtifact`, `role`, `appConfigExamples`, `partOf`
+- `categories` — plugin category
 
 ---
 
-## Step 3: Fetch Package Metadata
-
-For each package in `spec.packages`:
-
-```bash
-curl -s https://raw.githubusercontent.com/redhat-developer/rhdh-plugin-export-overlays/main/workspaces/<plugin-name>/metadata/<package-name>.yaml
-```
-
-Extract from each:
-
-- `spec.dynamicArtifact` — the OCI reference to use (e.g. `oci://ghcr.io/...`)
-- `spec.backstage.role` — `frontend-plugin`, `backend-plugin`, or `backend-plugin-module`
-- `spec.appConfigExamples` — example configuration snippets
-- `spec.partOf` — which plugin(s) this package belongs to
-
-> **Note:** Some packages live in a different workspace. If not found under `<plugin-name>`, try the workspace derived from the package name (e.g. `backstage-plugin-kubernetes-backend` → `workspaces/kubernetes/`).
-
----
-
-## Step 4: Add to `dynamic-plugins.override.yaml`
+## Step 2: Add to `dynamic-plugins.override.yaml`
 
 Edit `rhdh-customizations/configs/dynamic-plugins/dynamic-plugins.override.yaml`.
 
@@ -109,7 +85,7 @@ Backend plugins should be listed before their corresponding frontend plugins.
 
 ---
 
-## Step 5: Add Backend Configuration (if needed)
+## Step 3: Add Backend Configuration (if needed)
 
 If `spec.appConfigExamples` includes configuration outside the `dynamicPlugins` key, add it to:
 `rhdh-customizations/configs/app-config/app-config.local.yaml`
@@ -129,7 +105,7 @@ argocd:
 
 ---
 
-## Step 6: Set Required Environment Variables
+## Step 4: Set Required Environment Variables
 
 If backend config references `${VAR_NAME}` variables, tell the user to add them to `rhdh-customizations/.env` (bare format — no `export`, no quotes):
 
@@ -142,18 +118,18 @@ This file overrides `rhdh-local/default.env`.
 
 ---
 
-## Step 7: Present Summary
+## Step 5: Present Summary
 
 Before applying, show the user:
 
 - Which packages were added to `dynamic-plugins.override.yaml`
 - What app-config was added (if any)
 - What environment variables need to be set in `.env`
-- The commands from Step 8
+- The commands from Step 6
 
 ---
 
-## Step 8: Apply and Restart
+## Step 6: Apply and Restart
 
 ```bash
 rhdh local apply

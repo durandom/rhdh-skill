@@ -12,12 +12,12 @@ Diagnose and fix environment issues for the RHDH Plugin skill.
 ## Fastest Path
 
 ```bash
-rhdh-plugin setup submodule add --all
+$RHDH setup submodule add --all
 ```
 
 Creates `repo/` directory with required repositories as git submodules.
 
-Run `rhdh-plugin` to verify setup, then continue with your original task.
+Run `$RHDH` to verify setup, then continue with your original task.
 </quick_start>
 
 <process>
@@ -25,9 +25,9 @@ Run `rhdh-plugin` to verify setup, then continue with your original task.
 ## Option 1: Submodules (Recommended)
 
 ```bash
-rhdh-plugin setup submodule list      # Check status
-rhdh-plugin setup submodule add --all # Add required repos
-rhdh-plugin                           # Verify
+$RHDH setup submodule list      # Check status
+$RHDH setup submodule add --all # Add required repos
+$RHDH                           # Verify
 ```
 
 ## Option 2: Existing Checkouts
@@ -35,9 +35,9 @@ rhdh-plugin                           # Verify
 Point to repositories you've already cloned:
 
 ```bash
-rhdh-plugin config set repos.overlay /path/to/rhdh-plugin-export-overlays
-rhdh-plugin config set repos.local /path/to/rhdh-local
-rhdh-plugin                           # Verify
+$RHDH config set repos.overlay /path/to/rhdh-plugin-export-overlays
+$RHDH config set repos.local /path/to/rhdh-local
+$RHDH                           # Verify
 ```
 
 ## Option 3: Environment Variables
@@ -59,23 +59,23 @@ Log setup events for troubleshooting:
 
 ```bash
 # Initial setup
-rhdh-plugin log add "Environment setup complete" --tag setup
+$RHDH log add "Environment setup complete" --tag setup
 
 # Configuration changes
-rhdh-plugin log add "Configured overlay repo: <path>" --tag setup --tag config
-rhdh-plugin log add "Configured rhdh-local: <path>" --tag setup --tag config
+$RHDH log add "Configured overlay repo: <path>" --tag setup --tag config
+$RHDH log add "Configured rhdh-local: <path>" --tag setup --tag config
 ```
 
 ## Follow-up Todos
 
 ```bash
 # If setup blocked
-rhdh-plugin todo add "Request access to overlay repo" --context "setup"
-rhdh-plugin todo add "Set up GitHub SSH keys" --context "setup"
+$RHDH todo add "Request access to overlay repo" --context "setup"
+$RHDH todo add "Set up GitHub SSH keys" --context "setup"
 ```
 
 </tracking>
 
 <success_criteria>
-Setup complete when `rhdh-plugin` shows `needs_setup: false`.
+Setup complete when `$RHDH` shows `needs_setup: false`.
 </success_criteria>
