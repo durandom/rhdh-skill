@@ -5,12 +5,13 @@ Fetches open PRs, classifies by priority tier, checks staleness,
 evaluates assignment status, and generates a grouped triage report.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import subprocess
 import sys
 from datetime import datetime, timezone
-
 
 DEFAULT_REPO = "redhat-developer/rhdh-plugin-export-overlays"
 
@@ -57,7 +58,7 @@ def fetch_open_prs(repo):
 
 def classify_priority(labels):
     """Classify PR priority based on labels."""
-    names = [l["name"] for l in labels] if labels else []
+    names = [lbl["name"] for lbl in labels] if labels else []
 
     if "do-not-merge" in names:
         return "skip", "⚫ Skip"
@@ -178,7 +179,7 @@ def build_triage(repo):
             "author": author,
             "priority_key": priority_key,
             "priority_label": priority_label,
-            "labels": [l["name"] for l in labels],
+            "labels": [lbl["name"] for lbl in labels],
             "plugin": plugin,
             "days_stale": days,
             "stale_icon": stale_icon,

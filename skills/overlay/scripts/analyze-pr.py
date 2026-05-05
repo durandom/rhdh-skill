@@ -6,13 +6,14 @@ Gathers PR metadata, checks, workspace, CODEOWNERS, and produces
 a structured analysis with priority, assignment, and merge readiness.
 """
 
+from __future__ import annotations
+
 import argparse
 import base64
 import json
 import subprocess
 import sys
 from datetime import datetime, timezone
-
 
 DEFAULT_REPO = "redhat-developer/rhdh-plugin-export-overlays"
 
@@ -95,7 +96,7 @@ def fetch_codeowners(repo):
 
 def classify_priority(labels):
     """Classify PR priority based on labels."""
-    names = [l["name"] for l in labels] if labels else []
+    names = [lbl["name"] for lbl in labels] if labels else []
 
     if "do-not-merge" in names:
         return "skip", "⚫ Skip (do-not-merge)"
@@ -367,7 +368,7 @@ def build_analysis(pr_number, repo):
     codeowner_entries = find_codeowner(workspaces, codeowners_content)
     codeowners_modified = check_codeowners_modified(files)
     source_json_files = check_source_json_modified(files)
-    is_addition = any(l["name"] == "workspace-addition" for l in labels)
+    is_addition = any(lbl["name"] == "workspace-addition" for lbl in labels)
     staleness = compute_staleness(pr_data.get("updatedAt", ""), priority_key)
     approvals = get_approvals(pr_data)
     readiness = determine_merge_readiness(
@@ -384,7 +385,7 @@ def build_analysis(pr_number, repo):
         "state": pr_data.get("state", ""),
         "priority_key": priority_key,
         "priority_label": priority_label,
-        "labels": [l["name"] for l in labels],
+        "labels": [lbl["name"] for lbl in labels],
         "workspaces": workspaces,
         "created_at": pr_data.get("createdAt", ""),
         "updated_at": pr_data.get("updatedAt", ""),
