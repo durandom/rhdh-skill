@@ -65,25 +65,7 @@ For each issue, check:
 
 ### Check 2 — Duplicate Detection
 
-For each issue, search for potential duplicates:
-
-```bash
-# Search by similar summary keywords
-curl -s -u "$AUTH" "$GRAPHQL_URL" -X POST \
-  -H 'Content-Type: application/json' \
-  -H 'X-ExperimentalApi: JiraIssueSearch' \
-  -d '{
-    "query": "query FindDuplicates { jira { issueSearchStable(cloudId: \"'"$CLOUD_ID"'\", issueSearchInput: {jql: \"project in (RHIDP, RHDHPLAN, RHDHSUPP, RHDHBUGS) AND summary ~ \\\"KEYWORD1 KEYWORD2\\\" AND key != \\\"CURRENT_KEY\\\" AND status != Closed ORDER BY updated DESC\"}, first: 10) { edges { node { key summary status { name } assignee { name } } } } } }"
-  }'
-```
-
-Extract 2-3 distinctive keywords from the issue summary (skip stop words, project names, and generic terms like "update", "fix", "add"). If the search returns issues with high summary similarity:
-
-- **Exact match** (>80% word overlap): Flag as "likely duplicate — review before proceeding."
-- **Partial match** (40-80%): Flag as "possibly related — check for overlap."
-- **Low match** (<40%): Skip.
-
-Also check existing issue links for `Duplicate` link type — if already linked, note it and skip.
+Run the audit check from `references/duplicates.md` for each issue. Flag likely and possibly related duplicates in the report.
 
 ### Check 3 — Parent/Hierarchy Integrity
 

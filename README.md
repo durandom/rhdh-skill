@@ -44,6 +44,10 @@ Track work across the four RHDH Jira projects.
   - **[plan](./skills/rhdh-jira/references/plan.md)** — Sprint planning prep: carryover report, velocity trend, per-member capacity, ready-for-planning queue, and sprint fill suggestions with expertise matching.
   - **[sprint-report](./skills/rhdh-jira/references/sprint-report.md)** — Sprint review summary: committed vs completed, per-member breakdown, epic progress, demo checklist with naming conventions, and velocity trend.
   - **[release](./skills/rhdh-jira/references/release.md)** — Release readiness: feature matrix, Program Increment funnel, epic roll-up, cross-team dependency map, blocker bugs, release notes readiness, and risk assessment.
+  - **[to-feature](./skills/rhdh-jira/references/to-feature.md)** — Create a RHDHPLAN Feature from conversation context. Grills on scope, customer value, and acceptance criteria. Optionally chains into Epic decomposition.
+  - **[to-epic](./skills/rhdh-jira/references/to-epic.md)** — Create an RHIDP Epic. Grills on delivery scope, dependencies, and acceptance criteria. Optionally chains into Story/Task decomposition.
+  - **[to-issue](./skills/rhdh-jira/references/to-issue.md)** — Create a Story, Task, Bug, or Spike with automatic type inference. Grills on implementation details and story points.
+  - **[update-jira-status](./skills/rhdh-jira/references/update-jira-status.md)** — Update an issue with session progress. Detects the related issue, adds a status comment, proposes transitions, and checks upward cascade to parent Epic/Feature.
 
 ### Orchestration
 
