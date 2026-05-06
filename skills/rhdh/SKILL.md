@@ -97,25 +97,22 @@ What would you like to do?
 
 *For creating new RHDH dynamic plugins from scratch*
 
-6. **Create backend plugin** — Bootstrap a new backend dynamic plugin
-7. **Create frontend plugin** — Bootstrap a new frontend dynamic plugin
-8. **Export and package plugin** — Export plugin and package as OCI/tgz/npm
-9. **Configure frontend wiring** — Set up mount points, routes, entity tabs
+6. **Create plugin** — Bootstrap, export, package, or wire a dynamic plugin (backend or frontend)
 
 ### Jira Tasks
 
-10. **Jira structure** — Projects and issue types
+7. **Jira structure** — Projects and issue types
 
 ### Local Testing Tasks
 
 *For testing plugins in a local RHDH instance using rhdh-local-setup*
 
-11. **Local testing** — Enable/disable/test plugins in local RHDH
+8. **Local testing** — Enable/disable/test plugins in local RHDH
 
 ### General Tasks
 
-12. **Check environment** — Run doctor, configure paths
-13. **View/search activity** — Review worklog, todos
+9. **Check environment** — Run doctor, configure paths
+10. **View/search activity** — Review worklog, todos
 
 **Wait for response before proceeding.**
 </intake>
@@ -141,24 +138,21 @@ What would you like to do?
 
 | Response | Skill |
 |----------|-------|
-| 6, "backend plugin", "create backend", "new backend plugin" | Route to `@create-backend-plugin` skill |
-| 7, "frontend plugin", "create frontend", "new frontend plugin" | Route to `@create-frontend-plugin` skill |
-| 8, "export", "package", "OCI", "publish plugin" | Route to `@export-and-package` skill |
-| 9, "wiring", "mount points", "routes", "entity tabs" | Route to `@generate-frontend-wiring` skill |
+| 6, "backend plugin", "create backend", "frontend plugin", "create frontend", "export", "package", "OCI", "publish plugin", "wiring", "mount points", "routes", "entity tabs" | Route to `@create-plugin` skill |
 
-**To route:** Read the corresponding skill file in `../` and follow its workflow.
+**To route:** Read `../create-plugin/SKILL.md` and follow its routing rules (backend, frontend, export, wiring sub-commands).
 
 ### Jira Routes
 
 | Response | Action |
 |----------|--------|
-| 10, "jira", "jira projects", "issue types", "RHIDP", "RHDHPLAN", "RHDHBUGS", "RHDHSUPP" | Read `references/jira-structure.md` and use it as context |
+| 7, "jira", "jira projects", "issue types", "RHIDP", "RHDHPLAN", "RHDHBUGS", "RHDHSUPP" | Read `references/jira-structure.md` and use it as context |
 
 ### Local Testing Routes
 
 | Response | Skill |
 |----------|-------|
-| 11, "local", "test locally", "enable plugin", "disable plugin", "local testing", "rhdh-local-setup" | Route to `@rhdh-local` skill |
+| 8, "local", "test locally", "enable plugin", "disable plugin", "local testing", "rhdh-local-setup" | Route to `@rhdh-local` skill |
 
 **To route:** Read `../rhdh-local/SKILL.md` and follow its intake process.
 
@@ -166,8 +160,8 @@ What would you like to do?
 
 | Response | Action |
 |----------|--------|
-| 12, "doctor", "setup", "config" | Use CLI commands below |
-| 13, "log", "todo", "activity" | Use tracking commands below |
+| 9, "doctor", "setup", "config" | Use CLI commands below |
+| 10, "log", "todo", "activity" | Use tracking commands below |
 
 </routing>
 
@@ -305,10 +299,7 @@ Todos must be **self-contained**—a new session should understand the task with
 | Skill | Purpose | Path |
 |-------|---------|------|
 | overlay | Manage plugins in rhdh-plugin-export-overlays | `../overlay/SKILL.md` |
-| create-backend-plugin | Bootstrap new RHDH backend dynamic plugins | `../create-backend-plugin/SKILL.md` |
-| create-frontend-plugin | Bootstrap new RHDH frontend dynamic plugins | `../create-frontend-plugin/SKILL.md` |
-| export-and-package | Export and package plugins as OCI/tgz/npm | `../export-and-package/SKILL.md` |
-| generate-frontend-wiring | Configure frontend mount points, routes, tabs | `../generate-frontend-wiring/SKILL.md` |
+| create-plugin | Create, export, package, and wire RHDH dynamic plugins | `../create-plugin/SKILL.md` |
 | rhdh-local | Enable/disable/test plugins in local RHDH | `../rhdh-local/SKILL.md` |
 
 ### Shared References

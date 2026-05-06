@@ -2,7 +2,7 @@
 """Export, package, and push a Backstage plugin as an RHDH dynamic plugin.
 
 Automates the full export+package+push pipeline described in the
-export-and-package skill (SKILL.md Steps 1-4):
+create-plugin skill's export command (references/export.md):
 
   1. Validate plugin directory and package.json
   2. Build (yarn build + yarn tsc)
@@ -85,6 +85,8 @@ def _run(
         check=True,
         capture_output=capture,
         text=True,
+        # On Windows, shell=True is needed for npx/yarn/npm .cmd shims
+        shell=(sys.platform == "win32"),
     )
 
 
@@ -257,8 +259,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Export, package, and optionally push a Backstage plugin "
-            "as an RHDH dynamic plugin. Automates Steps 1-4 of the "
-            "export-and-package workflow."
+            "as an RHDH dynamic plugin. Automates the export pipeline "
+            "from the create-plugin skill."
         ),
         epilog=(
             "Examples:\n"

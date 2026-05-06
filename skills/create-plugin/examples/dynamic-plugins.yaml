@@ -1,5 +1,5 @@
 # Example RHDH Dynamic Plugins Configuration
-# This file shows how to configure dynamic plugins for Red Hat Developer Hub
+# Comprehensive examples for dynamic-plugins.yaml
 #
 # Place this configuration in your RHDH deployment's dynamic-plugins.yaml
 
@@ -16,7 +16,6 @@ plugins:
   - package: oci://quay.io/example/my-backend-plugin:v1.0.0!my-plugin-backend-dynamic
     disabled: false
     pluginConfig:
-      # Plugin-specific configuration
       myPlugin:
         apiUrl: https://api.example.com
         timeout: 30000
@@ -42,6 +41,29 @@ plugins:
             schedule:
               frequency: { minutes: 30 }
               timeout: { minutes: 3 }
+
+  # Custom scaffolder action
+  - package: oci://quay.io/example/scaffolder-actions:v1.0.0!scaffolder-backend-module-custom-actions-dynamic
+    disabled: false
+    pluginConfig:
+      scaffolder:
+        actions:
+          custom:deploy:
+            apiKey: ${DEPLOY_API_KEY}
+
+  # Backend plugin with full config
+  - package: oci://quay.io/example/complete-backend:v1.0.0!complete-backend-dynamic
+    disabled: false
+    pluginConfig:
+      completePlugin:
+        apiUrl: https://api.example.com
+        timeout: 30000
+        auth:
+          type: bearer
+          tokenEnv: PLUGIN_API_TOKEN
+        features:
+          caching: true
+          retries: 3
 
   # ============================================================
   # Frontend Plugin Examples
@@ -82,6 +104,39 @@ plugins:
               - name: myCustomIcon
                 importName: MyCustomIcon
 
+  # Frontend plugin with full wiring
+  - package: oci://quay.io/example/complete-frontend:v1.0.0!complete-frontend
+    disabled: false
+    pluginConfig:
+      dynamicPlugins:
+        frontend:
+          my-org.plugin-complete:
+            appIcons:
+              - name: completeIcon
+                importName: CompleteIcon
+
+            dynamicRoutes:
+              - path: /complete
+                importName: CompletePage
+                menuItem:
+                  icon: completeIcon
+                  text: Complete Plugin
+
+            mountPoints:
+              - mountPoint: entity.page.overview/cards
+                importName: CompleteCard
+                config:
+                  layout:
+                    gridColumn: '1 / -1'
+                  if:
+                    allOf:
+                      - isKind: component
+                      - hasAnnotation: complete-plugin/enabled
+
+            menuItems:
+              complete:
+                priority: 50
+
   # ============================================================
   # Multi-Plugin Image Example
   # ============================================================
@@ -92,7 +147,7 @@ plugins:
     pluginConfig:
       dynamicPlugins:
         frontend:
-          example.plugin-my-plugin:
+          my-org.plugin-my-plugin:
             mountPoints:
               - mountPoint: entity.page.overview/cards
                 importName: MyPluginCard
@@ -104,27 +159,17 @@ plugins:
         apiUrl: https://api.example.com
 
   # ============================================================
-  # Local/Development Examples
-  # ============================================================
-
-  # Pre-installed plugin (already in RHDH image)
-  - package: ./dynamic-plugins/dist/backstage-plugin-catalog-backend-module-github-dynamic
-    disabled: false
-
-  # Local development plugin
-  - package: ./dynamic-plugins-root/my-dev-plugin-dynamic
-    disabled: false
-    pluginConfig:
-      myDevPlugin:
-        debug: true
-
-  # ============================================================
   # tgz Archive Examples
   # ============================================================
 
   # Plugin from HTTP server
   - package: https://plugin-registry.example.com/my-plugin-1.0.0.tgz
     integrity: sha512-9WlbgEdadJNeQxdn1973r5E4kNFvnT9GjLD627GWgrhCaxjCmxqdNW08cj+Bf47mwAtZMt1Ttyo+ZhDRDj9PoA==
+    disabled: false
+
+  # Plugin from internal httpd service (OpenShift)
+  - package: http://plugin-registry:8080/my-plugin-backend-dynamic-1.0.0.tgz
+    integrity: sha512-abc123def456...
     disabled: false
 
   # ============================================================
@@ -137,14 +182,16 @@ plugins:
     disabled: false
 
   # ============================================================
-  # Scaffolder Action Example
+  # Local Development Examples
   # ============================================================
 
-  # Custom scaffolder action
-  - package: oci://quay.io/example/scaffolder-actions:v1.0.0!scaffolder-backend-module-custom-actions-dynamic
+  # Pre-installed plugin (already in RHDH image)
+  - package: ./dynamic-plugins/dist/backstage-plugin-catalog-backend-module-github-dynamic
+    disabled: false
+
+  # Local development plugin
+  - package: ./dynamic-plugins-root/my-dev-plugin-dynamic
     disabled: false
     pluginConfig:
-      scaffolder:
-        actions:
-          custom:deploy:
-            apiKey: ${DEPLOY_API_KEY}
+      myDevPlugin:
+        debug: true
