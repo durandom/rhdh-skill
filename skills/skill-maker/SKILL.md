@@ -1,6 +1,6 @@
 ---
-name: create-skill
-description: Create new agent skills following the Agent Skills open standard (agentskills.io). Interviews the user relentlessly about intent, scope, and edge cases before drafting. Covers SKILL.md structure, frontmatter, progressive disclosure, description optimization, script bundling, sub-command architecture, setup gates, context systems, and review. Use when the user wants to create a skill, write a skill, build a new skill, make a skill, draft a SKILL.md, or mentions "create-skill". Also use when asked to package expertise, workflows, or domain knowledge into a reusable skill.
+name: skill-maker
+description: Create new agent skills following the Agent Skills open standard (agentskills.io). Interviews the user relentlessly about intent, scope, and edge cases before drafting. Covers SKILL.md structure, frontmatter, progressive disclosure, description optimization, script bundling, sub-command architecture, setup gates, context systems, and review. Use when the user wants to create a skill, write a skill, build a new skill, make a skill, draft a SKILL.md, or mentions "skill-maker". Also use when asked to package expertise, workflows, or domain knowledge into a reusable skill.
 ---
 
 # Create Skill
