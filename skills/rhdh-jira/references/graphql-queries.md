@@ -131,8 +131,8 @@ Custom fields appear in `fields { edges { node { ... } } }` with typed fragments
 | `JiraSingleSelectField` | `... on JiraSingleSelectField { fieldOption { value } }` | Size (XS/S/M/L/XL), Ready, Blocked, Release Note Type |
 | `JiraSprintField` | `... on JiraSprintField { selectedSprintsConnection { edges { node { name state } } } }` | Sprint name and state (active/closed/future) |
 | `JiraLabelsField` | `... on JiraLabelsField { labels { edges { node { name } } } }` | All labels |
-| `JiraTeamViewField` | _(no value sub-fields currently extractable)_ | Team — visible as `__typename` but value needs REST fallback |
-| `JiraComponentsField` | _(introspect for sub-fields)_ | Components |
+| `JiraTeamViewField` | `... on JiraTeamViewField { selectedTeam { jiraSuppliedName jiraMemberCount fullTeam { displayName members(first: 50) { nodes { member { name accountId } state role } } } } }` | Team — name, member count, and full roster via `fullTeam.members`. For direct roster lookup without an issue, use `team.teamV2` (see Team Roster Query). |
+| `JiraComponentsField` | `... on JiraComponentsField { components { edges { node { name } } } }` | Components |
 | `JiraDatePickerField` | _(introspect for sub-fields)_ | Start date, Target start/end |
 | `JiraRichTextField` | _(introspect for sub-fields)_ | Description, Release Note Text, Acceptance Criteria |
 | `JiraParentIssueField` | _(introspect for sub-fields)_ | Parent Link (legacy) — prefer `parentIssue` on `JiraIssue` |
@@ -147,28 +147,50 @@ curl -s -u "$AUTH" -X POST -H 'Content-Type: application/json' \
 
 ## Mutations (Experimental)
 
-GraphQL mutations for Jira issue updates exist but are experimental. They require `@optIn` directives and may break without notice. **Use REST API `PUT /rest/api/3/issue/{key}` for writes** — it is stable and well-documented.
+GraphQL mutations for Jira issue updates exist but are experimental. They require `@optIn` directives and may break without notice. There is **no GraphQL mutation for assigning issues**. For writes, use `acli` (simple single-issue operations) or REST API `PUT /rest/api/3/issue/{key}` (when already in a REST context or acli fails).
 
 If you discover stable mutations in the future via introspection, verify they do not require experimental headers before relying on them.
 
 ## Caveats
 
 1. **`issueSearchStable` is beta.** Requires `X-ExperimentalApi: JiraIssueSearch` header. May break without notice. If you get a `BetaHeaderOptInException` error, add this header.
-2. **Team field values are not directly extractable.** `JiraTeamViewField` appears in the schema but value sub-fields are limited. Use REST API to get team data.
+2. **Team field values on issues are limited.** `JiraTeamViewField` on issues exposes `selectedTeam.jiraSuppliedName` and `fullTeam.members` but not all sub-fields. For direct team roster lookup (without going through an issue), use `team.teamV2(id, siteId)` — see the Team Roster Query pattern below.
 3. **`cloudId` is required on every query.** Use `2b9e35e3-6bd3-4cec-b838-f4249ee02432` for redhat.atlassian.net. Discover it via `/_edge/tenant_info` (see Authentication section).
 4. **Rate limiting is cost-based.** 10,000 points per user per minute. HTTP 429 with `RETRY-AFTER` header when exceeded. Do not retry on 5xx.
 5. **Operation names are mandatory.** Every query must have a name (e.g., `query GetIssue { ... }`). Unnamed queries will be rejected in the future.
 6. **No spec file to download.** Unlike REST (which has an OpenAPI spec), GraphQL schema is discovered via introspection queries only. Use `__type` or the full `__schema` query. See Schema Discovery section.
 
-## When to use GraphQL vs acli
+## Team Roster Query
+
+Query team membership directly via the Teams GraphQL API — no need to infer roster from issue assignees.
+
+```bash
+curl -s -u "$AUTH" "$GRAPHQL_URL" -X POST -H 'Content-Type: application/json' \
+  -d '{
+    "query": "query GetTeamRoster { team { teamV2(id: \"TEAM_ID\", siteId: \"'"$CLOUD_ID"'\") { displayName members(first: 50) { nodes { member { name accountId } state role } } } } }"
+  }'
+```
+
+Replace `TEAM_ID` with the Jira team UUID (e.g., `ec74d716-af36-4b3c-950f-f79213d08f71-4403`).
+
+Returns `name`, `accountId`, `state` (FULL_MEMBER, INVITED, ALUMNI), and `role` (REGULAR, ADMIN). Filter to `FULL_MEMBER` for active team members.
+
+For assignee analysis using this data, see `references/assign.md`.
+
+## When to use GraphQL vs acli vs REST
+
+Preference order: **acli → GraphQL → REST API**. Skip acli for bulk operations.
 
 | Scenario | Use |
 |----------|-----|
 | Quick single-issue lookup | `acli` — faster, simpler |
-| Bulk search with custom fields | GraphQL `issueSearchStable` — one call vs `acli` + `--enrich` per issue |
+| Bulk search with custom fields | GraphQL `issueSearchStable` — skip acli, one call vs `--enrich` per issue |
+| Bulk operations (expertise profiles, capacity) | GraphQL — skip acli entirely |
 | Need parent/child relationships | GraphQL — `parentIssue { key summary }` inline |
-| Update a field | REST API — `PUT /rest/api/3/issue/{key}` (stable) |
-| Team field value | REST API — GraphQL can't extract it reliably |
+| Team roster lookup | GraphQL — `team.teamV2(id, siteId)` returns members directly |
 | Sprint data | Either — GraphQL returns it inline, acli needs `--enrich` |
+| Update a field (standalone) | `acli` — simple, reliable |
+| Update a field (already in REST context) | REST API — avoid shelling out to acli when already authenticated |
+| Update a field (acli fails) | REST API — fallback for custom field writes |
 | Discover available fields/types | GraphQL introspection — `__type` queries |
 | Discover REST endpoints/payloads | REST OpenAPI spec — see `references/rest-api-fallback.md` |

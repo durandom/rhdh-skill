@@ -38,7 +38,12 @@ Test plugins in a local RHDH instance before deploying.
 
 Track work across the four RHDH Jira projects.
 
-- **[rhdh-jira](./skills/rhdh-jira/SKILL.md)** — Search, create, view, edit, transition, and link issues across RHIDP, RHDHPLAN, RHDHBUGS, and RHDHSUPP. Uses `acli` with REST API and GraphQL fallback for custom fields.
+- **[rhdh-jira](./skills/rhdh-jira/SKILL.md)** — Search, create, view, edit, transition, link, assign, and refine issues across RHIDP, RHDHPLAN, RHDHBUGS, and RHDHSUPP. Uses `acli` for simple operations, GraphQL for bulk reads, and REST API as fallback. Sub-commands:
+  - **[assign](./skills/rhdh-jira/references/assign.md)** — Recommend assignees using team expertise profiling, sprint capacity analysis, and context proximity scoring. Supports deep mode (5-layer analysis via GraphQL) and quick mode (match from existing context). Assigns after user confirmation.
+  - **[refine](./skills/rhdh-jira/references/refine.md)** — Check issues against RHDH workflow exit criteria, detect duplicates, verify parent/child hierarchy, flag unaddressed comments, identify stale issues, and validate sprint readiness.
+  - **[plan](./skills/rhdh-jira/references/plan.md)** — Sprint planning prep: carryover report, velocity trend, per-member capacity, ready-for-planning queue, and sprint fill suggestions with expertise matching.
+  - **[sprint-report](./skills/rhdh-jira/references/sprint-report.md)** — Sprint review summary: committed vs completed, per-member breakdown, epic progress, demo checklist with naming conventions, and velocity trend.
+  - **[release](./skills/rhdh-jira/references/release.md)** — Release readiness: feature matrix, Program Increment funnel, epic roll-up, cross-team dependency map, blocker bugs, release notes readiness, and risk assessment.
 
 ### Orchestration
 

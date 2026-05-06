@@ -70,6 +70,14 @@ Follow progressive disclosure — three loading levels:
 
 Keep the SKILL.md body under 500 lines. If approaching this limit, split domain-specific content into `references/` files with clear pointers about when to read them.
 
+### Deduplication check
+
+Before writing domain knowledge into a new reference file, check if it already exists in another reference. Shared data (exit criteria, field mappings, workflow rules) must live in exactly one file. New references should point to the existing source — not embed a copy.
+
+Common trap: a new sub-command reference duplicates tables from an existing reference because it "needs them for context." Instead, add a one-line pointer: "Load `references/workflows.md` for exit criteria per status."
+
+**Exception: intentional duplication.** When two sub-commands need the same query pattern but referencing each other would create a transitive loading chain (A → B → C), duplicate the pattern and add a note: "Same query pattern as X.md Step N — duplicated here to avoid transitive loading." This is cheaper than forcing the agent to load an unrelated file.
+
 ### Writing patterns
 
 - **Imperative form**: "Run the command" not "You should run the command"
@@ -79,6 +87,7 @@ Keep the SKILL.md body under 500 lines. If approaching this limit, split domain-
 - **Checklists**: Multi-step workflows with validation gates
 - **Conditional loading**: "Read `references/api-errors.md` if the API returns a non-200 status code" — not "see references/ for details"
 - **Absolute bans**: When certain patterns are always wrong, use match-and-refuse lists. "If you're about to write X, stop and do Y instead." More effective than vague "be careful" guidance.
+- **Avoid hardcoded thresholds**: Don't write arbitrary numbers as rules (e.g., "when you have 3+ sub-commands" or "if more than 5 issues") unless the threshold comes from a real constraint (API limit, spec requirement). Instead, describe the signal that triggers the behavior (e.g., "when you're copying the same text into another sub-command"). Hardcoded numbers feel authoritative but are usually guesses that don't generalize.
 
 ### Sub-command router (when applicable)
 

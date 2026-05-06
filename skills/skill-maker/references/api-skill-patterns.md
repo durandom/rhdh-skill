@@ -74,6 +74,30 @@ Do not write API examples from memory or documentation alone. Run them against t
 
 This is especially important for GraphQL APIs where field names are typed and case-sensitive — `displayName` vs `name`, `parent` vs `parentIssue`, `sprint` vs `selectedSprintsConnection` can all differ from what you'd guess.
 
+## Multi-API preference order
+
+When a skill wraps multiple APIs (e.g., CLI + GraphQL + REST), define the preference order once in SKILL.md. Sub-commands reference it instead of each explaining when to use which API.
+
+**Pattern:**
+
+```markdown
+### API preference order
+
+All operations follow this priority: **CLI → GraphQL → REST API**.
+
+- **CLI** — default for simple, single-issue operations.
+- **GraphQL** — for bulk reads where CLI would be too slow. Skip CLI entirely for bulk.
+- **REST API** — for writes when already in an authenticated API context (avoid shelling out to CLI mid-workflow), or as fallback when CLI fails.
+
+Sub-commands document which API they use. When a sub-command's workflow already has auth set from GraphQL reads, prefer REST for writes.
+```
+
+Sub-commands then say: "Writes follow the API preference order in SKILL.md" instead of repeating the decision logic.
+
+**Key heuristic: skip the CLI for bulk operations.** If a workflow needs 10+ API calls (e.g., building expertise profiles across a team), go straight to GraphQL or REST. The CLI's per-call overhead (process spawn, auth handshake) makes it impractical for bulk.
+
+**Context-aware write selection.** When reads already established an authenticated API session (e.g., GraphQL set up `AUTH` from a token file), prefer the same auth mechanism for writes rather than shelling out to the CLI.
+
 ## Instance-specific values
 
 Any value that is specific to a deployment (instance URL, tenant ID, cloud ID, org name) must include a programmatic discovery method.

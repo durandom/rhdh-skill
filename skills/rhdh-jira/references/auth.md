@@ -44,7 +44,13 @@ The `setup.py` script warns when the file is group/world-readable.
 ```bash
 CLOUD_ID="2b9e35e3-6bd3-4cec-b838-f4249ee02432"
 JIRA_BASE="https://redhat.atlassian.net"
+GRAPHQL_URL="$JIRA_BASE/gateway/api/graphql"
+ORG_ID="4k7c08c0-9kb0-1aca-k606-d1417cc24104"
 ```
+
+- `CLOUD_ID` — required for all Jira GraphQL queries (`issueSearchStable`, `issueByKey`).
+- `GRAPHQL_URL` — the GraphQL endpoint. Derived from `JIRA_BASE`.
+- `ORG_ID` — the Atlassian organization ID. Required for the Teams GraphQL API (`team.teamSearchV2` for searching teams by name). Not needed for `team.teamV2` (direct lookup by team ID, which uses `CLOUD_ID` as `siteId`).
 
 ### Discovering your cloudId
 
@@ -53,6 +59,10 @@ The `cloudId` above is for `redhat.atlassian.net`. To discover it for any Jira C
 ```bash
 curl -s -u "$AUTH" "$JIRA_BASE/_edge/tenant_info" | python -c "import json,sys; print(json.load(sys.stdin)['cloudId'])"
 ```
+
+### Discovering your orgId
+
+The `ORG_ID` is visible in the Atlassian admin URL: `https://admin.atlassian.com/o/{ORG_ID}/...`. It can also be found via the Teams API — any team entity returned by `team.teamSearchV2` includes `organizationId` in its response. The value `4k7c08c0-9kb0-1aca-k606-d1417cc24104` is the Red Hat organization.
 
 ## Common Auth Errors
 

@@ -10,6 +10,23 @@ Use when the skill has **multiple distinct operations** that share setup, contex
 
 Do NOT use when the operations have no shared context. Separate skills are better when each task is fully independent.
 
+### Evolving from reference files to a router
+
+Skills often start with standalone reference files (e.g., `references/assign.md`) loaded on demand. Upgrade to a router table when:
+
+- You have multiple distinct operations and expect to add more
+- Operations share setup gates, auth, or domain context
+- Users need a discoverable menu of what the skill can do
+
+Migration path:
+
+1. Keep existing reference files as-is — they become command references
+2. Add the router table and routing rules to SKILL.md
+3. Create `scripts/command-metadata.json` as the single source of truth
+4. Add a "Common Workflows" section that maps user intents to commands
+
+Do not delay the migration until the skill is "complete" — add the router as soon as the pattern is clear. Retrofitting is cheap.
+
 ### Structure
 
 The SKILL.md contains:
@@ -20,6 +37,30 @@ The SKILL.md contains:
 4. **Routing rules** — how to interpret user input
 
 Each command gets its own `references/<command>.md` file. The SKILL.md never contains command-specific instructions — it delegates.
+
+### Cross-cutting conventions
+
+When multiple sub-commands share interaction patterns, error handling rows, or domain rules, centralize them in SKILL.md under a dedicated section (e.g., "Conventions" or "Shared Rules"). Sub-commands reference them instead of repeating.
+
+The signal to centralize: you're copying the same text into another sub-command and realizing a change would require updating multiple files.
+
+Common candidates for centralization:
+
+- **Confirmation flow**: `"Apply changes? [y/N/edit]"` — define once, sub-commands say "use the standard confirmation flow from SKILL.md."
+- **Error rows**: If the same error/action row appears across sub-commands' error tables, move it to SKILL.md's Error Handling table. Sub-commands say "See SKILL.md Error Handling."
+- **Domain conventions**: Team-specific rules that apply everywhere (e.g., "Release Pending counts as completed for velocity"). State once in SKILL.md.
+
+### Data flow between sub-commands
+
+When sub-commands reuse each other's analysis (e.g., sprint planning reuses assignee expertise profiles), document the data flow in SKILL.md's Common Workflows section:
+
+```markdown
+> Sub-commands share data. `plan` reuses roster/capacity from `assign`.
+> `sprint-report` uses the same velocity pattern as `plan`.
+> `release` references exit criteria from `workflows.md` and can invoke `assign`.
+```
+
+This tells the agent which references to load together and prevents redundant API calls when running sub-commands in sequence.
 
 ### Router table pattern
 
