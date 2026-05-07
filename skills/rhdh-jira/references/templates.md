@@ -9,7 +9,7 @@ Jira wiki markup templates for each issue type. Each template lives in its own f
 | Feature | RHDHPLAN | `assets/templates/feature.txt` | `assets/examples/feature-example.txt` |
 | Epic | RHIDP | `assets/templates/epic.txt` | `assets/examples/epic-example.txt` |
 | Story | RHIDP | `assets/templates/story.txt` | `assets/examples/story-example.txt` |
-| Task | RHIDP | `assets/templates/task.txt` | — |
+| Task | RHIDP | `assets/templates/task.txt` | `assets/examples/task-example.txt` |
 | Bug | RHDHBUGS | `assets/templates/bug.txt` | `assets/examples/bug-example.txt` |
 
 Load the template file for the issue type being created. Read the example file for tone and detail calibration.
