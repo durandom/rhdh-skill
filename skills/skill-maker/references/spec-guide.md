@@ -117,6 +117,28 @@ When a skill offers multiple ways to accomplish similar tasks (CLI, API, library
 - Each reference file explains when to use *it* vs alternatives
 - Default to the simplest approach — escalate only when it can't handle the task
 
+## Template + Example Pairs for Artifact Creation
+
+When a skill creates structured artifacts (Jira issues, PRDs, design docs, ADRs, config files), split templates into individual files under `assets/templates/`. Add filled-in examples under `assets/examples/` to calibrate the agent's tone and detail level.
+
+```
+assets/
+  templates/
+    feature.txt      # Structure: what sections to fill
+    epic.txt
+    story.txt
+  examples/
+    feature-example.txt   # Calibration: tone, detail level, good output
+    epic-example.txt
+```
+
+- The **template** tells the agent *what sections to fill* — the skeleton.
+- The **example** tells the agent *how much detail and what tone* — the calibration.
+- Each creation workflow loads only its template + example pair — not the entire collection.
+- Keep a thin index reference (e.g., `references/templates.md`) that maps issue types to files and documents field requirements.
+
+Not every template needs an example. Prioritize examples for the most common or most error-prone artifact types.
+
 ## Fake Data in Examples
 
 Skill examples should use realistic but fake data wherever possible. Real credentials, real user emails, and real PII should never appear in skill files that may be committed to version control.

@@ -1,7 +1,7 @@
 ---
 name: rhdh-jira
 description: |
-  Interacts with RHDH Jira projects (RHIDP, RHDHPLAN, RHDHBUGS, RHDHSUPP) using acli, GraphQL, and REST API. Use when the user needs to search, create, view, edit, transition, assign, refine, or report on Jira issues for RHDH. Also use for sprint planning, sprint reviews, release readiness, assignee recommendations, or issue refinement. Trigger on Jira issue keys (RHIDP-1234, RHDHPLAN-567), sprint ceremony prep, "who should take this", "refine this", "plan the sprint", "sprint report", "how's the release looking", or "release status".
+  Interacts with RHDH Jira projects (RHIDP, RHDHPLAN, RHDHBUGS, RHDHSUPP) using acli, GraphQL, and REST API. Covers the full Jira lifecycle: create issues, assign, refine, plan sprints, report, track releases, and update status. Trigger on Jira keys (RHIDP-1234), "create a feature/epic/story/task/bug", "who should take this", "refine this", "plan the sprint", "sprint report", "release status", "update jira", or any sprint ceremony prep.
 compatibility: "acli (Atlassian CLI) on PATH. Python 3 for scripts. Windows, macOS, Linux."
 ---
 
@@ -18,6 +18,10 @@ Foundational skill for interacting with RHDH's Jira instance via the Atlassian C
 | `plan [team]` | Sprint planning prep: carryover, velocity, capacity, ready queue, sprint fill suggestions | [references/plan.md](references/plan.md) |
 | `sprint-report [team]` | Sprint review summary: committed vs completed, per-member breakdown, demo checklist | [references/sprint-report.md](references/sprint-report.md) |
 | `release [version]` | Release readiness: feature matrix, PI funnel, dependency map, blocker bugs, risk assessment | [references/release.md](references/release.md) |
+| `to-feature [description]` | Create a RHDHPLAN Feature with grill, duplicate check, and optional Epic decomposition | [references/to-feature.md](references/to-feature.md) |
+| `to-epic [description]` | Create an RHIDP Epic with grill, duplicate check, and optional Story/Task decomposition | [references/to-epic.md](references/to-epic.md) |
+| `to-issue [description]` | Create a Story, Task, Bug, or Spike with automatic type inference and grill | [references/to-issue.md](references/to-issue.md) |
+| `update-jira-status [key]` | Update issue with session progress, status comment, transition, and upward cascade | [references/update-jira-status.md](references/update-jira-status.md) |
 
 Single source of truth for command descriptions: `scripts/command-metadata.json`
 
@@ -111,6 +115,13 @@ Load only what the current task requires.
 | `references/plan.md` | Sprint planning prep: carryover report, velocity trend, per-member capacity, ready-for-planning queue, sprint fill suggestions. |
 | `references/sprint-report.md` | Sprint review summary: committed vs completed, per-member breakdown, epic progress, demo checklist with naming conventions, velocity trend. |
 | `references/release.md` | Release readiness report: feature matrix, PI funnel states, epic roll-up, cross-team dependency map, blocker bugs, RN readiness, risk assessment. |
+| `references/to-feature.md` | Create a RHDHPLAN Feature from conversation context with grill and optional Epic decomposition. |
+| `references/to-epic.md` | Create an RHIDP Epic from conversation context with grill and optional Story/Task decomposition. |
+| `references/to-issue.md` | Create a Story, Task, Bug, or Spike with automatic type inference and grill. |
+| `references/update-jira-status.md` | Update a Jira issue with session progress, status comment, transitions, and upward cascade to parent Epic/Feature. |
+| `references/duplicates.md` | Duplicate detection for pre-creation checks and refinement audits. Shared across creation commands and refine. |
+| `references/grill.md` | Shared challenging behavior for issue creation grills: sizing, completeness, scope, risks, cross-referencing. |
+| `references/sizing.md` | T-shirt sizing guide for Features/Epics and Fibonacci story points for Stories/Tasks. Used during grills and refinement. |
 
 ## Common Gotchas
 
@@ -146,7 +157,9 @@ Load only what the current task requires.
 These apply across all sub-commands:
 
 - **Release Pending counts as completed.** Release Pending items remain in the sprint and count toward velocity and capacity. They represent done work awaiting release.
-- **Confirmation flow.** Sub-commands that modify Jira issues (assign, refine, release) use a standard prompt: `"Apply changes? [y/N/edit]"` — **y** applies all, **N** cancels, **edit** steps through each change individually.
+- **Confirmation flow.** Sub-commands that modify Jira issues use a standard prompt: `"Apply changes? [y/N/edit]"` — **y** applies all, **N** cancels, **edit** steps through each change individually.
+- **Closure requires rationale.** When closing or descoping issues, always add a comment documenting the reason and set the resolution field (`Won't Do`, `Duplicate`, `Done`). Preserves the decision trail.
+- **Comments over description bloat.** Issue descriptions use the structured template sections. Decision trail, elaboration, abandoned approaches, and customer context go in comments. Creation commands proactively suggest comments for context that emerged during the grill.
 
 ## Common Workflows
 
@@ -215,6 +228,24 @@ These apply across all sub-commands:
 3. Quick mode: PI funnel, feature matrix, readiness score
 4. Deep mode: adds epic roll-up, dependency map, coherence analysis, RN readiness, risk assessment
 5. Optionally remediate (assign owners, create Epics, transition statuses)
+
+### Creating Features, Epics, and Issues
+
+1. Load the appropriate creation reference (`to-feature.md`, `to-epic.md`, or `to-issue.md`)
+2. Load `references/grill.md` for challenging behavior
+3. Load the template + example pair from `assets/templates/` and `assets/examples/`
+4. Grill the user on scope, AC, sizing (reference `references/sizing.md`)
+5. Run duplicate check per `references/duplicates.md`
+6. Create the issue, suggest comments for decision trail
+7. Offer chained decomposition (Feature → Epics → Stories/Tasks)
+
+### Updating Jira from a session
+
+1. Load `references/update-jira-status.md`
+2. Detect related issue (conversation → git → PR → commits → keyword search)
+3. Compose status comment, propose transition
+4. Check upward cascade (sibling completion → parent transition)
+5. Suggest reaching out to Feature Owner if Feature-level work is complete
 
 ### Discovering unknown fields or endpoints
 

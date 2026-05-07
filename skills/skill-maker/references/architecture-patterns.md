@@ -297,6 +297,67 @@ Rules:
 - Provide a one-line skip reason template
 - Never ask users to install tooling just to satisfy a gated step
 
+## Creation Workflows
+
+### When to use
+
+Use when a skill creates structured artifacts through conversation (Jira issues, PRDs, design docs, config files). The goal is to feel like a conversation with a smart colleague, not a form.
+
+### Draft-then-grill
+
+Don't ask every question from scratch. Synthesize what the conversation already established into a draft, present it for review, then ask only about gaps:
+
+1. **Draft from context** — fill in as many template sections as possible from what's already known
+2. **Present for review** — "Here's what I have so far. What's missing or wrong?"
+3. **Fill gaps** — ask targeted questions only for unfilled sections
+4. **Challenge** — probe sizing, completeness, scope, risks on the completed draft
+
+This respects the user's time. If they spent 10 minutes describing the problem, they don't want to re-answer it as 7 template questions.
+
+### Field inference
+
+When the artifact has metadata fields (priority, owner, category, labels, sizing), infer values from the conversation instead of asking for each one:
+
+- Propose all fields at once with rationale
+- User confirms or adjusts
+
+Examples across domains:
+
+- **Issue tracker**: "Priority Major (functional gap, not a regression). Team inferred from component. Size M based on AC count."
+- **Design doc**: "Category: API Design. Reviewer: inferred from module ownership. Status: Draft."
+- **Config file**: "Environment: staging — you mentioned testing. Region: us-east-1 — matches existing infra."
+
+Inference signals depend on the domain: conversation keywords, codebase context (file paths being edited), parent artifact inheritance, historical patterns, or org conventions.
+
+### Review gate with preview
+
+Before creating the artifact, render a preview as a temp file so the user can review the complete picture:
+
+```markdown
+## {Type}: {summary}
+
+### Description
+{filled template}
+
+### Fields
+- **Priority**: Major — rationale
+- **Team**: COPE
+...
+```
+
+Present: "Review before creating. [approve / edit / cancel]"
+
+This is a concrete implementation of the mutation gate — no artifact is created until the user approves the preview.
+
+### Chained decomposition
+
+When artifacts form a hierarchy (e.g., PRD → issues, design doc → tasks, Feature → Epic → Story), offer to continue down the chain after each creation:
+
+- Context carries down — don't re-ask what was already established
+- The grill narrows at each level (high-level scope → delivery plan → implementation details)
+- Each level is a separate confirmation — the user can stop at any point
+- Parent/child linking happens automatically where the target system supports it
+
 ## Structured Artifacts as Handoffs
 
 ### When to use
