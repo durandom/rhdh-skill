@@ -316,13 +316,18 @@ This respects the user's time. If they spent 10 minutes describing the problem, 
 
 ### Field inference
 
-When the artifact has metadata fields (priority, team, assignee, labels, sizing), infer values from the conversation instead of asking for each one:
+When the artifact has metadata fields (priority, owner, category, labels, sizing), infer values from the conversation instead of asking for each one:
 
 - Propose all fields at once with rationale
-- "Based on our discussion: Priority Major (functional gap, not a regression), Team COPE (you mentioned dynamic plugins), Size M (cross-team + 4 AC items)."
 - User confirms or adjusts
 
-The signal to infer from depends on the domain: conversation keywords, codebase context (file paths being edited), parent issue inheritance, or historical patterns.
+Examples across domains:
+
+- **Issue tracker**: "Priority Major (functional gap, not a regression). Team inferred from component. Size M based on AC count."
+- **Design doc**: "Category: API Design. Reviewer: inferred from module ownership. Status: Draft."
+- **Config file**: "Environment: staging — you mentioned testing. Region: us-east-1 — matches existing infra."
+
+Inference signals depend on the domain: conversation keywords, codebase context (file paths being edited), parent artifact inheritance, historical patterns, or org conventions.
 
 ### Review gate with preview
 
@@ -346,12 +351,12 @@ This is a concrete implementation of the mutation gate — no artifact is create
 
 ### Chained decomposition
 
-When artifacts form a hierarchy (Feature → Epic → Story), offer to continue down the chain after each creation:
+When artifacts form a hierarchy (e.g., PRD → issues, design doc → tasks, Feature → Epic → Story), offer to continue down the chain after each creation:
 
 - Context carries down — don't re-ask what was already established
-- The grill narrows at each level (Feature scope → Epic delivery → Story implementation)
+- The grill narrows at each level (high-level scope → delivery plan → implementation details)
 - Each level is a separate confirmation — the user can stop at any point
-- Parent linking happens automatically
+- Parent/child linking happens automatically where the target system supports it
 
 ## Structured Artifacts as Handoffs
 
