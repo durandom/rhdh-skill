@@ -8,7 +8,6 @@ Read these reference files before starting:
 
 1. `../references/operator-pr-images.md` — Image naming, extraction, validation
 2. `../../rhdh/references/github-reference.md` — gh CLI patterns
-3. `../references/active-verification.md` — Cluster verification patterns (Phase 6)
 
 </required_reading>
 
@@ -299,47 +298,29 @@ When done testing, rollback the operator image:
 
 ## Phase 6: Active Verification
 
-Exercise the PR's changes on the live cluster. Reuse the diff categories identified in Phase 5.
+Test the PR's actual changes on the live cluster. Use the diff from Phase 1 and the operator architecture from `../../rhdh/references/rhdh-repos.md` to understand what changed.
 
-> Read `../references/active-verification.md` before proceeding.
+### 6.1 Analyze the diff
 
-### 6.1 Capture pre-verification baseline
+Read the diff hunks from Phase 1. For each changed file, understand:
 
-Follow `<baseline_capture>` from the reference. Snapshot the pod spec, CR, ConfigMaps, events, and record the operator log timestamp. These are used for before/after comparison throughout this phase.
+- What the code did **before** the change
+- What it does **after**
+- What behavioral difference this introduces on a running cluster
 
-### 6.2 Select verification strategy
+### 6.2 Propose a verification plan
 
-Map the diff categories from Phase 5 to verification patterns. Execute applicable categories in the order listed — CRD changes must be applied before controller changes can be tested against new fields.
+Based on the analysis, propose a concrete plan to the user:
 
-| Diff category | Verification pattern | Reference section |
-|---|---|---|
-| CRD/API (`api/`, `*_types.go`) | Apply CR with new fields, backward compat test | `<crd_api_verification>` |
-| Controller/Reconciler (`internal/controller/`, `pkg/model/`) | Trigger reconciliation, delete/recreate CR | `<controller_verification>` |
-| Default config (`config/profile/`, `default-config/`) | Fresh CR with defaults, verify defaults applied | `<default_config_verification>` |
-| ConfigMap/volume mount changes | Create multi-key ConfigMap, attach to CR, verify deterministic ordering | `<configmap_verification>` |
-| Dependencies (`go.mod`, `go.sum`) | Check runtime impact (startup time, memory, deprecation warnings) | `<dependency_verification>` |
-| Tests only (`*_test.go`) | Offer `make test` / `make integration-test` | No cluster action needed |
-| Build/CI (`.github/`, `Makefile`, `Dockerfile`) | Skip | CI validates these |
-| Docs only (`docs/`, `*.md`) | Skip | No verification needed |
+- What cluster actions will exercise the changed code paths
+- What to observe (logs, pod spec, CR status, events) to confirm the fix works
+- What constitutes a pass or fail
 
-### 6.3 Execute verification
+**Wait for the user to accept the plan before proceeding.**
 
-For each applicable category:
+### 6.3 Execute the plan
 
-1. **Analyze the diff** — read the specific hunks to understand what changed and what the code looked like before. Identify the behavioral difference the PR introduces.
-2. **Design the test** — based on the behavioral change, determine what cluster action would exercise the new code path. For example, if the PR sorts map keys to prevent non-deterministic ordering, create a multi-key ConfigMap and verify ordering stability across reconciliations.
-3. **Execute** — follow the verification pattern from the reference. Adapt the commands to the specific PR (field names, ConfigMap keys, etc.).
-4. **Capture evidence** — run `<evidence_capture>` commands after each action. Record operator logs, pod spec diffs, events, and CR status.
-5. **Clean up** — follow `<cleanup_patterns>` for the specific category before moving to the next.
-6. **Record result** — note pass/fail with the key evidence for Phase 7.
-
-### 6.4 Restore cluster state
-
-After all verification steps, ensure the cluster matches the pre-verification baseline:
-
-1. Follow `<cleanup_patterns>` from the reference
-2. Compare current state against the baseline snapshot from 6.1
-3. If differences remain, investigate and resolve before proceeding
+Run the accepted verification steps on the cluster. Capture evidence (operator logs, pod specs, events, CR status) as you go.
 
 ---
 
@@ -452,10 +433,9 @@ Review is complete when:
 - [ ] Operator pod is healthy (no crash loops)
 - [ ] Backstage CR reconciles successfully
 - [ ] Review checklist generated from diff analysis
-- [ ] Active verification executed for applicable diff categories
-- [ ] Verification evidence captured (logs, pod specs, events)
-- [ ] Cluster restored to pre-verification state
-- [ ] Findings summary with pass/fail per category
+- [ ] Active verification plan proposed and accepted by user
+- [ ] Verification executed with evidence captured
+- [ ] Findings summary with pass/fail
 - [ ] Best practice and security assessment completed
 - [ ] Rollback instructions documented and shared with user
 - [ ] Activity logged

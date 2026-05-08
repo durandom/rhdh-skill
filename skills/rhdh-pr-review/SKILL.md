@@ -65,7 +65,7 @@ For non-OLM installs, use `oc set image`. For OLM-managed installs, patch the CS
 | operator-pr-images | CI image extraction and validation | `references/operator-pr-images.md` |
 | github-reference | gh CLI patterns, PR queries | `../../rhdh/references/github-reference.md` |
 | rhdh-repos | RHDH ecosystem repository map | `../../rhdh/references/rhdh-repos.md` |
-| active-verification | Cluster verification patterns and evidence capture | `references/active-verification.md` |
+
 
 </reference_index>
 
