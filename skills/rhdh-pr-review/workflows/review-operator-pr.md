@@ -1,6 +1,6 @@
 # Workflow: Review rhdh-operator PR on Live Cluster
 
-Fetch a PR's CI-built operator image, swap it into a running RHDH cluster, and generate a targeted review checklist from the diff.
+Fetch a PR's CI-built images, deploy the full operator bundle or manifests into a running RHDH cluster, and generate a targeted review checklist from the diff.
 
 <required_reading>
 
@@ -104,7 +104,7 @@ Once the operator and Backstage CR are healthy, proceed to Phase 4.
 
 ---
 
-## Phase 4: Swap Operator Image
+## Phase 4: Deploy PR Operator
 
 ### 4.1 Detect install method
 
@@ -118,66 +118,234 @@ oc get subscription -A 2>/dev/null | grep -i rhdh
 ### 4.2 Identify operator deployment and namespace
 
 ```bash
-OPERATOR_NS=$(oc get deployment -A --no-headers \
+OPERATOR_NS_MATCHES=$(oc get deployment -A --no-headers \
   -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name \
   | grep rhdh-operator | awk '{print $1}')
 
-OPERATOR_DEPLOY=$(oc get deployment -n $OPERATOR_NS --no-headers \
+OPERATOR_NS_COUNT=$(printf '%s\n' "$OPERATOR_NS_MATCHES" | sed '/^$/d' | wc -l)
+if [ "$OPERATOR_NS_COUNT" -ne 1 ]; then
+  echo "Expected exactly 1 rhdh-operator namespace, found $OPERATOR_NS_COUNT"
+  printf 'Matches:\n%s\n' "$OPERATOR_NS_MATCHES"
+  exit 1
+fi
+OPERATOR_NS=$(printf '%s\n' "$OPERATOR_NS_MATCHES" | sed '/^$/d')
+
+OPERATOR_DEPLOY_MATCHES=$(oc get deployment -n "$OPERATOR_NS" --no-headers \
   -o custom-columns=NAME:.metadata.name | grep rhdh-operator)
+
+OPERATOR_DEPLOY_COUNT=$(printf '%s\n' "$OPERATOR_DEPLOY_MATCHES" | sed '/^$/d' | wc -l)
+if [ "$OPERATOR_DEPLOY_COUNT" -ne 1 ]; then
+  echo "Expected exactly 1 rhdh-operator deployment in $OPERATOR_NS, found $OPERATOR_DEPLOY_COUNT"
+  printf 'Matches:\n%s\n' "$OPERATOR_DEPLOY_MATCHES"
+  exit 1
+fi
+OPERATOR_DEPLOY=$(printf '%s\n' "$OPERATOR_DEPLOY_MATCHES" | sed '/^$/d')
 ```
 
-### 4.3 Record current image (for rollback)
+### 4.3 Record current state (for rollback)
+
+**OLM-managed — record Subscription for rollback:**
+
+```bash
+CURRENT_SUB=$(oc get subscription -n $OPERATOR_NS --no-headers \
+  -o custom-columns=NAME:.metadata.name 2>/dev/null | grep rhdh)
+
+# Record original source info (the CatalogSource is typically shared in openshift-marketplace)
+ORIGINAL_SOURCE=$(oc get subscription $CURRENT_SUB -n $OPERATOR_NS \
+  -o jsonpath='{.spec.source}')
+ORIGINAL_SOURCE_NS=$(oc get subscription $CURRENT_SUB -n $OPERATOR_NS \
+  -o jsonpath='{.spec.sourceNamespace}')
+echo "Current Subscription: $CURRENT_SUB, source: $ORIGINAL_SOURCE in $ORIGINAL_SOURCE_NS"
+
+# Export Subscription for rollback (do NOT touch the shared CatalogSource)
+oc get subscription $CURRENT_SUB -n $OPERATOR_NS -o yaml > /tmp/rollback-subscription.yaml
+```
+
+**Non-OLM — save the original install.yaml for rollback:**
 
 ```bash
 CURRENT_IMAGE=$(oc get deployment $OPERATOR_DEPLOY -n $OPERATOR_NS \
   -o jsonpath='{.spec.template.spec.containers[?(@.name=="manager")].image}')
 echo "Current operator image: $CURRENT_IMAGE"
+
+# Fetch the target branch's install.yaml as rollback manifest (includes CRDs, RBAC, ConfigMaps)
+TARGET_BRANCH=$(gh pr view $PR_NUMBER --repo $REPO --json baseRefName --jq '.baseRefName')
+curl -sL "https://raw.githubusercontent.com/redhat-developer/rhdh-operator/${TARGET_BRANCH}/dist/rhdh/install.yaml" \
+  -o /tmp/rollback-install.yaml
+echo "Saved rollback manifest from branch: $TARGET_BRANCH"
 ```
 
-### 4.4a Swap image — OLM-managed install
+### 4.4a Deploy full bundle — OLM-managed install
 
-**IMPORTANT:** Do NOT use `oc set image` or patch the Deployment directly — OLM owns the Deployment and will overwrite any direct changes. Patch the CSV instead.
+**IMPORTANT:** Do NOT patch the CSV image or the Deployment directly. PR changes to CRDs, RBAC, default config, or bundle metadata would be missed. Replace the CatalogSource with the PR's catalog image so OLM reinstalls the complete bundle.
+
+**Step 1: Remove existing Subscription and CSV**
+
+Do NOT delete the original CatalogSource — it is typically shared (e.g., `redhat-operators` in `openshift-marketplace`) and serves other operators.
 
 ```bash
-PR_IMAGE="quay.io/rhdh-community/operator:<tag>"
+PR_CATALOG_IMAGE="quay.io/rhdh-community/operator-catalog:<tag>"
 
-# Find the CSV name
+# Delete Subscription first (stops OLM from managing the operator)
+oc delete subscription $CURRENT_SUB -n $OPERATOR_NS
+
+# Delete the CSV (removes the operator deployment)
 CSV_NAME=$(oc get csv -n $OPERATOR_NS --no-headers \
   -o custom-columns=NAME:.metadata.name | grep rhdh)
-
-# Record current CSV image for rollback
-CSV_CURRENT_IMAGE=$(oc get csv $CSV_NAME -n $OPERATOR_NS \
-  -o jsonpath='{.spec.install.spec.deployments[0].spec.template.spec.containers[0].image}')
-echo "Current CSV image: $CSV_CURRENT_IMAGE"
-
-# Patch the CSV to use the PR image
-oc patch csv $CSV_NAME -n $OPERATOR_NS --type='json' \
-  -p="[{\"op\": \"replace\", \"path\": \"/spec/install/spec/deployments/0/spec/template/spec/containers/0/image\", \"value\": \"$PR_IMAGE\"}]"
+oc delete csv $CSV_NAME -n $OPERATOR_NS
 ```
 
-OLM will detect the CSV change and roll out a new operator pod automatically.
-
-### 4.4b Swap image — direct deployment (non-OLM)
+**Step 2: Create CatalogSource pointing to PR catalog image**
 
 ```bash
-PR_IMAGE="quay.io/rhdh-community/operator:<tag>"
-
-oc set image deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS \
-  manager=$PR_IMAGE
+cat <<EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: rhdh-operator-pr-catalog
+  namespace: $OPERATOR_NS
+spec:
+  sourceType: grpc
+  image: $PR_CATALOG_IMAGE
+  displayName: RHDH Operator PR Catalog
+  publisher: PR Review
+  updateStrategy:
+    registryPoll:
+      interval: 10m
+EOF
 ```
+
+**Step 3: Ensure OperatorGroup exists**
+
+```bash
+OG_EXISTS=$(oc get operatorgroup -n $OPERATOR_NS --no-headers 2>/dev/null | wc -l)
+if [ "$OG_EXISTS" -eq 0 ]; then
+  cat <<EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: rhdh-operator-group
+  namespace: $OPERATOR_NS
+EOF
+fi
+```
+
+**Step 4: Create Subscription pointing to PR CatalogSource**
+
+```bash
+# Discover the package name and channel from the PR catalog
+PACKAGE_NAME=$(oc get packagemanifest -l "catalog=rhdh-operator-pr-catalog" \
+  --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | head -1)
+CHANNEL=$(oc get packagemanifest $PACKAGE_NAME \
+  -o jsonpath='{.status.defaultChannel}' 2>/dev/null)
+
+# Fall back to known defaults if discovery fails
+PACKAGE_NAME=${PACKAGE_NAME:-rhdh}
+CHANNEL=${CHANNEL:-fast}
+
+cat <<EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: rhdh-operator-pr-subscription
+  namespace: $OPERATOR_NS
+spec:
+  channel: $CHANNEL
+  name: $PACKAGE_NAME
+  source: rhdh-operator-pr-catalog
+  sourceNamespace: $OPERATOR_NS
+  installPlanApproval: Automatic
+EOF
+```
+
+**Step 5: Wait for OLM to deploy the operator**
+
+```bash
+# Give OLM time to poll the CatalogSource and create the InstallPlan
+echo "Waiting for OLM to process Subscription..."
+sleep 30
+
+# Wait for CSV to appear and reach Succeeded phase
+echo "Waiting for CSV to succeed..."
+for i in $(seq 1 6); do
+  oc wait csv -n $OPERATOR_NS -l "operators.coreos.com/$PACKAGE_NAME.$OPERATOR_NS=" \
+    --for=jsonpath='{.status.phase}'=Succeeded --timeout=30s 2>/dev/null && break
+  echo "CSV not ready yet (attempt $i/6)..."
+  sleep 10
+done
+
+# Re-detect the operator deployment name (may have changed)
+OPERATOR_DEPLOY=$(oc get deployment -n $OPERATOR_NS --no-headers \
+  -o custom-columns=NAME:.metadata.name | grep rhdh-operator)
+```
+
+OLM will apply the full bundle contents: updated CRDs, RBAC, default config, and the operator Deployment with the PR's operator image.
+
+### 4.4b Deploy full manifests — direct deployment (non-OLM)
+
+**IMPORTANT:** Do NOT use `oc set image` — it only swaps the binary and misses CRD, RBAC, and default config changes from the PR. Apply the full `install.yaml` from the PR branch instead.
+
+**Step 1: Get the PR branch name**
+
+```bash
+PR_BRANCH=$(gh pr view $PR_NUMBER --repo $REPO --json headRefName --jq '.headRefName')
+PR_IMAGE="quay.io/rhdh-community/operator:<tag>"
+```
+
+**Step 2: Fetch install.yaml from PR branch**
+
+```bash
+curl -sL "https://raw.githubusercontent.com/redhat-developer/rhdh-operator/${PR_BRANCH}/dist/rhdh/install.yaml" \
+  -o /tmp/pr-install.yaml
+
+# Verify the file was fetched successfully
+if [ ! -s /tmp/pr-install.yaml ]; then
+  echo "ERROR: Failed to fetch install.yaml from PR branch $PR_BRANCH"
+  echo "The PR may not have regenerated dist/ — check if make build-installer was run"
+fi
+
+# Warn if the PR didn't modify dist/ — the install.yaml may be stale (base branch content)
+PR_FILES=$(gh pr view $PR_NUMBER --repo $REPO --json files --jq '.files[].path')
+if ! echo "$PR_FILES" | grep -q '^dist/'; then
+  echo "WARNING: PR does not modify dist/ — install.yaml may not reflect this PR's changes"
+  echo "CRDs, RBAC, and default config in the manifest are from the base branch"
+  echo "Only the operator binary image will differ after substitution"
+fi
+```
+
+**Step 3: Substitute the CI-built operator image**
+
+```bash
+sed -i "s|image: quay.io/rhdh/rhdh-rhel9-operator:.*|image: ${PR_IMAGE}|g" /tmp/pr-install.yaml
+
+# Verify substitution
+grep "image:.*operator" /tmp/pr-install.yaml
+```
+
+**Step 4: Apply the full manifests**
+
+```bash
+oc apply -f /tmp/pr-install.yaml
+```
+
+This applies the complete set of resources from the PR: CRDs, ClusterRoles, ClusterRoleBindings, ServiceAccount, ConfigMaps (including default config), and the operator Deployment.
 
 ### 4.5 Wait for rollout
 
 ```bash
-oc rollout status deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS --timeout=120s
+# Re-detect deployment name in case it changed (OLM may use a different name)
+OPERATOR_DEPLOY=$(oc get deployment -n $OPERATOR_NS --no-headers \
+  -o custom-columns=NAME:.metadata.name | grep rhdh-operator)
+
+oc rollout status deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS --timeout=180s
 ```
 
-### 4.6 Verify the swap
+### 4.6 Verify the deployment
 
 ```bash
 # Confirm new image is running
 oc get deployment $OPERATOR_DEPLOY -n $OPERATOR_NS \
-  -o jsonpath='{.spec.template.spec.containers[0].image}'
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="manager")].image}'
 
 # Check pod is healthy
 oc get pods -n $OPERATOR_NS -l control-plane=controller-manager
@@ -197,18 +365,28 @@ fi
 
 Record rollback commands for Phase 7. Do not present them yet — they will be included in the findings report.
 
-**OLM-managed — restore CSV image:**
+**OLM-managed — restore original Subscription:**
 
 ```bash
-oc patch csv $CSV_NAME -n $OPERATOR_NS --type='json' \
-  -p="[{\"op\": \"replace\", \"path\": \"/spec/install/spec/deployments/0/spec/template/spec/containers/0/image\", \"value\": \"$CSV_CURRENT_IMAGE\"}]"
+# Delete PR-specific OLM resources
+oc delete subscription rhdh-operator-pr-subscription -n $OPERATOR_NS
+CSV_NAME=$(oc get csv -n $OPERATOR_NS --no-headers \
+  -o custom-columns=NAME:.metadata.name | grep rhdh)
+oc delete csv $CSV_NAME -n $OPERATOR_NS 2>/dev/null
+oc delete catalogsource rhdh-operator-pr-catalog -n $OPERATOR_NS
+
+# Restore original Subscription (points back to the shared CatalogSource)
+oc apply -f /tmp/rollback-subscription.yaml
+
+# Wait for OLM to redeploy the original operator
+oc wait csv -n $OPERATOR_NS -l "operators.coreos.com/$PACKAGE_NAME.$OPERATOR_NS=" \
+  --for=jsonpath='{.status.phase}'=Succeeded --timeout=180s
 ```
 
-**Non-OLM — revert deployment image:**
+**Non-OLM — reapply original install.yaml:**
 
 ```bash
-oc set image deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS \
-  manager=$CURRENT_IMAGE
+oc apply -f /tmp/rollback-install.yaml
 ```
 
 ---
@@ -371,18 +549,28 @@ Based on the findings, suggest concrete improvements if any:
 
 Present the rollback commands recorded in Phase 4.7:
 
-**OLM-managed — restore CSV image:**
+**OLM-managed — restore original Subscription:**
 
 ```bash
-oc patch csv $CSV_NAME -n $OPERATOR_NS --type='json' \
-  -p="[{\"op\": \"replace\", \"path\": \"/spec/install/spec/deployments/0/spec/template/spec/containers/0/image\", \"value\": \"$CSV_CURRENT_IMAGE\"}]"
+# Delete PR-specific OLM resources
+oc delete subscription rhdh-operator-pr-subscription -n $OPERATOR_NS
+CSV_NAME=$(oc get csv -n $OPERATOR_NS --no-headers \
+  -o custom-columns=NAME:.metadata.name | grep rhdh)
+oc delete csv $CSV_NAME -n $OPERATOR_NS 2>/dev/null
+oc delete catalogsource rhdh-operator-pr-catalog -n $OPERATOR_NS
+
+# Restore original Subscription (points back to the shared CatalogSource)
+oc apply -f /tmp/rollback-subscription.yaml
+
+# Wait for OLM to redeploy the original operator
+oc wait csv -n $OPERATOR_NS -l "operators.coreos.com/$PACKAGE_NAME.$OPERATOR_NS=" \
+  --for=jsonpath='{.status.phase}'=Succeeded --timeout=180s
 ```
 
-**Non-OLM — revert deployment image:**
+**Non-OLM — reapply original install.yaml:**
 
 ```bash
-oc set image deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS \
-  manager=$CURRENT_IMAGE
+oc apply -f /tmp/rollback-install.yaml
 ```
 
 </process>
@@ -403,7 +591,7 @@ oc set image deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS \
 ## Activity Logging
 
 ```bash
-$RHDH log add "Review PR #<number> (rhdh-operator): swapped image <tag>, generated checklist" \
+$RHDH log add "Review PR #<number> (rhdh-operator): deployed PR bundle/manifests <tag>, generated checklist" \
   --tag review-pr --tag rhdh-operator
 
 $RHDH log add "PR #<number> active verification: <categories tested>, results: <pass/fail summary>" \
@@ -429,7 +617,7 @@ Review is complete when:
 
 - [ ] PR images identified from CI comment
 - [ ] Images validated as existing in Quay registry
-- [ ] Cluster has RHDH operator running with PR image
+- [ ] Cluster has RHDH operator deployed from PR bundle/manifests (not just image swap)
 - [ ] Operator pod is healthy (no crash loops)
 - [ ] Backstage CR reconciles successfully
 - [ ] Review checklist generated from diff analysis
