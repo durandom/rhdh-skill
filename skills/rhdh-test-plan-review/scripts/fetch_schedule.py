@@ -15,9 +15,6 @@ import os
 import re
 import sys
 from datetime import datetime
-from pathlib import Path
-
-SPREADSHEET_ID = "1knVzlMW0l0X4c7gkoiuaGql1zuFgEGwHHBsj-ygUTnc"
 
 _no_color = os.environ.get("NO_COLOR") is not None
 _is_tty = sys.stderr.isatty() and not _no_color
@@ -70,8 +67,21 @@ def get_sheets_service():
     return build("sheets", "v4", credentials=creds)
 
 
-def get_sheet_tabs(service):
-    meta = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+def get_sheet_tabs(service, spreadsheet_id):
+    from googleapiclient.errors import HttpError
+
+    try:
+        meta = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except HttpError as e:
+        if e.resp.status == 404:
+            error_exit(
+                "spreadsheet_not_found",
+                {
+                    "spreadsheet_id": spreadsheet_id,
+                    "hint": "The spreadsheet was not found. Pass the correct ID with --sheet-id or share the sheet URL.",
+                },
+            )
+        raise
     return [s["properties"]["title"] for s in meta.get("sheets", [])]
 
 
@@ -195,21 +205,27 @@ def main():
         required=True,
         help="RHDH version to look up (e.g. '1.6', 'RHDH 1.6', 'rhdh-1.6')",
     )
+    parser.add_argument(
+        "--sheet-id",
+        default="1knVzlMW0l0X4c7gkoiuaGql1zuFgEGwHHBsj-ygUTnc",
+        help="RHDH Release Schedule spreadsheet ID",
+    )
     args = parser.parse_args()
 
     version = normalize_version(args.version)
+    sheet_id = args.sheet_id
     log(f"Looking up milestones for RHDH {version}...")
 
     service = get_sheets_service()
-    tabs = get_sheet_tabs(service)
+    tabs = get_sheet_tabs(service, sheet_id)
     log(f"Found tabs: {tabs}")
 
     tab = find_schedule_tab(tabs)
     if not tab:
-        error_exit("no_schedule_tab_found", {"tabs": tabs})
+        error_exit("no_schedule_tab_found", {"tabs": tabs, "spreadsheet_id": sheet_id})
 
     log(f"Reading tab: {tab}")
-    result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=tab).execute()
+    result = service.spreadsheets().values().get(spreadsheetId=sheet_id, range=tab).execute()
     rows = result.get("values", [])
 
     milestones = find_milestones(rows, version)
@@ -220,6 +236,7 @@ def main():
             {
                 "version": version,
                 "tab": tab,
+                "spreadsheet_id": sheet_id,
                 "hint": "Check that the version string matches the sheet exactly",
             },
         )

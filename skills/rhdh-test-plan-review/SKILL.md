@@ -46,6 +46,8 @@ If the version cannot be determined from either field, ask: "I couldn't determin
 python scripts/fetch_schedule.py --version "1.6"
 ```
 
+Use `--sheet-id <id>` only when the schedule lives in a different spreadsheet than the default (e.g. a fork or replacement sheet).
+
 Expected output:
 ```json
 {
@@ -55,6 +57,16 @@ Expected output:
   "ga_date": "2025-10-15",
   "tab": "2025 Schedule"
 }
+```
+
+If the script returns `{"error": "spreadsheet_not_found"}`, ask:
+
+> "I couldn't access the RHDH Release Schedule sheet (ID: `<spreadsheet_id>`). Please share the sheet URL or ID."
+
+Extract the spreadsheet ID from the URL — it is the long alphanumeric string between `/d/` and `/edit` (e.g., `https://docs.google.com/spreadsheets/d/<ID>/edit`). Then retry:
+
+```bash
+python scripts/fetch_schedule.py --version "1.6" --sheet-id <id>
 ```
 
 If the script returns `{"error": "version_not_found"}`, ask: "I couldn't find RHDH [version] milestones in the schedule sheet. Could you confirm the exact version string as it appears in the sheet?"
@@ -341,6 +353,6 @@ After all child task decisions are collected, print a final summary of what was 
 - **fixVersions format varies**: May be "1.6", "RHDH 1.6", "rhdh-1.6". Strip prefixes before passing to `fetch_schedule.py`.
 - **RHBK and Quay use doc version dropdowns**, not traditional lifecycle pages — see `references/sources.md` for extraction approach.
 - **PostgreSQL has three distinct hosting variants** (Amazon RDS, Azure DB, CloudSQL) — check each separately; EOL dates differ between providers.
-- **Schedule tab is year-based**: `fetch_schedule.py` tries current year first, then adjacent years. If the target RHDH version is in a future year, the script will still find it.
+- **Schedule tab is year-based**: `fetch_schedule.py` tries current year first, then adjacent years. If the target RHDH version is in a future year, the script will still find it. If the schedule lives in a different spreadsheet than the default, pass `--sheet-id` (error payloads include `spreadsheet_id` when lookup fails).
 - **Child task project key**: Use the same project key as the parent ticket (e.g., `RHIDP`). Extract it from the ticket ID.
 - **Child task issuetype**: Use `"Task"` — subtask creation requires `"Subtask"` on some Jira configurations. If `"Task"` with a `parent` field fails with 400, retry with `"issuetype": {"name": "Subtask"}`.
