@@ -165,7 +165,19 @@ Migration is complete when: all tests pass, no deprecated imports remain
 
 **Symptom:** Router skill launches into the first workflow without asking what the user wants.
 
-**Fix:** Always ask first. Show a numbered menu of available commands. Support both menu selection and intent-based routing for users who skip the menu.
+**Fix:** Wrap the menu in `<intake>` and the routing table in `<routing>`. Ask first, then route:
+
+```xml
+<intake>
+What would you like to do?
+1. **Command A** — description
+2. **Command B** — description
+
+**Wait for response before proceeding.**
+</intake>
+```
+
+Support both menu selection and intent-based routing for users who skip the menu.
 
 ### Broken References
 

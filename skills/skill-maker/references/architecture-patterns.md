@@ -29,12 +29,14 @@ Do not delay the migration until the skill is "complete" — add the router as s
 
 ### Structure
 
-The SKILL.md contains:
+The SKILL.md contains these sections, using XML tags to create unambiguous boundaries:
 
-1. **Setup section** — shared gates that run before any command
-2. **Shared rules** — domain laws that apply to every command
-3. **Router table** — maps command names to reference files
-4. **Routing rules** — how to interpret user input
+1. `<essential_principles>` — domain laws that apply to every command
+2. `<intake>` — ask the user what they want to do
+3. `<routing>` — maps responses to reference/workflow files
+4. `<reference_index>` — lists reference files with "load when..." guidance
+
+Setup gates, success criteria, and CLI setup can use additional tags as needed (e.g., `<cli_setup>`, `<success_criteria>`). Invent descriptive tag names that fit the skill's domain.
 
 Each command gets its own `references/<command>.md` file. The SKILL.md never contains command-specific instructions — it delegates.
 
@@ -64,26 +66,27 @@ This tells the agent which references to load together and prevents redundant AP
 
 ### Router table pattern
 
-```markdown
-## Commands
+```xml
+<intake>
+## What would you like to do?
 
-| Command | Category | Description | Reference |
-|---|---|---|---|
-| `init [project]` | Setup | Initialize a new project | [references/init.md](references/init.md) |
-| `check [target]` | Evaluate | Run quality checks | [references/check.md](references/check.md) |
-| `fix [target]` | Repair | Auto-fix common issues | [references/fix.md](references/fix.md) |
-```
+| # | Category | Command | Description |
+|---|----------|---------|-------------|
+| 1 | Setup | `init [project]` | Initialize a new project |
+| 2 | Evaluate | `check [target]` | Run quality checks |
+| 3 | Repair | `fix [target]` | Auto-fix common issues |
 
-Group commands by category (Setup, Evaluate, Repair, Generate, etc.) for the user-facing menu.
+**Wait for response before proceeding.**
+</intake>
 
-### Routing rules
-
-```markdown
-### Routing rules
-
-1. **No argument**: Render the table as a user-facing command menu, grouped by category. Ask what to do.
-2. **First word matches a command**: Load its reference file and follow its instructions. Everything after the command name is the target.
-3. **First word doesn't match**: General invocation. Apply setup, shared rules, and the full argument as context.
+<routing>
+| Response | Reference |
+|----------|----------|
+| 1, "init", "initialize", "new project" | `references/init.md` |
+| 2, "check", "quality", "lint" | `references/check.md` |
+| 3, "fix", "repair", "auto-fix" | `references/fix.md` |
+| First word doesn't match | General invocation — apply shared rules with full input as context |
+</routing>
 ```
 
 Setup runs before routing. Sub-commands don't re-invoke the parent skill.

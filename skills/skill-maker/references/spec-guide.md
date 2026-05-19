@@ -33,9 +33,30 @@ description: What the skill does. Use when [triggers].
 | metadata      | No       | Arbitrary key-value mapping.                                   |
 | allowed-tools | No       | Space-separated string of pre-approved tools. (Experimental)   |
 
-### Body (markdown instructions)
+### Body
 
 Everything after the frontmatter closing `---` is the skill's instructions. This is loaded into the agent's context when the skill activates.
+
+Use XML tags to create unambiguous section boundaries when a skill has multiple distinct sections (principles, intake, routing, references). Markdown content works inside the tags:
+
+```xml
+<essential_principles>
+- Principle with reasoning
+</essential_principles>
+
+<intake>
+## What would you like to do?
+1. **Option A** — description
+</intake>
+
+<routing>
+| Response | Workflow |
+|----------|----------|
+| 1, "keyword" | `references/option-a.md` |
+</routing>
+```
+
+Simple skills with a single linear workflow can use markdown headings alone.
 
 ## Progressive Disclosure
 
