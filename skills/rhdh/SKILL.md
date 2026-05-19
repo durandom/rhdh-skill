@@ -317,6 +317,7 @@ Todos must be **self-contained**—a new session should understand the task with
 | create-plugin | Create, export, package, and wire RHDH dynamic plugins | `../create-plugin/SKILL.md` |
 | rhdh-local | Enable/disable/test plugins in local RHDH | `../rhdh-local/SKILL.md` |
 | rhdh-pr-review | Test PR changes on live RHDH cluster | `../rhdh-pr-review/SKILL.md` |
+| rhdh-test-plan-review | Reviews an RHDH test plan Jira ticket and suggests platform/integration version updates | `../rhdh-test-plan-review/SKILL.md` |
 
 ### Shared References
 
