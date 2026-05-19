@@ -3,13 +3,29 @@ name: skill-maker
 description: Create, audit, or consolidate agent skills following the Agent Skills open standard (agentskills.io). Interviews the user relentlessly about intent, scope, and edge cases before drafting. Covers SKILL.md structure, frontmatter, progressive disclosure, description optimization, script bundling, sub-command architecture, setup gates, context systems, and review. Use when the user wants to create a skill, write a skill, build a new skill, make a skill, draft a SKILL.md, or mentions "skill-maker". Also use when asked to review a skill, audit a SKILL.md, check why a skill never triggers, improve an existing skill, or fix a skill. Also use when asked to package expertise, workflows, or domain knowledge into a reusable skill. Also use when asked to consolidate skills, merge skills, combine skills, reduce skill count, or refactor multiple skills into one.
 ---
 
+<intake>
+
 # Create, Audit, or Consolidate Skills
 
 Create agent skills following the [Agent Skills open standard](https://agentskills.io/specification).
 
-**If auditing an existing skill**, follow the Audit Workflow below instead of the creation phases.
+What do you need to do?
 
-**If consolidating existing skills** (merging multiple skills into fewer), read `references/consolidation-guide.md` and follow its workflow instead of the phases below. Return to Phase 5 (Review) for the final checklist.
+1. **Audit an existing skill** — Review, improve, or debug a SKILL.md
+2. **Create a new skill** — Interview, draft, and review from scratch
+3. **Consolidate skills** — Merge multiple skills into fewer
+
+</intake>
+
+<routing>
+
+| Response | Workflow |
+|----------|----------|
+| 1, "audit", "review", "check", "fix", "improve" | Follow the Audit Workflow below |
+| 2, "create", "write", "build", "new", "draft" | Follow Phases 1–5 below |
+| 3, "consolidate", "merge", "combine" | Read `references/consolidation-guide.md` and follow its workflow. Return to Phase 5 (Review) for the final checklist. |
+
+</routing>
 
 ## Audit Workflow
 
@@ -430,3 +446,20 @@ Before presenting the final skill, verify against this checklist:
 - [ ] Concrete examples included for non-obvious workflows
 - [ ] Absolute bans defined for patterns that are always wrong
 - [ ] Self-critique loops defined for build/implementation commands with explicit exit bars
+
+<reference_index>
+
+## Reference Index
+
+| Reference | Load when... |
+|-----------|-------------|
+| `references/spec-guide.md` | Drafting a SKILL.md (Phase 2) — full format reference |
+| `references/description-guide.md` | Optimizing the description (Phase 3) |
+| `references/scripts-guide.md` | Writing scripts (Phase 4) |
+| `references/anti-patterns.md` | Drafting or auditing — common failures to avoid |
+| `references/architecture-patterns.md` | Choosing between simple, router, and domain expertise patterns |
+| `references/api-skill-patterns.md` | Skill calls external APIs or services |
+| `references/consolidation-guide.md` | Merging multiple skills into fewer |
+| `references/xml-structure-guide.md` | Deciding on XML vs markdown structure |
+
+</reference_index>
