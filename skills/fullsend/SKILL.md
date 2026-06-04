@@ -45,7 +45,17 @@ Invoke with `/fullsend <command>`. Default (no args): show the command table bel
 | `references/bridge.md` | `bridge` command |
 | `references/repo-mapping.md` | `bridge` needs repo detection |
 
+## Shared Context
+
+This skill builds on existing rhdh-skill references — it does not duplicate them:
+
+- **Repo catalog**: `../rhdh/references/rhdh-repos.md` (full ecosystem map)
+- **Jira components**: `../rhdh-jira/references/fields.md` (component catalog, labels, priorities)
+- **JQL patterns**: `../rhdh-jira/references/jql-patterns.md` (queries, boards, sprints)
+- **Jira CLI**: `../rhdh-jira/references/acli-commands.md` (acli usage)
+
 ## Relationship to Other Skills
 
 - **`rhdh-jira`**: Provides Jira CLI tooling (`acli`, `jira`), workflow fields, and JQL patterns. fullsend uses the same tooling but checks agent-readiness, not sprint-readiness.
 - **`rhdh-jira refine`**: Complementary — run `refine` for process compliance, `fullsend groom` for agent readiness.
+- **`rhdh`**: Provides the repo map and GitHub reference. fullsend's `bridge` uses it for repo detection.
