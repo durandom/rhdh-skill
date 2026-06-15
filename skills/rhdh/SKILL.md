@@ -123,10 +123,16 @@ What would you like to do?
 
 9. **Review Test Plan content** — Reviews an RHDH test plan Jira ticket and suggests platform/integration version updates based on support lifecycle pages and RHDH release milestones
 
+### Release Management Tasks
+
+*For RHDH release tracking, status, announcements*
+
+10. **Release management** — Release dates, status, team breakdown, freeze announcements, blocker bugs, CVEs, release notes
+
 ### General Tasks
 
-10. **Check environment** — Run doctor, configure paths
-11. **View/search activity** — Review worklog, todos
+11. **Check environment** — Run doctor, configure paths
+12. **View/search activity** — Review worklog, todos
 
 **Wait for response before proceeding.**
 </intake>
@@ -180,12 +186,20 @@ What would you like to do?
 
 **To route:** Read `../rhdh-test-plan-review/SKILL.md` and follow its intake process.
 
+### Release Management Routes
+
+| Response | Skill |
+|----------|-------|
+| 10, "release", "release manager", "release dates", "release status", "feature freeze", "code freeze", "blocker bugs", "CVEs", "release notes", "team breakdown", "freeze announcement" | Route to `@rhdh-release` skill |
+
+**To route:** Read `../rhdh-release/SKILL.md` and follow its intake process.
+
 ### General Routes
 
 | Response | Action |
 |----------|--------|
-| 10, "doctor", "setup", "config" | Use CLI commands below |
-| 11, "log", "todo", "activity" | Use tracking commands below |
+| 11, "doctor", "setup", "config" | Use CLI commands below |
+| 12, "log", "todo", "activity" | Use tracking commands below |
 
 </routing>
 
@@ -325,6 +339,7 @@ Todos must be **self-contained**—a new session should understand the task with
 | rhdh-local | Enable/disable/test plugins in local RHDH | `../rhdh-local/SKILL.md` |
 | rhdh-pr-review | PR code review and live cluster testing | `../rhdh-pr-review/SKILL.md` |
 | rhdh-test-plan-review | Reviews an RHDH test plan Jira ticket and suggests platform/integration version updates | `../rhdh-test-plan-review/SKILL.md` |
+| rhdh-release | Release dates, status tracking, team coordination, freeze announcements, blocker bugs, CVEs, release notes | `../rhdh-release/SKILL.md` |
 
 ### Shared References
 
