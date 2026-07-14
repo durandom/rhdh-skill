@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from pathlib import Path
 
 _RICH_FILTER_FILENAME = "rhidp-operational-rich-filter.json"
@@ -28,35 +29,33 @@ _RICH_FILTER_SUBPATH = Path("jira-rich-filter") / _RICH_FILTER_FILENAME
 _cache: dict | None = None
 _cache_path: str | None = None
 
-
-def _candidate_paths() -> list[Path]:
-    """Return candidate paths for the Rich Filter JSON, in priority order."""
-    candidates = []
-
-    env_path = os.environ.get("RHDH_RICH_FILTER_PATH")
-    if env_path:
-        candidates.append(Path(env_path))
-
-    scripts_dir = Path(__file__).resolve().parent
-    sibling = scripts_dir.parent.parent.parent / "rhdh-skill-private-data" / _RICH_FILTER_SUBPATH
-    candidates.append(sibling)
-
-    skill_root = scripts_dir.parent
-    sibling2 = skill_root.parent.parent / "rhdh-skill-private-data" / _RICH_FILTER_SUBPATH
-    if sibling2 != sibling:
-        candidates.append(sibling2)
-
-    installed = Path.home() / ".claude/skills/rhdh-skill-private-data" / _RICH_FILTER_SUBPATH
-    candidates.append(installed)
-
-    return candidates
+# Ensure rhdh skill package is importable (sibling skill in the same repo)
+_rhdh_skill_dir = str(Path(__file__).resolve().parent.parent.parent / "rhdh")
+if _rhdh_skill_dir not in sys.path:
+    sys.path.insert(0, _rhdh_skill_dir)
 
 
 def discover() -> Path | None:
-    """Find the Rich Filter JSON file. Returns the path or None."""
-    for p in _candidate_paths():
+    """Find the Rich Filter JSON file via rhdh config system.
+
+    Discovery order:
+    1. RHDH_RICH_FILTER_PATH env var (explicit file path override)
+    2. rhdh.config.get_repo("private-data") + subpath
+    """
+    env_path = os.environ.get("RHDH_RICH_FILTER_PATH")
+    if env_path:
+        p = Path(env_path)
         if p.is_file():
             return p
+
+    from rhdh.config import get_repo
+
+    repo_path = get_repo("private-data")
+    if repo_path:
+        p = repo_path / _RICH_FILTER_SUBPATH
+        if p.is_file():
+            return p
+
     return None
 
 

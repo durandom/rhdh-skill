@@ -113,7 +113,7 @@ SUBMODULE_REPOS: dict[str, dict] = {
         "has_fork": False,
         "required": False,
         "config_key": "private-data",
-        "description": "Internal repo for Jira Rich Filter exports and operational data",
+        "description": "Jira Rich Filter exports and operational data for RHDH skills",
         "upstream_host": "gitlab.cee.redhat.com",
         "upstream_path": "rhidp/rhdh-skill-private-data",
     },

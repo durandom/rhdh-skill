@@ -16,7 +16,7 @@ Static configuration values for the RHDH Release Manager skill.
 | `release_schedule_gdrive_id` | `1knVzlMW0l0X4c7gkoiuaGql1zuFgEGwHHBsj-ygUTnc` | RHDH Release Schedule spreadsheet |
 | `release_process_doc_id` | `13OkypJ3u_7Jq6kEhKhjEFwHQ12oPFDKXVzFjYW4XLdk` | Release process Google Doc |
 
-## Rich Filter (Private Data)
+## Rich Filter
 
 | Key | Value | Description |
 |-----|-------|-------------|
