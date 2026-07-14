@@ -166,7 +166,7 @@ Global install is the right default — `rhdh` manages paths across multiple rep
 Install only the session-sharing skill if you do not need the rest of the RHDH skill set:
 
 ```bash
-npx skills add -g redhat-developer/rhdh-skill --skill fs-sessions -a claude-code -a codex -y
+npx skills add -g redhat-developer/rhdh-skill --skill fs-sessions --agent claude-code codex -y
 FS_SESSIONS="$HOME/.agents/skills/fs-sessions/scripts/fs-sessions"
 "$FS_SESSIONS" --help
 ```
