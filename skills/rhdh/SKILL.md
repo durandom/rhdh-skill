@@ -239,7 +239,8 @@ $RHDH config set cli /path         # Set rhdh-cli location
 $RHDH config set plugins /path     # Set rhdh-plugins location
 $RHDH config set operator /path    # Set rhdh-operator location
 $RHDH config set chart /path       # Set rhdh-chart location
-$RHDH config set catalog /path     # Set rhdh-plugin-catalog location
+$RHDH config set catalog /path       # Set rhdh-plugin-catalog location
+$RHDH config set private-data /path  # Set rhdh-skill-private-data location
 ```
 
 **Workspace operations:**
@@ -334,6 +335,7 @@ Todos must be **self-contained**—a new session should understand the task with
 **GitHub CLI (PRs, CI, workflows):** references/github-reference.md
 **Version Matrix:** references/versions.md — RHDH/Backstage version compatibility, create-app versions
 **Slack Notifications:** references/slack-notification.md — Slack ping templates, handle mapping, channel routing
+**Private Data:** references/private-data.md — private data repo setup and sync (Rich Filter exports)
 </reference_index>
 
 <skills_index>

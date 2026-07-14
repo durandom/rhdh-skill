@@ -16,6 +16,19 @@ Static configuration values for the RHDH Release Manager skill.
 | `release_schedule_gdrive_id` | `1knVzlMW0l0X4c7gkoiuaGql1zuFgEGwHHBsj-ygUTnc` | RHDH Release Schedule spreadsheet |
 | `release_process_doc_id` | `13OkypJ3u_7Jq6kEhKhjEFwHQ12oPFDKXVzFjYW4XLdk` | Release process Google Doc |
 
+## Rich Filter (Private Data)
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| `private_data_repo` | `../rhdh-skill-private-data` | Sibling directory with Jira Rich Filter exports |
+| `rich_filter_path` | `jira-rich-filter/rhidp-operational-rich-filter.json` | Rich Filter JSON file within the private data repo |
+
+The Rich Filter JSON is sourced from the "RHIDP Operational" Rich Filter in Jira, maintained by Matt Reid and Jasper Chui. When available, it overrides hardcoded JQL templates for Feature Freeze, Code Freeze, and Release Notes queries.
+
+**Setup:** See `../../rhdh/references/private-data.md` for clone instructions.
+
+**Override:** Set `RHDH_RICH_FILTER_PATH=/path/to/file.json` to use a specific file.
+
 ## gog CLI Setup
 
 Google Sheets and Docs access uses the [gog CLI](https://gogcli.sh).

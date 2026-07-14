@@ -26,6 +26,7 @@ if str(_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_scripts_dir))
 
 import jql as jql_mod  # noqa: E402
+import rich_filter as rf_mod  # noqa: E402
 import slack_templates as slack_mod  # noqa: E402
 from formatters import OutputFormatter  # noqa: E402
 
@@ -394,8 +395,19 @@ def _fetch_teams(category: str | None = None) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
+def _init_rich_filter() -> Path | None:
+    """Attempt to locate and configure the Rich Filter JSON.
+
+    Returns the path if found, None otherwise.
+    """
+    rf_path = rf_mod.discover()
+    if rf_path:
+        jql_mod.set_rich_filter_path(rf_path)
+    return rf_path
+
+
 def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
-    """Verify prerequisites: acli, .jira-token, gog, gog-auth."""
+    """Verify prerequisites: acli, .jira-token, gog, gog-auth, rich-filter."""
     checks = []
 
     acli_path = shutil.which("acli")
@@ -461,6 +473,17 @@ def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
                 "message": "connected" if jira_ok else "acli cannot reach Jira",
             }
         )
+
+    rf_path = rf_mod.discover()
+    checks.append(
+        {
+            "name": "rich-filter",
+            "status": "pass" if rf_path else "warn",
+            "message": str(rf_path)
+            if rf_path
+            else "not found (optional — JQL falls back to markdown templates)",
+        }
+    )
 
     all_pass = all(c["status"] == "pass" for c in checks)
     has_fail = any(c["status"] == "fail" for c in checks)
@@ -1105,6 +1128,8 @@ def main(argv: list[str] | None = None) -> None:
     if not handler:
         parser.print_help()
         sys.exit(1)
+
+    _init_rich_filter()
 
     try:
         handler(args, fmt)

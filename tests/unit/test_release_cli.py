@@ -1,5 +1,6 @@
-"""Unit tests for skills/rhdh-release/scripts/ — jql.py, slack_templates.py, release.py."""
+"""Unit tests for skills/rhdh-release/scripts/ — jql.py, slack_templates.py, release.py, rich_filter.py."""
 
+import json
 import sys
 from pathlib import Path
 from urllib.parse import quote
@@ -11,6 +12,7 @@ if str(_RELEASE_SCRIPTS) not in sys.path:
 
 import jql  # noqa: E402
 import release  # noqa: E402
+import rich_filter  # noqa: E402
 import slack_templates  # noqa: E402
 
 # =========================================================================
@@ -19,11 +21,21 @@ import slack_templates  # noqa: E402
 
 
 class TestJqlLoadTemplates:
-    def test_loads_16_templates(self):
-        templates = jql.load_templates()
-        assert len(templates) == 16
+    def setup_method(self):
+        jql._TEMPLATE_CACHE = None
+        jql._RICH_FILTER_PATH = None
+        rich_filter.reset_cache()
 
-    def test_known_template_names(self):
+    def teardown_method(self):
+        jql._TEMPLATE_CACHE = None
+        jql._RICH_FILTER_PATH = None
+        rich_filter.reset_cache()
+
+    def test_loads_11_markdown_templates(self):
+        templates = jql.load_templates()
+        assert len(templates) == 11
+
+    def test_known_markdown_template_names(self):
         names = jql.list_templates()
         assert "active_release" in names
         assert "open_issues" in names
@@ -34,13 +46,16 @@ class TestJqlLoadTemplates:
         assert "feature_subtasks" in names
         assert "test_day_features" in names
         assert "features_added_to_release" in names
-        assert "release_notes" in names
         assert "blockers" in names
-        assert "feature_freeze_issues" in names
-        assert "code_freeze_issues" in names
         assert "open_issues_by_team" in names
-        assert "feature_freeze_issues_by_team" in names
-        assert "code_freeze_issues_by_team" in names
+
+    def test_rich_filter_templates_not_in_markdown(self):
+        names = jql.list_templates()
+        assert "feature_freeze_issues" not in names
+        assert "feature_freeze_issues_by_team" not in names
+        assert "code_freeze_issues" not in names
+        assert "code_freeze_issues_by_team" not in names
+        assert "release_notes" not in names
 
 
 class TestJqlGetTemplate:
@@ -403,3 +418,316 @@ class TestFindMilestones:
             ["2025-06-01", "GA Announce RHDH 1.8"],
         ]
         assert release._find_milestones(rows, "2.0") == {}
+
+
+# =========================================================================
+# rich_filter.py
+# =========================================================================
+
+SAMPLE_RICH_FILTER = {
+    "richFilter": {
+        "status": "active",
+        "name": "RHIDP Operational",
+        "jiraFilter": {
+            "id": "27716",
+            "name": "RHIDP Operational",
+            "jql": "project in (rhidp, rhdhplan, rhdhsupp, rhdhbugs) and (resolutiondate >= -365d or status != Closed) ORDER BY priority DESC",
+        },
+        "staticFilters": [
+            {
+                "key": "k1",
+                "name": "CVE",
+                "jql": 'summary ~ "CVE-*"',
+            },
+            {
+                "key": "k2",
+                "name": "Feature Freeze",
+                "jql": 'resolution is EMPTY AND component not in ("AEM Migration", AI) AND Type not in (Bug, Vulnerability, sub-task) AND status not in ("Dev Complete", "Release Pending", Done, Closed)',
+            },
+            {
+                "key": "k3",
+                "name": "Code Freeze",
+                "jql": 'issuetype in (bug, Story, task, Vulnerability) AND status not in ("Release Pending", Closed) AND component not in ("AEM Migration", AI)',
+            },
+            {
+                "key": "k4",
+                "name": "demo",
+                "jql": "labels in (demo)",
+            },
+        ],
+        "smartFilters": [
+            {
+                "key": "sf1",
+                "name": "Scrum Team",
+                "andEnabled": False,
+                "clauses": [
+                    {
+                        "key": "c1",
+                        "name": "AI",
+                        "jql": '"Team[Team]" = ec74d716-af36-4b3c-950f-f79213d08f71-1087',
+                    },
+                    {
+                        "key": "c2",
+                        "name": "Cope",
+                        "jql": '"Team[Team]" = ec74d716-af36-4b3c-950f-f79213d08f71-4403',
+                    },
+                ],
+            },
+            {
+                "key": "sf2",
+                "name": "Delivery Team",
+                "andEnabled": False,
+                "clauses": [
+                    {
+                        "key": "c3",
+                        "name": "Engineering",
+                        "jql": "Team in (ec74d716-af36-4b3c-950f-f79213d08f71-1087)",
+                    },
+                ],
+            },
+        ],
+        "richQueues": [
+            {
+                "key": "rq1",
+                "name": "RNs Unclassified",
+                "jql": '("Release Note Type" not in ("Release Note Not Required") OR "release note type" is EMPTY) AND summary !~ "CVE-*"',
+            },
+            {
+                "key": "rq2",
+                "name": "RNs Proposed",
+                "jql": '"Release Note Status" in (Proposed)',
+            },
+        ],
+    }
+}
+
+
+def _write_sample_rf(tmpdir: Path) -> Path:
+    """Write sample Rich Filter JSON and return the file path."""
+    rf_path = tmpdir / "rf.json"
+    rf_path.write_text(json.dumps(SAMPLE_RICH_FILTER))
+    return rf_path
+
+
+class TestRichFilterParser:
+    def setup_method(self):
+        rich_filter.reset_cache()
+
+    def test_load_returns_rich_filter_dict(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        rf = rich_filter.load(rf_path)
+        assert rf is not None
+        assert rf["name"] == "RHIDP Operational"
+
+    def test_load_missing_file_returns_none(self, tmp_path):
+        rf = rich_filter.load(tmp_path / "nonexistent.json")
+        assert rf is None
+
+    def test_load_bad_structure_raises(self, tmp_path):
+        bad = tmp_path / "bad.json"
+        bad.write_text('{"not_richFilter": {}}')
+        try:
+            rich_filter.load(bad)
+            assert False, "Expected ValueError"
+        except ValueError as e:
+            assert "richFilter" in str(e)
+
+    def test_base_jql_strips_order_by(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        base = rich_filter.base_jql(rf_path)
+        assert base is not None
+        assert "ORDER BY" not in base
+        assert "project in" in base.lower()
+
+    def test_static_filter_by_name(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        ff = rich_filter.static_filter("Feature Freeze", rf_path)
+        assert ff is not None
+        assert "resolution is EMPTY" in ff
+
+    def test_static_filter_case_insensitive(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        ff = rich_filter.static_filter("feature freeze", rf_path)
+        assert ff is not None
+
+    def test_static_filter_not_found(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        result = rich_filter.static_filter("Nonexistent", rf_path)
+        assert result is None
+
+    def test_smart_filter_clause(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql_str = rich_filter.smart_filter_clause("Scrum Team", "AI", rf_path)
+        assert jql_str is not None
+        assert "ec74d716" in jql_str
+
+    def test_smart_filter_clause_not_found(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        result = rich_filter.smart_filter_clause("Scrum Team", "Missing", rf_path)
+        assert result is None
+
+    def test_rich_queue(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        rn = rich_filter.rich_queue("RNs Unclassified", rf_path)
+        assert rn is not None
+        assert "Release Note Type" in rn
+
+    def test_rich_queue_not_found(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        result = rich_filter.rich_queue("Missing Queue", rf_path)
+        assert result is None
+
+    def test_scrum_teams(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        teams = rich_filter.scrum_teams(rf_path)
+        assert teams is not None
+        assert len(teams) == 2
+        assert teams[0]["name"] == "AI"
+        assert "ec74d716" in teams[0]["cloud_id"]
+        assert teams[1]["name"] == "Cope"
+
+    def test_list_static_filters(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        names = rich_filter.list_static_filters(rf_path)
+        assert names is not None
+        assert "Feature Freeze" in names
+        assert "CVE" in names
+
+    def test_list_smart_filters(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        names = rich_filter.list_smart_filters(rf_path)
+        assert names is not None
+        assert "Scrum Team" in names
+        assert "Delivery Team" in names
+
+    def test_list_rich_queues(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        names = rich_filter.list_rich_queues(rf_path)
+        assert names is not None
+        assert "RNs Unclassified" in names
+
+    def test_caching(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        rf1 = rich_filter.load(rf_path)
+        rf2 = rich_filter.load(rf_path)
+        assert rf1 is rf2
+
+    def test_reset_cache(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        rf1 = rich_filter.load(rf_path)
+        rich_filter.reset_cache()
+        rf2 = rich_filter.load(rf_path)
+        assert rf1 is not rf2
+
+    def test_load_none_without_file_returns_none(self):
+        result = rich_filter.load()
+        # Will return None if no file is discoverable in the default paths
+        assert result is None or isinstance(result, dict)
+
+
+# =========================================================================
+# jql.py — Rich Filter integration
+# =========================================================================
+
+
+class TestJqlRichFilterIntegration:
+    def setup_method(self):
+        jql._TEMPLATE_CACHE = None
+        rich_filter.reset_cache()
+
+    def teardown_method(self):
+        jql._TEMPLATE_CACHE = None
+        jql._RICH_FILTER_PATH = None
+        rich_filter.reset_cache()
+
+    def test_adds_feature_freeze_from_rich_filter(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql.set_rich_filter_path(rf_path)
+        templates = jql.load_templates()
+        ff = templates["feature_freeze_issues"]
+        assert "resolution is EMPTY" in ff
+        assert "fixVersion" in ff
+        assert "project in" in ff.lower()
+
+    def test_adds_code_freeze_from_rich_filter(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql.set_rich_filter_path(rf_path)
+        templates = jql.load_templates()
+        cf = templates["code_freeze_issues"]
+        assert "issuetype in (bug, Story, task, Vulnerability)" in cf
+        assert "fixVersion" in cf
+
+    def test_adds_release_notes_from_rich_filter(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql.set_rich_filter_path(rf_path)
+        templates = jql.load_templates()
+        rn = templates["release_notes"]
+        assert "Release Note Type" in rn
+        assert "fixVersion" in rn
+
+    def test_adds_team_filter_from_rich_filter(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql.set_rich_filter_path(rf_path)
+        templates = jql.load_templates()
+        ff_team = templates["feature_freeze_issues_by_team"]
+        assert "{{CLOUD_ID}}" in ff_team
+        assert "Team[Team]" in ff_team
+
+    def test_preserves_markdown_templates(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql.set_rich_filter_path(rf_path)
+        templates = jql.load_templates()
+        assert "active_release" in templates
+        assert "blockers" in templates
+        assert "epics" in templates
+        assert "rhdhplan" in templates["active_release"].lower()
+
+    def test_total_16_with_rich_filter(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql.set_rich_filter_path(rf_path)
+        templates = jql.load_templates()
+        assert len(templates) == 16
+
+    def test_render_with_rich_filter(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        jql.set_rich_filter_path(rf_path)
+        rendered = jql.render("feature_freeze_issues", version="2.1.0")
+        assert '"2.1.0"' in rendered
+        assert "{{RELEASE_VERSION}}" not in rendered
+
+
+class TestJqlWithoutRichFilter:
+    def setup_method(self):
+        jql._TEMPLATE_CACHE = None
+        jql._RICH_FILTER_PATH = None
+        rich_filter.reset_cache()
+
+    def teardown_method(self):
+        jql._TEMPLATE_CACHE = None
+        jql._RICH_FILTER_PATH = None
+        rich_filter.reset_cache()
+
+    def test_only_11_templates_without_rich_filter(self):
+        jql.set_rich_filter_path(None)
+        templates = jql.load_templates()
+        assert len(templates) == 11
+
+    def test_only_11_when_path_missing(self, tmp_path):
+        jql.set_rich_filter_path(tmp_path / "nonexistent.json")
+        templates = jql.load_templates()
+        assert len(templates) == 11
+
+    def test_freeze_templates_missing_without_rich_filter(self):
+        jql.set_rich_filter_path(None)
+        templates = jql.load_templates()
+        assert "feature_freeze_issues" not in templates
+        assert "code_freeze_issues" not in templates
+        assert "release_notes" not in templates
+
+    def test_freeze_template_raises_keyerror(self):
+        jql.set_rich_filter_path(None)
+        try:
+            jql.get_template("feature_freeze_issues")
+            assert False, "Expected KeyError"
+        except KeyError as e:
+            assert "feature_freeze_issues" in str(e)

@@ -1,8 +1,13 @@
-"""Parse JQL templates from references/jql-release.md.
+"""Parse JQL templates from references/jql-release.md and Rich Filter JSON.
 
 Reads the markdown file at runtime so the CLI and agent share one source of truth.
 Supports placeholder rendering ({{RELEASE_VERSION}}, {{ISSUE_TYPE}}) and
 URL-encoded Jira search links.
+
+Five templates are sourced exclusively from the Rich Filter JSON export:
+feature_freeze_issues, feature_freeze_issues_by_team, code_freeze_issues,
+code_freeze_issues_by_team, and release_notes. These templates are only
+available when the Rich Filter is configured.
 """
 
 from __future__ import annotations
@@ -17,6 +22,7 @@ _REFERENCES_DIR = Path(__file__).resolve().parent.parent / "references"
 _JQL_FILE = _REFERENCES_DIR / "jql-release.md"
 
 _TEMPLATE_CACHE: dict[str, str] | None = None
+_RICH_FILTER_PATH: Path | str | None = None
 
 
 def _parse_jql_file(path: Path | None = None) -> dict[str, str]:
@@ -49,13 +55,78 @@ def _parse_jql_file(path: Path | None = None) -> dict[str, str]:
     return templates
 
 
+def set_rich_filter_path(path: Path | str | None) -> None:
+    """Configure the Rich Filter JSON location.
+
+    Calling this invalidates the template cache so the next load_templates()
+    call will re-compose templates with (or without) Rich Filter data.
+    """
+    global _RICH_FILTER_PATH, _TEMPLATE_CACHE
+    _RICH_FILTER_PATH = path
+    _TEMPLATE_CACHE = None
+
+
+def _apply_rich_filter_overlay(templates: dict[str, str]) -> dict[str, str]:
+    """Override specific templates with Rich Filter-sourced queries.
+
+    The Rich Filter provides filter fragments (no project scope or fixVersion).
+    We compose the full query as: base_scope + fixVersion + fragment.
+    """
+    import rich_filter as rf_mod
+
+    rf = rf_mod.load(_RICH_FILTER_PATH)
+    if rf is None:
+        return templates
+
+    result = dict(templates)
+
+    base = rf_mod.base_jql(_RICH_FILTER_PATH)
+    if base:
+        # Strip status/resolution conditions from base — they're in the fragments
+        scope = re.match(r"project\s+in\s*\([^)]+\)", base, re.IGNORECASE)
+        base_scope = scope.group(0) if scope else base
+    else:
+        base_scope = None
+
+    def _compose(fragment: str, extra: str = "") -> str:
+        parts = []
+        if base_scope:
+            parts.append(base_scope)
+        parts.append('fixVersion = "{{RELEASE_VERSION}}"')
+        parts.append(fragment)
+        if extra:
+            parts.append(extra)
+        return " AND ".join(parts)
+
+    ff_jql = rf_mod.static_filter("Feature Freeze", _RICH_FILTER_PATH)
+    if ff_jql:
+        result["feature_freeze_issues"] = _compose(ff_jql)
+        result["feature_freeze_issues_by_team"] = _compose(ff_jql, '"Team[Team]" = "{{CLOUD_ID}}"')
+
+    cf_jql = rf_mod.static_filter("Code Freeze", _RICH_FILTER_PATH)
+    if cf_jql:
+        result["code_freeze_issues"] = _compose(cf_jql)
+        result["code_freeze_issues_by_team"] = _compose(cf_jql, '"Team[Team]" = "{{CLOUD_ID}}"')
+
+    rn_jql = rf_mod.rich_queue("RNs Unclassified", _RICH_FILTER_PATH)
+    if rn_jql:
+        result["release_notes"] = _compose(rn_jql)
+
+    return result
+
+
 def load_templates(path: Path | None = None) -> dict[str, str]:
-    """Load and cache JQL templates from jql-release.md."""
+    """Load and cache JQL templates from jql-release.md.
+
+    If a Rich Filter path is configured, overlays Rich Filter-sourced
+    queries onto the markdown templates for supported template names.
+    """
     global _TEMPLATE_CACHE
     if path is not None:
         return _parse_jql_file(path)
     if _TEMPLATE_CACHE is None:
-        _TEMPLATE_CACHE = _parse_jql_file()
+        templates = _parse_jql_file()
+        _TEMPLATE_CACHE = _apply_rich_filter_overlay(templates)
     return _TEMPLATE_CACHE
 
 

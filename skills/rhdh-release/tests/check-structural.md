@@ -50,7 +50,7 @@ List any files missing required sections.
 
 Read `skills/rhdh-release/references/jql-release.md`. Extract all `## <query_name>` headings.
 
-- [ ] Exactly 13 query templates exist
+- [ ] Exactly 11 query templates exist (5 more are sourced from Rich Filter at runtime)
 
 Then grep all workflow files for references to each query name. Verify:
 
@@ -95,7 +95,7 @@ Read `skills/rhdh-release/references/config.md`:
 
 - [ ] `scripts/formatters.py` exists and is a regular file (not a symlink)
 - [ ] No symlinks remain in `scripts/` (`find scripts/ -type l` returns empty)
-- [ ] Exactly 4 Python scripts: `release.py`, `formatters.py`, `jql.py`, `slack_templates.py`
+- [ ] Exactly 5 Python scripts: `release.py`, `formatters.py`, `jql.py`, `rich_filter.py`, `slack_templates.py`
 
 ### 10. Release CLI existence
 

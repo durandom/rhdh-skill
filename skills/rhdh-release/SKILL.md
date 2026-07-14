@@ -12,7 +12,7 @@ compatibility: "acli on PATH. Python 3 + gog CLI for Google Sheets/Docs."
 <essential_principles>
 
 <principle name="use_cloud_id_for_team_queries">
-Use `"Team[Team]" = "{{CLOUD_ID}}"` in JQL to filter by team. Cloud IDs are in the RHDH Team Mapping spreadsheet (column "Cloud ID"). Use the `open_issues_by_team`, `feature_freeze_issues_by_team`, or `code_freeze_issues_by_team` JQL templates. This is fast and does not require `parse_issues.py --enrich`.
+Use `"Team[Team]" = "{{CLOUD_ID}}"` in JQL to filter by team. Cloud IDs are sourced from the Rich Filter JSON ("Scrum Team" smart filter) when available, or from the RHDH Team Mapping spreadsheet (column "Cloud ID") as fallback. Use the `open_issues_by_team`, `feature_freeze_issues_by_team`, or `code_freeze_issues_by_team` JQL templates. This is fast and does not require `parse_issues.py --enrich`.
 </principle>
 
 <principle name="include_jira_links">
@@ -109,10 +109,11 @@ What would you like to do?
 |-----------|---------|-----------|
 | `references/jql-release.md` | 13 release-specific JQL templates | Any Jira query for release data |
 | `references/slack-templates.md` | 4 Slack announcement templates | Generating freeze announcements |
-| `references/config.md` | GDrive IDs, project keys, dashboards, gog setup | Looking up config values or links |
+| `references/config.md` | GDrive IDs, project keys, dashboards, Rich Filter config, gog setup | Looking up config values or links |
 | `gog docs cat 13OkypJ3u_7Jq6kEhKhjEFwHQ12oPFDKXVzFjYW4XLdk` | Release process (live Google Doc) | Release process questions, onboarding |
 | `../../rhdh-jira/references/auth.md` | Jira auth setup | Jira prerequisite fails |
 | `../../rhdh-jira/references/acli-commands.md` | acli command reference | Building acli commands |
+| `../../rhdh/references/private-data.md` | Private data repo setup (Rich Filter JSON) | Rich Filter not found or setup questions |
 
 </reference_index>
 

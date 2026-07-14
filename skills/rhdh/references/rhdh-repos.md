@@ -156,6 +156,16 @@ Reference of all RHDH-related repositories, what each one is used for, and how t
   - **Used by overlay workflows:** `rhdh-plugin-export-overlays` can use the factory container for local plugin builds.
 - **Key paths:** `Containerfile` (image definition)
 
+### rhdh-skill-private-data
+
+- **Upstream:** <https://gitlab.cee.redhat.com/rhidp/rhdh-skill-private-data>
+- **Description:** Internal repository for Jira Rich Filter exports and other private operational data used by RHDH skills. Contains exported Rich Filter JSON from the "RHIDP Operational" Jira Rich Filter managed by Matt Reid and Jasper Chui.
+- **Note:** Requires Red Hat VPN / internal network access.
+- **Key concepts:**
+  - **Rich Filter exports:** JSON exports from Jira Rich Filters that define project-scoped queries, component exclusion lists, team Cloud ID mappings, and queue definitions. Used by the `rhdh-release` skill to source JQL queries at runtime instead of hardcoding them.
+  - **Expected location:** Sibling to `rhdh-skill` checkout (i.e. `../rhdh-skill-private-data`), or configured via `$RHDH config set private-data /path`.
+- **Key paths:** `jira-rich-filter/rhidp-operational-rich-filter.json` (Rich Filter export)
+
 ### backstage
 
 - **Upstream:** <https://github.com/backstage/backstage>

@@ -277,6 +277,7 @@ class TestReferenceStructure:
             "jira-reference.md",
             "jira-structure.md",
             "github-tips.md",
+            "private-data.md",
             "rhdh-repos.md",
             "versions.md",
         }

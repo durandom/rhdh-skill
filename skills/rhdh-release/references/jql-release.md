@@ -111,18 +111,6 @@ project in (RHDHPlan, rhidp) AND issuetype = feature AND fixVersion = "{{RELEASE
 - **Example:** `... AND fixVersion = "1.9.0" AND fixversion changed after -14d`
 - **Notes:** Tracks scope changes to release.
 
-## release_notes
-
-Find issues missing Release Note Type field.
-
-```jql
-project in (RHIDP, "Red Hat Developer Hub Bugs", "RHDH Support", rhdhplan) and issuetype in (Feature, bug) and ("Release Note Type" not in ("Release Note Not Required") or "release note type" is empty) and ("Release Note Status" not in ("In Progress", Proposed, Done) or "Release Note Text[Paragraph]" is empty or "Release Note Type[Dropdown]" is empty) and summary !~ "CVE-*" and (resolution not in (obsolete, duplicate, "Won't Do") or resolution is empty) and fixVersion = "{{RELEASE_VERSION}}"
-```
-
-- **Placeholders:** `{{RELEASE_VERSION}}`
-- **Example:** `... AND "Release Note Type" is EMPTY and fixVersion = "1.9.0"`
-- **Notes:** Critical for documentation — must be filled before release.
-
 ## blockers
 
 Find open blocker bugs for a release.
@@ -135,28 +123,6 @@ project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VER
 - **Example:** `... AND fixVersion = "1.9.0" AND status != closed AND issuetype = bug AND priority = Blocker`
 - **Notes:** Critical path items that must be resolved before release.
 
-## feature_freeze_issues
-
-Find feature work outstanding at Feature Freeze.
-
-```jql
-project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VERSION}}" and resolution is EMPTY AND component not in ("AEM Migration", AI, "AI Demo", Conference, Build, Certification, "Continuous Improvement", Documentation, JTBD, Knowledge, Performance, Quality, Quickstart, Release, "RHDH Local", "RHDH Plugin Repo", Security, "Security Tooling", Segment, Serviceability, Support, "Team Operations", "Test Framework", "Test Infrastructure", "Upstream & Community", UX) AND Type not in (Bug, Vulnerability, sub-task) AND status not in ("Dev Complete", "Release Pending", Done, Closed) AND (labels is EMPTY OR labels != stretch-goal)
-```
-
-- **Placeholders:** `{{RELEASE_VERSION}}`
-- **Notes:** Excludes infrastructure/ops components and bugs. Use for Feature Freeze announcements. The component exclusion list filters out non-feature work that shouldn't block Feature Freeze.
-
-## code_freeze_issues
-
-Find all issues outstanding at Code Freeze.
-
-```jql
-project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VERSION}}" and issuetype in (bug, Story, task, Vulnerability) AND status not in ("Release Pending", Closed) AND component not in ("AEM Migration", AI, "AI Demo", Conference, Documentation, JTBD, Knowledge, Performance, Release, "RHDH Plugin Repo", Security, "Security Tooling", Support, "Team Operations", "Upstream & Community") OR issuetype in (feature) AND status not in ("Release Pending", Closed) AND component not in ("AEM Migration", AI, "AI Demo", Conference, Documentation, JTBD, Knowledge, Performance, Release, "RHDH Plugin Repo", Security, "Security Tooling", Support, "Team Operations", "Upstream & Community") OR issuetype in (epic) AND status not in ("Dev Complete", "Release Pending", Closed) AND component not in ("AEM Migration", AI, "AI Demo", Conference, Documentation, JTBD, Knowledge, Performance, Release, "RHDH Plugin Repo", Security, "Security Tooling", Support, "Team Operations", "Upstream & Community")
-```
-
-- **Placeholders:** `{{RELEASE_VERSION}}`
-- **Notes:** All open work. Same as `open_issues` — used for Code Freeze announcements.
-
 ## open_issues_by_team
 
 Find all open issues for a release filtered by team using Cloud ID.
@@ -168,25 +134,3 @@ project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VER
 - **Placeholders:** `{{RELEASE_VERSION}}`, `{{CLOUD_ID}}`
 - **Example:** `... AND fixVersion = "2.1.0" AND status != closed AND "Team[Team]" = "ec74d716-af36-4b3c-950f-f79213d08f71-4403"`
 - **Notes:** Cloud ID is the Jira Cloud team identifier from the RHDH Team Mapping spreadsheet (column "Cloud ID"). This is the fastest way to filter by team — no enrichment needed.
-
-## feature_freeze_issues_by_team
-
-Find feature work outstanding at Feature Freeze filtered by team.
-
-```jql
-project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VERSION}}" and resolution is EMPTY AND component not in ("AEM Migration", AI, "AI Demo", Conference, Build, Certification, "Continuous Improvement", Documentation, JTBD, Knowledge, Performance, Quality, Quickstart, Release, "RHDH Local", "RHDH Plugin Repo", Security, "Security Tooling", Segment, Serviceability, Support, "Team Operations", "Test Framework", "Test Infrastructure", "Upstream & Community", UX) AND Type not in (Bug, Vulnerability, sub-task) AND status not in ("Dev Complete", "Release Pending", Done, Closed) AND (labels is EMPTY OR labels != stretch-goal) AND "Team[Team]" = "{{CLOUD_ID}}"
-```
-
-- **Placeholders:** `{{RELEASE_VERSION}}`, `{{CLOUD_ID}}`
-- **Notes:** Same as `code_freeze_issues` but scoped to a single team by Cloud ID.
-
-## code_freeze_issues_by_team
-
-Find all issues outstanding at Code Freeze filtered by team.
-
-```jql
-project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VERSION}}" and issuetype in (bug, Story, task, Vulnerability) AND status not in ("Release Pending", Closed) AND component not in ("AEM Migration", AI, "AI Demo", Conference, Documentation, JTBD, Knowledge, Performance, Release, "RHDH Plugin Repo", Security, "Security Tooling", Support, "Team Operations", "Upstream & Community") OR issuetype in (feature) AND status not in ("Release Pending", Closed) AND component not in ("AEM Migration", AI, "AI Demo", Conference, Documentation, JTBD, Knowledge, Performance, Release, "RHDH Plugin Repo", Security, "Security Tooling", Support, "Team Operations", "Upstream & Community") OR issuetype in (epic) AND status not in ("Dev Complete", "Release Pending", Closed) AND component not in ("AEM Migration", AI, "AI Demo", Conference, Documentation, JTBD, Knowledge, Performance, Release, "RHDH Plugin Repo", Security, "Security Tooling", Support, "Team Operations", "Upstream & Community") AND "Team[Team]" = "{{CLOUD_ID}}"
-```
-
-- **Placeholders:** `{{RELEASE_VERSION}}`, `{{CLOUD_ID}}`
-- **Notes:** Same as `code_freeze_issues` but scoped to a single team by Cloud ID.
