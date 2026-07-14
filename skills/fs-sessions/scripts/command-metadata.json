@@ -1,0 +1,30 @@
+{
+  "setup": {
+    "description": "Configure a shared sessions repo, safe default-deny policy, and global Claude SessionEnd hook; migrate legacy local hooks.",
+    "argumentHint": "[sessions repository]"
+  },
+  "policy": {
+    "description": "Whitelist, blacklist, or explain repository-specific automatic transcript export decisions.",
+    "argumentHint": "[check|allow|deny|rules|remove] [repository or pattern]"
+  },
+  "hook": {
+    "description": "Install, inspect, migrate, or remove the global Claude Code SessionEnd transcript hook.",
+    "argumentHint": "[install|status|uninstall]"
+  },
+  "status": {
+    "description": "Diagnose session config, repository policy, hook installation, and stored transcript state.",
+    "argumentHint": "[repository]"
+  },
+  "share": {
+    "description": "List local Claude sessions or explicitly export one transcript to the shared repository.",
+    "argumentHint": "[--last | transcript path]"
+  },
+  "sync": {
+    "description": "Push or pull shared session transcript commits without merge commits.",
+    "argumentHint": "[push|pull]"
+  },
+  "view": {
+    "description": "Start, stop, or rebuild AgentsView for shared team session transcripts.",
+    "argumentHint": "[start|stop|reindex]"
+  }
+}

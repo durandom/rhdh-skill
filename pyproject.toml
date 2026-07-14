@@ -1,6 +1,6 @@
 [project]
 name = "rhdh-skill"
-version = "0.6.1"
+version = "0.7.0"
 description = "Claude Code skill for RHDH plugin development"
 readme = "README.md"
 license = "Apache-2.0"
@@ -9,8 +9,8 @@ requires-python = ">=3.9"
 # No runtime dependencies - stdlib only!
 
 [tool.setuptools.packages.find]
-where = ["skills/rhdh"]
-include = ["rhdh*"]
+where = ["skills/rhdh", "skills/fs-sessions"]
+include = ["rhdh*", "fs_sessions*"]
 
 [project.optional-dependencies]
 dev = [
@@ -21,6 +21,7 @@ dev = [
 
 [project.scripts]
 rhdh = "rhdh.cli:main"
+fs-sessions = "fs_sessions.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

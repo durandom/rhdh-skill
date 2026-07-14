@@ -123,6 +123,10 @@ Track work across the four RHDH Jira projects.
 
 - **[agent-ready](./skills/agent-ready/SKILL.md)** — Assess RHDH repositories against agentready criteria and address each gap. RHDH-aware: detects the repo from its remote URL, uses `rhdh-repos.md` context to pre-fill `AGENTS.md` and skip inapplicable findings. Supports single-repo and batch modes (assess all RHDH repos in one pass).
 
+### Shared Agent Sessions
+
+- **[fs-sessions](./skills/fs-sessions/SKILL.md)** — Share Claude Code transcripts through a global SessionEnd hook with ordered repository allow/deny rules. Configures whitelist, blacklist, mixed exceptions, hook migration, explicit sharing, synchronization, and AgentsView.
+
 ### Meta
 
 - **[skill-maker](./skills/skill-maker/SKILL.md)** — Create new skills or consolidate existing ones following the [Agent Skills open standard](https://agentskills.io/specification). Interviews you about scope and edge cases before drafting.
@@ -156,6 +160,61 @@ npx skills add -g redhat-developer/rhdh-skill
 ```
 
 Global install is the right default — `rhdh` manages paths across multiple repos via its config, so it doesn't need to live inside any single project.
+
+### Shared Claude Code sessions
+
+Install only the session-sharing skill if you do not need the rest of the RHDH skill set:
+
+```bash
+npx skills add -g redhat-developer/rhdh-skill --skill fs-sessions -a claude-code -a codex -y
+FS_SESSIONS="$HOME/.agents/skills/fs-sessions/scripts/fs-sessions"
+"$FS_SESSIONS" --help
+```
+
+Initialize the shared sessions repository, choose a safe default, allow the repositories that should export transcripts, and install the single global Claude Code `SessionEnd` hook:
+
+```bash
+"$FS_SESSIONS" config init \
+  --repo /absolute/path/to/fullsend-sessions \
+  --default deny
+"$FS_SESSIONS" policy allow --origin 'github.com/example-org/*'
+"$FS_SESSIONS" policy check /path/to/an/allowed-repository
+"$FS_SESSIONS" hook install
+"$FS_SESSIONS" status
+```
+
+Configuration is stored in `~/.config/rhdh-skill/config.json`. Repository rules are evaluated in order and the last matching rule wins, so whitelist, blacklist, and exception policies can be combined:
+
+```bash
+# Allow the organization, exclude sensitive repositories, then add one exception.
+"$FS_SESSIONS" policy default deny
+"$FS_SESSIONS" policy allow --origin 'github.com/example-org/*'
+"$FS_SESSIONS" policy deny --path '/work/customer-*'
+"$FS_SESSIONS" policy allow --path '/work/customer-sanitized-demo'
+
+"$FS_SESSIONS" policy rules
+"$FS_SESSIONS" policy remove 3
+```
+
+Automatic sharing requires a Git repository. A project may opt out locally, but it cannot opt itself into sharing. See [policy.md](./skills/fs-sessions/references/policy.md) for matching details and the project opt-out format.
+
+If a repository still has the legacy project-local hook, first verify the new global hook and policy, then remove only the old managed command:
+
+```bash
+"$FS_SESSIONS" hook status
+"$FS_SESSIONS" policy check /path/to/repository
+"$FS_SESSIONS" hook uninstall \
+  --settings /path/to/repository/.claude/settings.json
+```
+
+To smoke-test the installation, end a short Claude Code session in an allowed repository. The hook should add and push one transcript commit to the configured sessions repository. Then inspect it with:
+
+```bash
+git -C /absolute/path/to/fullsend-sessions log -1 --oneline
+find /absolute/path/to/fullsend-sessions/sessions -name '*.jsonl' -type f
+```
+
+Repeat in a denied repository and confirm that neither the repository history nor `sessions/` changes. `fs-sessions hook run` is an internal, intentionally silent hook entry point; use `policy check`, `hook status`, and `status` for interactive diagnostics.
 
 ### Project-scope install
 
@@ -196,6 +255,7 @@ npx skills add ./path/to/rhdh-skill
 uv sync --extra dev                  # Install dev dependencies
 git config core.hooksPath .githooks  # Enable pre-commit hooks (one-time)
 uv run pytest                        # Run tests
+uv run pytest tests/unit/test_fs_sessions.py -q  # Session CLI tests
 ```
 
 The `core.hooksPath` setting points git at the checked-in `.githooks/` directory. If `pre-commit` is installed, linting and tests run automatically on every commit. If not, commits proceed with a warning.
