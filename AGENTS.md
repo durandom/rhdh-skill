@@ -66,22 +66,15 @@ If told an implementation was wrong, apply the correction and then record what w
 
 ## Versioning
 
-Single source of truth: `pyproject.toml` (the `version` field).
+Versions are tracked exclusively via **git tags**. The `skills` CLI (`npx skills add`) resolves versions from tags, not from any file in the repo.
 
-### When to bump
+After merging a PR that changes skill behavior, scripts, or SKILL.md files, create a tag:
 
-Include a **patch** version bump (`x.y.Z`) in any PR that changes skill behavior, scripts, or SKILL.md files. Use **minor** (`x.Y.0`) for new skills/features, **major** (`X.0.0`) for breaking changes. Do NOT bump for docs-only or CI-only changes.
+```bash
+git tag v<VERSION> && git push origin v<VERSION>
+```
 
-### How to bump
-
-1. Read the current version from `pyproject.toml`.
-2. Compute the new version (patch/minor/major as appropriate).
-3. Update `pyproject.toml` and commit.
-4. The PR title should include the new version, e.g., `feat: add foo skill (v0.4.0)`.
-
-### Git tags
-
-The `skills` CLI (`npx skills add`) resolves versions via git tags, not from the version field. After merging a version-bump PR, create a tag: `git tag v<VERSION> && git push origin v<VERSION>`.
+Use **patch** (`x.y.Z`) for behavior changes, **minor** (`x.Y.0`) for new skills/features, **major** (`X.0.0`) for breaking changes. Skip tagging for docs-only or CI-only changes.
 
 ## Shared modules (lifecycle ↔ prow)
 
