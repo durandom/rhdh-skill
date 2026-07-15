@@ -50,7 +50,7 @@ List any files missing required sections.
 
 Read `skills/rhdh-release/references/jql-release.md`. Extract all `## <query_name>` headings.
 
-- [ ] Exactly 11 query templates exist (5 more are sourced from Rich Filter at runtime)
+- [ ] Exactly 16 query template sections exist (11 with inline JQL, 5 sourced from Rich Filter at runtime)
 
 Then grep all workflow files for references to each query name. Verify:
 

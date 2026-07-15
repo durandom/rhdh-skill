@@ -111,6 +111,14 @@ project in (RHDHPlan, rhidp) AND issuetype = feature AND fixVersion = "{{RELEASE
 - **Example:** `... AND fixVersion = "1.9.0" AND fixversion changed after -14d`
 - **Notes:** Tracks scope changes to release.
 
+## release_notes
+
+Find issues missing Release Note Type field.
+
+- **Source:** Rich Filter — "RNs Unclassified" rich queue
+- **Placeholders:** `{{RELEASE_VERSION}}`
+- **Notes:** Critical for documentation — must be filled before release.
+
 ## blockers
 
 Find open blocker bugs for a release.
@@ -123,6 +131,22 @@ project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VER
 - **Example:** `... AND fixVersion = "1.9.0" AND status != closed AND issuetype = bug AND priority = Blocker`
 - **Notes:** Critical path items that must be resolved before release.
 
+## feature_freeze_issues
+
+Find feature work outstanding at Feature Freeze.
+
+- **Source:** Rich Filter — "Feature Freeze" static filter
+- **Placeholders:** `{{RELEASE_VERSION}}`
+- **Notes:** Excludes infrastructure/ops components and bugs. Use for Feature Freeze announcements.
+
+## code_freeze_issues
+
+Find all issues outstanding at Code Freeze.
+
+- **Source:** Rich Filter — "Code Freeze" static filter
+- **Placeholders:** `{{RELEASE_VERSION}}`
+- **Notes:** All open work scoped to the release. Use for Code Freeze announcements.
+
 ## open_issues_by_team
 
 Find all open issues for a release filtered by team using Cloud ID.
@@ -134,3 +158,19 @@ project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP) AND fixVersion = "{{RELEASE_VER
 - **Placeholders:** `{{RELEASE_VERSION}}`, `{{CLOUD_ID}}`
 - **Example:** `... AND fixVersion = "2.1.0" AND status != closed AND "Team[Team]" = "ec74d716-af36-4b3c-950f-f79213d08f71-4403"`
 - **Notes:** Cloud ID is the Jira Cloud team identifier from the RHDH Team Mapping spreadsheet (column "Cloud ID"). This is the fastest way to filter by team — no enrichment needed.
+
+## feature_freeze_issues_by_team
+
+Find feature work outstanding at Feature Freeze filtered by team.
+
+- **Source:** Rich Filter — "Feature Freeze" static filter + Cloud ID
+- **Placeholders:** `{{RELEASE_VERSION}}`, `{{CLOUD_ID}}`
+- **Notes:** Same as `feature_freeze_issues` but scoped to a single team by Cloud ID.
+
+## code_freeze_issues_by_team
+
+Find all issues outstanding at Code Freeze filtered by team.
+
+- **Source:** Rich Filter — "Code Freeze" static filter + Cloud ID
+- **Placeholders:** `{{RELEASE_VERSION}}`, `{{CLOUD_ID}}`
+- **Notes:** Same as `code_freeze_issues` but scoped to a single team by Cloud ID.

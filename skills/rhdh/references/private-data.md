@@ -15,17 +15,11 @@ Repository for Jira Rich Filter exports and other operational data used by RHDH 
 
 ## Setup
 
-**Clone** (sibling to `rhdh-skill`):
+**Clone** and **register:**
 
 ```bash
-cd "$(dirname /path/to/rhdh-skill)"
 git clone git@gitlab.cee.redhat.com:rhidp/rhdh-skill-private-data.git
-```
-
-**Configure** (if cloned elsewhere):
-
-```bash
-$RHDH config set private-data /path/to/rhdh-skill-private-data
+rhdh config set private-data /path/to/rhdh-skill-private-data
 ```
 
 **Update** (pull latest Rich Filter export):
