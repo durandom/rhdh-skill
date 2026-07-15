@@ -1,6 +1,8 @@
 """Unit tests for skills/rhdh-release/scripts/ — jql.py, slack_templates.py, release.py, rich_filter.py."""
 
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import quote
@@ -280,6 +282,36 @@ class TestParseAcliCount:
             assert False, "Expected ValueError"
         except ValueError:
             pass
+
+
+class TestFetchTeams:
+    ROWS = [
+        ["Category", "Team Name", "Status", "Leads", "Slack Handles", "Cloud ID"],
+        ["Engineering", "RHDH AI", "Active", "Ada", "@ada", "sheet-ai"],
+        ["Engineering", "Cope", "Active", "Grace", "@grace", "sheet-cope"],
+    ]
+
+    def test_rich_filter_cloud_ids_override_spreadsheet(self, monkeypatch):
+        monkeypatch.setattr(release, "_gog_sheets_get", lambda *_args: self.ROWS)
+        monkeypatch.setattr(
+            release.rf_mod,
+            "scrum_teams",
+            lambda: [{"name": "AI", "cloud_id": "rich-filter-ai"}],
+        )
+
+        teams = release._fetch_teams(category="Engineering")
+
+        assert teams[0]["cloud_id"] == "rich-filter-ai"
+        assert teams[0]["slack_handles"] == ["@ada"]
+        assert teams[1]["cloud_id"] == "sheet-cope"
+
+    def test_spreadsheet_cloud_ids_are_fallback(self, monkeypatch):
+        monkeypatch.setattr(release, "_gog_sheets_get", lambda *_args: self.ROWS)
+        monkeypatch.setattr(release.rf_mod, "scrum_teams", lambda: None)
+
+        teams = release._fetch_teams(category="Engineering")
+
+        assert [team["cloud_id"] for team in teams] == ["sheet-ai", "sheet-cope"]
 
 
 class TestCommandMapping:
@@ -586,6 +618,19 @@ class TestRichFilterParser:
         assert "ec74d716" in teams[0]["cloud_id"]
         assert teams[1]["name"] == "Cope"
 
+    def test_scrum_teams_removes_jql_value_quotes(self, tmp_path):
+        data = json.loads(json.dumps(SAMPLE_RICH_FILTER))
+        data["richFilter"]["smartFilters"][0]["clauses"][0]["jql"] = (
+            '"Team[Team]" = "quoted-cloud-id"'
+        )
+        rf_path = tmp_path / "rf.json"
+        rf_path.write_text(json.dumps(data))
+
+        teams = rich_filter.scrum_teams(rf_path)
+
+        assert teams is not None
+        assert teams[0]["cloud_id"] == "quoted-cloud-id"
+
     def test_list_static_filters(self, tmp_path):
         rf_path = _write_sample_rf(tmp_path)
         names = rich_filter.list_static_filters(rf_path)
@@ -656,6 +701,17 @@ class TestJqlRichFilterIntegration:
         cf = templates["code_freeze_issues"]
         assert "issuetype in (bug, Story, task, Vulnerability)" in cf
         assert "fixVersion" in cf
+
+    def test_groups_rich_filter_fragment_to_preserve_scope(self, tmp_path):
+        data = json.loads(json.dumps(SAMPLE_RICH_FILTER))
+        data["richFilter"]["staticFilters"][2]["jql"] = "status = Open OR status = Reopened"
+        rf_path = tmp_path / "rf.json"
+        rf_path.write_text(json.dumps(data))
+        jql.set_rich_filter_path(rf_path)
+
+        rendered = jql.render("code_freeze_issues", version="2.1.0")
+
+        assert 'fixVersion = "2.1.0" AND (status = Open OR status = Reopened)' in rendered
 
     def test_adds_release_notes_from_rich_filter(self, tmp_path):
         rf_path = _write_sample_rf(tmp_path)
@@ -731,3 +787,51 @@ class TestJqlWithoutRichFilter:
             assert False, "Expected KeyError"
         except KeyError as e:
             assert "feature_freeze_issues" in str(e)
+
+
+class TestRichFilterCliIntegration:
+    def test_direct_script_discovers_project_config(self, tmp_path):
+        private_data = tmp_path / "private-data"
+        rf_path = private_data / "jira-rich-filter" / "rhidp-operational-rich-filter.json"
+        rf_path.parent.mkdir(parents=True)
+        rf_path.write_text(json.dumps(SAMPLE_RICH_FILTER))
+
+        project = tmp_path / "project"
+        config_dir = project / ".rhdh"
+        config_dir.mkdir(parents=True)
+        (config_dir / "config.json").write_text(
+            json.dumps({"repos": {"private-data": str(private_data)}})
+        )
+        subprocess.run(["git", "init"], cwd=project, check=True, capture_output=True)
+
+        code = (
+            "import sys; "
+            f"sys.path.insert(0, {str(_RELEASE_SCRIPTS)!r}); "
+            "import rich_filter; print(rich_filter.discover())"
+        )
+        env = {**os.environ, "HOME": str(tmp_path / "home")}
+        env.pop("PYTHONPATH", None)
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=project,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+
+        assert result.stdout.strip() == str(rf_path)
+
+    def test_missing_rich_filter_is_reported_without_traceback(self, monkeypatch, capsys):
+        jql.set_rich_filter_path(None)
+        monkeypatch.setattr(release, "_init_rich_filter", lambda: None)
+
+        try:
+            release.main(["--json", "notes", "2.1.0"])
+            assert False, "Expected SystemExit"
+        except SystemExit as e:
+            assert e.code == 1
+
+        output = json.loads(capsys.readouterr().out)
+        assert output["error"]["code"] == "CONFIGURATION_ERROR"
+        assert "release_notes" in output["error"]["message"]

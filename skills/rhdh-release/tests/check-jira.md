@@ -24,7 +24,10 @@ If this fails, stop — Jira access is not configured.
 
 ### 1. JQL syntax validation
 
-Read `skills/rhdh-release/references/jql-release.md`. For each of the 12 query templates, substitute a real release version (discover it from check 2 below) and run with `--count` to verify the JQL parses without error.
+Run `python scripts/release.py --json check` and confirm the Rich Filter check
+passes. Load the 16 composed templates through `scripts/jql.py`; substitute a
+real release version (discover it from check 2 below) and run each with
+`--count` to verify the JQL parses without error.
 
 Use the `active_release` query first (no placeholders) to discover the current release version:
 
@@ -47,6 +50,9 @@ Then for each remaining query, substitute `{{RELEASE_VERSION}}` with the discove
 - [ ] `release_notes` — returns count
 - [ ] `feature_freeze_issues` — returns count
 - [ ] `code_freeze_issues` — returns count
+- [ ] `open_issues_by_team` — substitute `{{CLOUD_ID}}` with a Rich Filter Scrum Team Cloud ID, returns count
+- [ ] `feature_freeze_issues_by_team` — substitute `{{CLOUD_ID}}`, returns count
+- [ ] `code_freeze_issues_by_team` — substitute `{{CLOUD_ID}}`, returns count
 
 ### 2. parse_issues.py integration
 

@@ -94,7 +94,9 @@ options:
 
 ## JQL template parsing
 
-Verify that jql.py parses all 13 templates from `references/jql-release.md` and renders them with placeholders.
+Verify that jql.py parses 11 inline templates from `references/jql-release.md`.
+When the Rich Filter is configured, five runtime templates are added for a
+total of 16.
 
 ```python3
 import sys; sys.path.insert(0, 'scripts')
@@ -107,19 +109,17 @@ for name in templates:
 ```
 
 ```output
-Templates loaded: 13
+Templates loaded: 11
   active_release
   blockers
-  code_freeze_issues
   cves
   epics
   feature_demos
-  feature_freeze_issues
   feature_subtasks
   features_added_to_release
   open_issues
+  open_issues_by_team
   open_issues_by_type
-  release_notes
   test_day_features
 ```
 

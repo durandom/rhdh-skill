@@ -383,11 +383,24 @@ def _acli_view_json(issue_key: str) -> dict:
 
 
 def _fetch_teams(category: str | None = None) -> list[dict]:
-    """Fetch team mapping from Google Sheets via gog."""
+    """Fetch team metadata and overlay Rich Filter Cloud IDs when available."""
     rows = _gog_sheets_get(TEAM_SHEET_ID, "Team")
     if not rows:
         raise RuntimeError("Team sheet is empty")
-    return _parse_teams(rows, category_filter=category)
+    teams = _parse_teams(rows, category_filter=category)
+
+    rich_filter_teams = rf_mod.scrum_teams() or []
+    cloud_ids = {
+        _normalize_team_name(team.get("name", "")): team.get("cloud_id", "")
+        for team in rich_filter_teams
+        if team.get("cloud_id")
+    }
+    for team in teams:
+        cloud_id = cloud_ids.get(_normalize_team_name(team["team_name"]))
+        if cloud_id:
+            team["cloud_id"] = cloud_id
+
+    return teams
 
 
 # ---------------------------------------------------------------------------
@@ -481,7 +494,7 @@ def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
             "status": "pass" if rf_path else "warn",
             "message": str(rf_path)
             if rf_path
-            else "not found (optional — JQL falls back to markdown templates)",
+            else "not found (required for freeze and release-notes JQL)",
         }
     )
 
@@ -1129,9 +1142,8 @@ def main(argv: list[str] | None = None) -> None:
         parser.print_help()
         sys.exit(1)
 
-    _init_rich_filter()
-
     try:
+        _init_rich_filter()
         handler(args, fmt)
     except subprocess.CalledProcessError as e:
         fmt.error(
@@ -1142,6 +1154,16 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(1)
     except RuntimeError as e:
         fmt.error("RUNTIME_ERROR", str(e), next_steps=["Run: python scripts/release.py check"])
+        sys.exit(1)
+    except (KeyError, ValueError) as e:
+        fmt.error(
+            "CONFIGURATION_ERROR",
+            str(e),
+            next_steps=[
+                "Run: python scripts/release.py check",
+                "See: references/config.md",
+            ],
+        )
         sys.exit(1)
 
 

@@ -93,7 +93,9 @@ def _apply_rich_filter_overlay(templates: dict[str, str]) -> dict[str, str]:
         if base_scope:
             parts.append(base_scope)
         parts.append('fixVersion = "{{RELEASE_VERSION}}"')
-        parts.append(fragment)
+        # Rich Filter fragments can contain top-level OR expressions. Group
+        # them so every branch remains scoped by project and fixVersion.
+        parts.append(f"({fragment})")
         if extra:
             parts.append(extra)
         return " AND ".join(parts)
