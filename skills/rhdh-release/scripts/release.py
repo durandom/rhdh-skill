@@ -489,6 +489,7 @@ def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
         {
             "name": ".jira-token",
             "status": "pass" if token_file.exists() else "warn",
+            "optional": True,
             "message": str(token_file)
             if token_file.exists()
             else "missing (optional — acli may authenticate via other methods)",
@@ -561,8 +562,14 @@ def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
             }
         )
 
-    all_pass = all(c["status"] == "pass" for c in checks)
+    all_pass = all(
+        c["status"] == "pass" or (c["status"] == "warn" and c.get("optional", False))
+        for c in checks
+    )
     has_fail = any(c["status"] == "fail" for c in checks)
+    has_actionable_warning = any(
+        c["status"] == "warn" and not c.get("optional", False) for c in checks
+    )
 
     for c in checks:
         if c["status"] == "pass":
@@ -575,7 +582,7 @@ def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
     next_steps = []
     if has_fail:
         next_steps.append("Fix failing checks before running other commands")
-    if not all_pass:
+    if has_actionable_warning:
         next_steps.append("See: references/config.md for setup instructions")
 
     fmt.success({"checks": checks, "all_pass": all_pass}, next_steps=next_steps or None)
@@ -784,7 +791,23 @@ def cmd_epics(args: argparse.Namespace, fmt: OutputFormatter) -> None:
     """List outstanding Engineering EPICs for a release."""
     version = args.version
     jql, url = jql_mod.render_with_url("epics", version=version)
-    issues = _acli_json_enriched(jql, select="key,summary,status,assignee")
+    result = _run(["acli", "jira", "workitem", "search", "--jql", jql, "--limit", "1000", "--json"])
+    raw_issues = json.loads(result.stdout)
+    issues = []
+    for raw_issue in raw_issues:
+        fields = raw_issue.get("fields", {})
+        status = fields.get("status") or {}
+        assignee = fields.get("assignee") or {}
+        issues.append(
+            {
+                "key": raw_issue.get("key", ""),
+                "summary": fields.get("summary", ""),
+                "status": status.get("name", "") if isinstance(status, dict) else str(status),
+                "assignee": assignee.get("displayName", "Unassigned")
+                if isinstance(assignee, dict)
+                else str(assignee),
+            }
+        )
     count = len(issues)
 
     fmt.header(f"RHDH {version} — Outstanding EPICs")

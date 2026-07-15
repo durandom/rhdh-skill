@@ -976,6 +976,82 @@ class TestJqlWithoutRichFilter:
 
 
 class TestRichFilterCliIntegration:
+    def test_check_ignores_optional_token_warning_for_all_pass(self, tmp_path, monkeypatch, capsys):
+        rf_path = _write_sample_rf(tmp_path)
+        monkeypatch.setattr(release.Path, "home", lambda: tmp_path / "home")
+        monkeypatch.setattr(release.rf_mod, "discover", lambda: rf_path)
+        monkeypatch.setattr(release.shutil, "which", lambda name: f"/usr/bin/{name}")
+        monkeypatch.setattr(
+            release,
+            "_run",
+            lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "1", ""),
+        )
+
+        release.main(["--json", "check"])
+
+        output = json.loads(capsys.readouterr().out)
+        token_check = next(
+            check for check in output["data"]["checks"] if check["name"] == ".jira-token"
+        )
+        assert token_check["status"] == "warn"
+        assert token_check["optional"] is True
+        assert output["data"]["all_pass"] is True
+        assert "next_steps" not in output
+
+    def test_epics_uses_search_payload_without_enrichment(self, monkeypatch, capsys):
+        raw_issues = [
+            {
+                "key": "RHIDP-1",
+                "fields": {
+                    "summary": "An epic",
+                    "status": {"name": "In Progress"},
+                    "assignee": {"displayName": "Ada"},
+                },
+            },
+            {
+                "key": "RHIDP-2",
+                "fields": {
+                    "summary": "Unassigned epic",
+                    "status": {"name": "New"},
+                    "assignee": None,
+                },
+            },
+        ]
+        monkeypatch.setattr(release, "_init_rich_filter", lambda: None)
+        monkeypatch.setattr(
+            release,
+            "_run",
+            lambda *args, **kwargs: subprocess.CompletedProcess(
+                args[0], 0, json.dumps(raw_issues), ""
+            ),
+        )
+        monkeypatch.setattr(
+            release,
+            "_acli_json_enriched",
+            lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("EPICs must not use per-issue enrichment")
+            ),
+        )
+
+        release.main(["--json", "epics", "2.1.0"])
+
+        data = json.loads(capsys.readouterr().out)["data"]
+        assert data["count"] == 2
+        assert data["epics"] == [
+            {
+                "key": "RHIDP-1",
+                "summary": "An epic",
+                "status": "In Progress",
+                "assignee": "Ada",
+            },
+            {
+                "key": "RHIDP-2",
+                "summary": "Unassigned epic",
+                "status": "New",
+                "assignee": "Unassigned",
+            },
+        ]
+
     def test_check_reports_partial_export_contract(self, tmp_path, monkeypatch, capsys):
         data = json.loads(json.dumps(SAMPLE_RICH_FILTER))
         data["richFilter"]["richQueues"] = [
