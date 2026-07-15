@@ -34,9 +34,9 @@ class TestJqlLoadTemplates:
         jql._RICH_FILTER_PATH = None
         rich_filter.reset_cache()
 
-    def test_loads_11_markdown_templates(self):
+    def test_loads_9_markdown_templates(self):
         templates = jql.load_templates()
-        assert len(templates) == 11
+        assert len(templates) == 9
 
     def test_known_markdown_template_names(self):
         names = jql.list_templates()
@@ -45,9 +45,7 @@ class TestJqlLoadTemplates:
         assert "open_issues_by_type" in names
         assert "epics" in names
         assert "cves" in names
-        assert "feature_demos" in names
         assert "feature_subtasks" in names
-        assert "test_day_features" in names
         assert "features_added_to_release" in names
         assert "blockers" in names
         assert "open_issues_by_team" in names
@@ -59,6 +57,12 @@ class TestJqlLoadTemplates:
         assert "code_freeze_issues" not in names
         assert "code_freeze_issues_by_team" not in names
         assert "release_notes" not in names
+        assert "feature_demos" not in names
+        assert "test_day_features" not in names
+        assert "post_code_freeze_issues" not in names
+        assert "release_notes_proposed" not in names
+        assert "release_notes_done" not in names
+        assert "release_notes_with_text" not in names
 
 
 class TestJqlGetTemplate:
@@ -247,11 +251,33 @@ class TestReleaseParser:
             "epics",
             "cves",
             "notes",
+            "post-freeze",
         ]:
             args = parser.parse_args([cmd, "1.0.0"])
             assert args.command == cmd
         args = parser.parse_args(["teams"])
         assert args.command == "teams"
+
+    def test_rich_filter_subcommands_parse(self):
+        parser = release.build_parser()
+        args = parser.parse_args(["rich-filter", "inventory"])
+        assert args.rich_filter_command == "inventory"
+        args = parser.parse_args(
+            [
+                "rich-filter",
+                "query",
+                "smart",
+                "AI",
+                "--group",
+                "Scrum Team",
+                "--version",
+                "2.1.0",
+                "--count",
+            ]
+        )
+        assert args.rich_filter_command == "query"
+        assert args.group == "Scrum Team"
+        assert args.count is True
 
     def test_all_slack_subcommands_parse(self):
         parser = release.build_parser()
@@ -328,6 +354,7 @@ class TestCommandMapping:
             "epics",
             "cves",
             "notes",
+            "post-freeze",
         }
         assert expected_commands == set(release.COMMANDS.keys())
 
@@ -339,6 +366,9 @@ class TestCommandMapping:
             "code-freeze",
         }
         assert expected == set(release.SLACK_COMMANDS.keys())
+
+    def test_all_rich_filter_commands_mapped(self):
+        assert {"inventory", "query"} == set(release.RICH_FILTER_COMMANDS)
 
 
 # =========================================================================
@@ -541,6 +571,16 @@ SAMPLE_RICH_FILTER = {
                 "name": "demo",
                 "jql": "labels in (demo)",
             },
+            {
+                "key": "k5",
+                "name": "Test Day",
+                "jql": "labels in (rhdh-testday)",
+            },
+            {
+                "key": "k6",
+                "name": "Post Code Freeze",
+                "jql": "component not in (release, quality)",
+            },
         ],
         "smartFilters": [
             {
@@ -584,6 +624,37 @@ SAMPLE_RICH_FILTER = {
                 "name": "RNs Proposed",
                 "jql": '"Release Note Status" in (Proposed)',
             },
+            {
+                "key": "rq3",
+                "name": "RNs Done",
+                "jql": '"Release Note Status" = Done',
+            },
+            {
+                "key": "rq4",
+                "name": "Has RN Text",
+                "jql": '"Release Note Text" is not EMPTY',
+            },
+        ],
+        "dynamicFilters": [
+            {
+                "label": "Status",
+                "value": "status",
+                "handler": {"clauseName": "status"},
+            }
+        ],
+        "richViews": [
+            {
+                "name": "Release Notes",
+                "columns": [{"label": "Key", "value": "issuekey"}],
+            }
+        ],
+        "timeSeries": [{"name": "Last week", "jql": "created >= -7d"}],
+        "customRatios": [
+            {
+                "name": "Plan to Commit",
+                "numJql": "labels = planned",
+                "denJql": "labels = candidate",
+            }
         ],
     }
 }
@@ -663,6 +734,54 @@ class TestRichFilterParser:
         rf_path = _write_sample_rf(tmp_path)
         result = rich_filter.rich_queue("Missing Queue", rf_path)
         assert result is None
+
+    def test_gets_any_fragment_kind(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        assert "demo" in rich_filter.fragment("static", "demo", path=rf_path)
+        assert "Proposed" in rich_filter.fragment("queue", "RNs Proposed", path=rf_path)
+        assert "Team[Team]" in rich_filter.fragment("smart", "AI", group="Scrum Team", path=rf_path)
+        assert "created >= -7d" == rich_filter.fragment("time-series", "Last week", path=rf_path)
+        assert "labels = planned" == rich_filter.fragment(
+            "ratio-numerator", "Plan to Commit", path=rf_path
+        )
+        assert "labels = candidate" == rich_filter.fragment(
+            "ratio-denominator", "Plan to Commit", path=rf_path
+        )
+
+    def test_smart_fragment_requires_group(self, tmp_path):
+        rf_path = _write_sample_rf(tmp_path)
+        try:
+            rich_filter.fragment("smart", "AI", path=rf_path)
+            assert False, "Expected ValueError"
+        except ValueError as e:
+            assert "--group" in str(e)
+
+    def test_inventory_covers_queries_and_presentation_metadata(self, tmp_path):
+        inventory = rich_filter.inventory(_write_sample_rf(tmp_path))
+        assert inventory is not None
+        assert "demo" in inventory["static_filters"]
+        assert inventory["smart_filters"][0]["name"] == "Scrum Team"
+        assert "RNs Done" in inventory["rich_queues"]
+        assert inventory["time_series"] == ["Last week"]
+        assert inventory["custom_ratios"] == ["Plan to Commit"]
+        assert inventory["presentation_metadata"]["dynamic_filter_fields"] == [
+            {"label": "Status", "value": "status", "clauses": ["status"]}
+        ]
+        assert inventory["presentation_metadata"]["rich_views"][0]["columns"] == [
+            {"label": "Key", "value": "issuekey"}
+        ]
+
+    def test_validate_complete_contract(self, tmp_path):
+        assert rich_filter.validate(_write_sample_rf(tmp_path)) == []
+
+    def test_validate_reports_missing_required_entry(self, tmp_path):
+        data = json.loads(json.dumps(SAMPLE_RICH_FILTER))
+        data["richFilter"]["staticFilters"] = [
+            item for item in data["richFilter"]["staticFilters"] if item["name"] != "Test Day"
+        ]
+        rf_path = tmp_path / "rf.json"
+        rf_path.write_text(json.dumps(data))
+        assert "required static filter missing: Test Day" in rich_filter.validate(rf_path)
 
     def test_scrum_teams(self, tmp_path):
         rf_path = _write_sample_rf(tmp_path)
@@ -746,6 +865,7 @@ class TestJqlRichFilterIntegration:
         templates = jql.load_templates()
         ff = templates["feature_freeze_issues"]
         assert "resolution is EMPTY" in ff
+        assert "resolutiondate >= -365d or status != Closed" in ff
         assert "fixVersion" in ff
         assert "project in" in ff.lower()
 
@@ -766,6 +886,7 @@ class TestJqlRichFilterIntegration:
 
         rendered = jql.render("code_freeze_issues", version="2.1.0")
 
+        assert rendered.startswith("(project in")
         assert 'fixVersion = "2.1.0" AND (status = Open OR status = Reopened)' in rendered
 
     def test_adds_release_notes_from_rich_filter(self, tmp_path):
@@ -793,11 +914,21 @@ class TestJqlRichFilterIntegration:
         assert "epics" in templates
         assert "rhdhplan" in templates["active_release"].lower()
 
-    def test_total_16_with_rich_filter(self, tmp_path):
+    def test_total_20_with_rich_filter(self, tmp_path):
         rf_path = _write_sample_rf(tmp_path)
         jql.set_rich_filter_path(rf_path)
         templates = jql.load_templates()
-        assert len(templates) == 16
+        assert len(templates) == 20
+
+    def test_adds_all_release_note_lifecycle_and_post_freeze_templates(self, tmp_path):
+        jql.set_rich_filter_path(_write_sample_rf(tmp_path))
+        templates = jql.load_templates()
+        assert "Proposed" in templates["release_notes_proposed"]
+        assert "Done" in templates["release_notes_done"]
+        assert "Release Note Text" in templates["release_notes_with_text"]
+        assert "component not in" in templates["post_code_freeze_issues"]
+        assert "labels in (demo)" in templates["feature_demos"]
+        assert "labels in (rhdh-testday)" in templates["test_day_features"]
 
     def test_render_with_rich_filter(self, tmp_path):
         rf_path = _write_sample_rf(tmp_path)
@@ -818,15 +949,15 @@ class TestJqlWithoutRichFilter:
         jql._RICH_FILTER_PATH = None
         rich_filter.reset_cache()
 
-    def test_only_11_templates_without_rich_filter(self):
+    def test_only_9_templates_without_rich_filter(self):
         jql.set_rich_filter_path(_NO_RICH_FILTER)
         templates = jql.load_templates()
-        assert len(templates) == 11
+        assert len(templates) == 9
 
-    def test_only_11_when_path_missing(self, tmp_path):
+    def test_only_9_when_path_missing(self, tmp_path):
         jql.set_rich_filter_path(tmp_path / "nonexistent.json")
         templates = jql.load_templates()
-        assert len(templates) == 11
+        assert len(templates) == 9
 
     def test_freeze_templates_missing_without_rich_filter(self):
         jql.set_rich_filter_path(_NO_RICH_FILTER)
@@ -845,6 +976,120 @@ class TestJqlWithoutRichFilter:
 
 
 class TestRichFilterCliIntegration:
+    def test_check_reports_partial_export_contract(self, tmp_path, monkeypatch, capsys):
+        data = json.loads(json.dumps(SAMPLE_RICH_FILTER))
+        data["richFilter"]["richQueues"] = [
+            queue for queue in data["richFilter"]["richQueues"] if queue["name"] != "RNs Done"
+        ]
+        rf_path = tmp_path / "partial.json"
+        rf_path.write_text(json.dumps(data))
+        monkeypatch.setattr(release.rf_mod, "discover", lambda: rf_path)
+        monkeypatch.setattr(release.shutil, "which", lambda name: f"/usr/bin/{name}")
+        monkeypatch.setattr(
+            release,
+            "_run",
+            lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "1", ""),
+        )
+
+        try:
+            release.main(["--json", "check"])
+            assert False, "Expected SystemExit"
+        except SystemExit as error:
+            assert error.code == 1
+
+        output = json.loads(capsys.readouterr().out)
+        contract = next(
+            check for check in output["data"]["checks"] if check["name"] == "rich-filter-contract"
+        )
+        assert contract["status"] == "fail"
+        assert "RNs Done" in contract["message"]
+
+    def test_inventory_command_exposes_catalog(self, monkeypatch, capsys):
+        catalog = {
+            "name": "RHIDP Operational",
+            "static_filters": ["demo"],
+            "smart_filters": [{"name": "Scrum Team", "clauses": ["AI"]}],
+            "rich_queues": ["RNs Proposed"],
+            "presentation_metadata": {"rich_views": ["Default"]},
+        }
+        monkeypatch.setattr(release, "_init_rich_filter", lambda: None)
+        monkeypatch.setattr(release.rf_mod, "inventory", lambda: catalog)
+
+        release.main(["--json", "rich-filter", "inventory"])
+
+        output = json.loads(capsys.readouterr().out)
+        assert output["data"] == catalog
+
+    def test_query_command_composes_and_counts_fragment(self, monkeypatch, capsys):
+        monkeypatch.setattr(release, "_init_rich_filter", lambda: None)
+        monkeypatch.setattr(
+            release.rf_mod,
+            "fragment",
+            lambda kind, name, group=None: 'labels in ("demo")',
+        )
+        monkeypatch.setattr(release, "_acli_count", lambda jql_value, fmt: 7)
+
+        release.main(
+            [
+                "--json",
+                "rich-filter",
+                "query",
+                "static",
+                "demo",
+                "--version",
+                "2.1.0",
+                "--count",
+            ]
+        )
+
+        data = json.loads(capsys.readouterr().out)["data"]
+        assert 'fixVersion = "2.1.0"' in data["jql"]
+        assert 'labels in ("demo")' in data["jql"]
+        assert data["count"] == 7
+
+    def test_notes_command_reports_all_lifecycle_stages(self, monkeypatch, capsys):
+        counts = {
+            "release_notes": 8,
+            "release_notes_proposed": 5,
+            "release_notes_done": 3,
+            "release_notes_with_text": 2,
+        }
+        monkeypatch.setattr(release, "_init_rich_filter", lambda: None)
+        monkeypatch.setattr(
+            release.jql_mod,
+            "render_with_url",
+            lambda name, version=None: (name, f"https://jira/{name}"),
+        )
+        monkeypatch.setattr(release, "_acli_count", lambda query, fmt: counts[query])
+
+        release.main(["--json", "notes", "2.1.0"])
+
+        data = json.loads(capsys.readouterr().out)["data"]
+        assert data["outstanding_count"] == 8
+        assert {name: item["count"] for name, item in data["lifecycle"].items()} == {
+            "unclassified": 8,
+            "proposed": 5,
+            "done": 3,
+            "with_text": 2,
+        }
+
+    def test_post_freeze_command_returns_count_and_link(self, monkeypatch, capsys):
+        monkeypatch.setattr(release, "_init_rich_filter", lambda: None)
+        monkeypatch.setattr(
+            release.jql_mod,
+            "render_with_url",
+            lambda name, version=None: (name, "https://jira/post-freeze"),
+        )
+        monkeypatch.setattr(release, "_acli_count", lambda query, fmt: 4)
+
+        release.main(["--json", "post-freeze", "2.1.0"])
+
+        assert json.loads(capsys.readouterr().out)["data"] == {
+            "version": "2.1.0",
+            "count": 4,
+            "jira_url": "https://jira/post-freeze",
+        }
+
     def test_direct_script_discovers_project_config(self, tmp_path):
         private_data = tmp_path / "private-data"
         rf_path = private_data / "jira-rich-filter" / "rhidp-operational-rich-filter.json"

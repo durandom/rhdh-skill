@@ -1,6 +1,6 @@
-# Workflow: Retrieve Outstanding Release Notes
+# Workflow: Review Release Note Lifecycle
 
-Compile features and bugs missing Release Note Type field.
+Report unclassified, proposed, done, and populated release-note work.
 
 <prerequisites>
 
@@ -25,6 +25,10 @@ Rich Filter is the source of truth for release-note classification.
 
 Also include the Release Notes Dashboard returned by the CLI.
 
+The lifecycle keys map to `release_notes`, `release_notes_proposed`,
+`release_notes_done`, and `release_notes_with_text` in
+`references/jql-release.md`.
+
 </process>
 
 <gotchas>
@@ -36,8 +40,8 @@ Also include the Release Notes Dashboard returned by the CLI.
 
 <success_criteria>
 
-- [ ] Count of issues missing Release Note Type
-- [ ] Jira search link to the outstanding items
+- [ ] Counts for unclassified, proposed, done, and issues with release-note text
+- [ ] Jira search link for every lifecycle stage
 - [ ] Link to Release Notes Dashboard
 
 </success_criteria>

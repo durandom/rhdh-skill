@@ -4,10 +4,9 @@ Reads the markdown file at runtime so the CLI and agent share one source of trut
 Supports placeholder rendering ({{RELEASE_VERSION}}, {{ISSUE_TYPE}}) and
 URL-encoded Jira search links.
 
-Five templates are sourced exclusively from the Rich Filter JSON export:
-feature_freeze_issues, feature_freeze_issues_by_team, code_freeze_issues,
-code_freeze_issues_by_team, and release_notes. These templates are only
-available when the Rich Filter is configured.
+Eleven templates are sourced exclusively from the Rich Filter JSON export,
+including freeze scopes, demo/Test Day filters, and release-note lifecycle
+queues. These templates are only available when the Rich Filter is configured.
 """
 
 from __future__ import annotations
@@ -80,25 +79,15 @@ def _apply_rich_filter_overlay(templates: dict[str, str]) -> dict[str, str]:
 
     result = dict(templates)
 
-    base = rf_mod.base_jql(_RICH_FILTER_PATH)
-    if base:
-        # Strip status/resolution conditions from base — they're in the fragments
-        scope = re.match(r"project\s+in\s*\([^)]+\)", base, re.IGNORECASE)
-        base_scope = scope.group(0) if scope else base
-    else:
-        base_scope = None
+    base_scope = rf_mod.base_jql(_RICH_FILTER_PATH)
 
     def _compose(fragment: str, extra: str = "") -> str:
-        parts = []
-        if base_scope:
-            parts.append(base_scope)
-        parts.append('fixVersion = "{{RELEASE_VERSION}}"')
-        # Rich Filter fragments can contain top-level OR expressions. Group
-        # them so every branch remains scoped by project and fixVersion.
-        parts.append(f"({fragment})")
-        if extra:
-            parts.append(extra)
-        return " AND ".join(parts)
+        return compose_fragment(
+            fragment,
+            version="{{RELEASE_VERSION}}",
+            extra=extra,
+            base_scope=base_scope,
+        )
 
     ff_jql = rf_mod.static_filter("Feature Freeze", _RICH_FILTER_PATH)
     if ff_jql:
@@ -110,11 +99,57 @@ def _apply_rich_filter_overlay(templates: dict[str, str]) -> dict[str, str]:
         result["code_freeze_issues"] = _compose(cf_jql)
         result["code_freeze_issues_by_team"] = _compose(cf_jql, '"Team[Team]" = "{{CLOUD_ID}}"')
 
-    rn_jql = rf_mod.rich_queue("RNs Unclassified", _RICH_FILTER_PATH)
-    if rn_jql:
-        result["release_notes"] = _compose(rn_jql)
+    static_templates = {
+        "feature_demos": "demo",
+        "test_day_features": "Test Day",
+        "post_code_freeze_issues": "Post Code Freeze",
+    }
+    for template_name, filter_name in static_templates.items():
+        fragment = rf_mod.static_filter(filter_name, _RICH_FILTER_PATH)
+        if fragment:
+            result[template_name] = _compose(fragment)
+
+    queue_templates = {
+        "release_notes": "RNs Unclassified",
+        "release_notes_proposed": "RNs Proposed",
+        "release_notes_done": "RNs Done",
+        "release_notes_with_text": "Has RN Text",
+    }
+    for template_name, queue_name in queue_templates.items():
+        fragment = rf_mod.rich_queue(queue_name, _RICH_FILTER_PATH)
+        if fragment:
+            result[template_name] = _compose(fragment)
 
     return result
+
+
+def compose_fragment(
+    fragment: str,
+    *,
+    version: str | None = None,
+    extra: str | None = None,
+    base_scope: str | None = None,
+) -> str:
+    """Compose an exported JQL fragment with project and release scope."""
+    if base_scope is None:
+        import rich_filter as rf_mod
+
+        base = rf_mod.base_jql(_RICH_FILTER_PATH)
+        if base:
+            base_scope = base
+
+    parts = []
+    if base_scope:
+        # The base can contain a top-level OR, so group it before adding scope.
+        parts.append(f"({base_scope})")
+    if version is not None:
+        parts.append(f'fixVersion = "{version}"')
+    # Exported fragments can contain top-level OR expressions. Group them so
+    # every branch remains constrained by the preceding scope.
+    parts.append(f"({fragment})")
+    if extra:
+        parts.append(extra)
+    return " AND ".join(parts)
 
 
 def load_templates(path: Path | None = None) -> dict[str, str]:

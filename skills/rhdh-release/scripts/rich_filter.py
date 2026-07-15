@@ -29,6 +29,16 @@ _RICH_FILTER_SUBPATH = Path("jira-rich-filter") / _RICH_FILTER_FILENAME
 _cache: dict | None = None
 _cache_path: str | None = None
 
+_REQUIRED_STATIC_FILTERS = [
+    "Feature Freeze",
+    "Code Freeze",
+    "Post Code Freeze",
+    "demo",
+    "Test Day",
+]
+_REQUIRED_SMART_FILTERS = ["Scrum Team"]
+_REQUIRED_RICH_QUEUES = ["RNs Unclassified", "RNs Proposed", "RNs Done", "Has RN Text"]
+
 
 def _configured_repo() -> Path | None:
     """Read the private-data repo from the shared RHDH configuration.
@@ -220,6 +230,173 @@ def rich_queue(name: str, path: Path | str | None = None) -> str | None:
     queues = rf.get("richQueues", [])
     item = _find_by_name(queues, name)
     return item["jql"] if item else None
+
+
+def time_series(name: str, path: Path | str | None = None) -> str | None:
+    """Get a time series JQL fragment by name."""
+    rf = load(path)
+    if rf is None:
+        return None
+    item = _find_by_name(rf.get("timeSeries", []), name)
+    return item.get("jql") if item else None
+
+
+def custom_ratio(name: str, component: str, path: Path | str | None = None) -> str | None:
+    """Get a custom ratio numerator or denominator JQL fragment."""
+    rf = load(path)
+    if rf is None:
+        return None
+    item = _find_by_name(rf.get("customRatios", []), name)
+    if item is None:
+        return None
+    key = "numJql" if component == "numerator" else "denJql"
+    return item.get(key)
+
+
+def fragment(
+    kind: str,
+    name: str,
+    *,
+    group: str | None = None,
+    path: Path | str | None = None,
+) -> str:
+    """Return any query-bearing Rich Filter fragment by kind and name."""
+    if kind == "static":
+        value = static_filter(name, path)
+    elif kind == "queue":
+        value = rich_queue(name, path)
+    elif kind == "smart":
+        if not group:
+            raise ValueError("Smart filter queries require --group")
+        value = smart_filter_clause(group, name, path)
+    elif kind == "time-series":
+        value = time_series(name, path)
+    elif kind == "ratio-numerator":
+        value = custom_ratio(name, "numerator", path)
+    elif kind == "ratio-denominator":
+        value = custom_ratio(name, "denominator", path)
+    else:
+        raise ValueError(
+            "Rich Filter kind must be one of: static, smart, queue, time-series, "
+            "ratio-numerator, ratio-denominator"
+        )
+
+    if value is None:
+        label = f"{group} / {name}" if group else name
+        raise ValueError(f"Rich Filter {kind} query not found: {label}")
+    return value
+
+
+def inventory(path: Path | str | None = None) -> dict | None:
+    """Return a query catalog and presentation-metadata summary."""
+    rf = load(path)
+    if rf is None:
+        return None
+
+    def _handler_clauses(item: dict) -> list[str]:
+        handlers = item.get("handler", {})
+        if isinstance(handlers, dict):
+            handlers = [handlers]
+        if not isinstance(handlers, list):
+            return []
+        return [handler.get("clauseName", "") for handler in handlers if isinstance(handler, dict)]
+
+    return {
+        "name": rf.get("name", ""),
+        "static_filters": [item.get("name", "") for item in rf.get("staticFilters", [])],
+        "smart_filters": [
+            {
+                "name": group.get("name", ""),
+                "clauses": [clause.get("name", "") for clause in group.get("clauses", [])],
+            }
+            for group in rf.get("smartFilters", [])
+        ],
+        "rich_queues": [item.get("name", "") for item in rf.get("richQueues", [])],
+        "time_series": [item.get("name", "") for item in rf.get("timeSeries", [])],
+        "custom_ratios": [item.get("name", "") for item in rf.get("customRatios", [])],
+        "presentation_metadata": {
+            "dynamic_filter_fields": [
+                {
+                    "label": item.get("label", ""),
+                    "value": item.get("value", ""),
+                    "clauses": _handler_clauses(item),
+                }
+                for item in rf.get("dynamicFilters", [])
+            ],
+            "rich_views": [
+                {
+                    "name": item.get("name", ""),
+                    "columns": [
+                        {
+                            "label": column.get("label", ""),
+                            "value": column.get("value", ""),
+                        }
+                        for column in item.get("columns", [])
+                    ],
+                }
+                for item in rf.get("richViews", [])
+            ],
+        },
+    }
+
+
+def validate(path: Path | str | None = None) -> list[str]:
+    """Validate the export structure and required release-management entries."""
+    rf = load(path)
+    if rf is None:
+        return ["Rich Filter export not found"]
+
+    errors = []
+    if not rf.get("jiraFilter", {}).get("jql"):
+        errors.append("jiraFilter.jql is missing")
+
+    sections = [
+        ("static filter", rf.get("staticFilters", [])),
+        ("rich queue", rf.get("richQueues", [])),
+    ]
+    for label, items in sections:
+        for index, item in enumerate(items):
+            if not item.get("name"):
+                errors.append(f"{label} at index {index} has no name")
+            if not item.get("jql"):
+                errors.append(f"{label} '{item.get('name', index)}' has no JQL")
+
+    for group_index, group in enumerate(rf.get("smartFilters", [])):
+        group_name = group.get("name", "")
+        if not group_name:
+            errors.append(f"smart filter at index {group_index} has no name")
+        for clause_index, clause in enumerate(group.get("clauses", [])):
+            if not clause.get("name"):
+                errors.append(f"smart filter '{group_name}' clause {clause_index} has no name")
+            if not clause.get("jql"):
+                errors.append(
+                    f"smart filter '{group_name}' clause "
+                    f"'{clause.get('name', clause_index)}' has no JQL"
+                )
+
+    for index, item in enumerate(rf.get("timeSeries", [])):
+        if not item.get("name"):
+            errors.append(f"time series at index {index} has no name")
+        if not item.get("jql"):
+            errors.append(f"time series '{item.get('name', index)}' has no JQL")
+
+    for index, item in enumerate(rf.get("customRatios", [])):
+        if not item.get("name"):
+            errors.append(f"custom ratio at index {index} has no name")
+        for key in ("numJql", "denJql"):
+            if not item.get(key):
+                errors.append(f"custom ratio '{item.get('name', index)}' has no {key}")
+
+    for name in _REQUIRED_STATIC_FILTERS:
+        if static_filter(name, path) is None:
+            errors.append(f"required static filter missing: {name}")
+    for name in _REQUIRED_SMART_FILTERS:
+        if _find_by_name(rf.get("smartFilters", []), name) is None:
+            errors.append(f"required smart filter missing: {name}")
+    for name in _REQUIRED_RICH_QUEUES:
+        if rich_queue(name, path) is None:
+            errors.append(f"required rich queue missing: {name}")
+    return errors
 
 
 def scrum_teams(path: Path | str | None = None) -> list[dict] | None:

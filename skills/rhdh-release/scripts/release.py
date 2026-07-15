@@ -484,7 +484,6 @@ def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
             "message": acli_path or "not found on PATH",
         }
     )
-
     token_file = Path.home() / ".jira-token"
     checks.append(
         {
@@ -547,9 +546,20 @@ def cmd_check(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
             "status": "pass" if rf_path else "warn",
             "message": str(rf_path)
             if rf_path
-            else "not found (required for freeze and release-notes JQL)",
+            else "not found (required for data-driven release JQL)",
         }
     )
+    if rf_path:
+        validation_errors = rf_mod.validate(rf_path)
+        checks.append(
+            {
+                "name": "rich-filter-contract",
+                "status": "fail" if validation_errors else "pass",
+                "message": "; ".join(validation_errors)
+                if validation_errors
+                else "all required filters and queues are available",
+            }
+        )
 
     all_pass = all(c["status"] == "pass" for c in checks)
     has_fail = any(c["status"] == "fail" for c in checks)
@@ -819,25 +829,73 @@ def cmd_cves(args: argparse.Namespace, fmt: OutputFormatter) -> None:
 
 
 def cmd_notes(args: argparse.Namespace, fmt: OutputFormatter) -> None:
-    """Count issues missing Release Note Type."""
+    """Report release-note lifecycle counts."""
     version = args.version
-    jql, url = jql_mod.render_with_url("release_notes", version=version)
-    count = _acli_count(jql, fmt)
+    lifecycle_templates = {
+        "unclassified": "release_notes",
+        "proposed": "release_notes_proposed",
+        "done": "release_notes_done",
+        "with_text": "release_notes_with_text",
+    }
+    lifecycle = {}
+    for stage, template_name in lifecycle_templates.items():
+        jql, url = jql_mod.render_with_url(template_name, version=version)
+        lifecycle[stage] = {"count": _acli_count(jql, fmt), "jira_url": url}
 
     dashboard_url = "https://issues.redhat.com/secure/Dashboard.jspa?selectPageId=12382090"
 
     fmt.header(f"RHDH {version} — Release Notes")
-    fmt.log_info(f"Outstanding: {count} issues missing Release Note Type")
+    for stage, data in lifecycle.items():
+        fmt.log_info(f"{stage.replace('_', ' ').title()}: {data['count']}")
     fmt.log_info(f"Dashboard: {dashboard_url}")
 
     fmt.success(
         {
             "version": version,
-            "outstanding_count": count,
-            "jira_url": url,
+            "outstanding_count": lifecycle["unclassified"]["count"],
+            "jira_url": lifecycle["unclassified"]["jira_url"],
+            "lifecycle": lifecycle,
             "dashboard_url": dashboard_url,
         }
     )
+
+
+def cmd_post_freeze(args: argparse.Namespace, fmt: OutputFormatter) -> None:
+    """Count release-scoped work matching the Post Code Freeze filter."""
+    version = args.version
+    jql, url = jql_mod.render_with_url("post_code_freeze_issues", version=version)
+    count = _acli_count(jql, fmt)
+    fmt.header(f"RHDH {version} — Post Code Freeze")
+    fmt.log_info(f"Issues requiring post-freeze attention: {count}")
+    fmt.success({"version": version, "count": count, "jira_url": url})
+
+
+def cmd_rich_filter_inventory(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
+    """List all query-bearing entries and presentation metadata."""
+    data = rf_mod.inventory()
+    if data is None:
+        raise RuntimeError("Rich Filter export not found")
+    fmt.header(data.get("name", "Rich Filter"))
+    fmt.success(data)
+
+
+def cmd_rich_filter_query(args: argparse.Namespace, fmt: OutputFormatter) -> None:
+    """Compose any exported Rich Filter query with optional release scope."""
+    fragment = rf_mod.fragment(args.kind, args.name, group=args.group)
+    jql = jql_mod.compose_fragment(fragment, version=args.version)
+    url = jql_mod.jira_url(jql)
+    data = {
+        "kind": args.kind,
+        "group": args.group,
+        "name": args.name,
+        "version": args.version,
+        "jql": jql,
+        "jira_url": url,
+    }
+    if args.count:
+        data["count"] = _acli_count(jql, fmt)
+    fmt.header(f"Rich Filter {args.kind}: {args.name}")
+    fmt.success(data)
 
 
 # ---------------------------------------------------------------------------
@@ -1114,6 +1172,29 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("notes", help="Missing release notes count")
     p.add_argument("version", help="Release version (e.g. 1.9.0)")
 
+    p = sub.add_parser("post-freeze", help="Post Code Freeze issue count")
+    p.add_argument("version", help="Release version (e.g. 1.9.0)")
+
+    rich_filter_parser = sub.add_parser("rich-filter", help="Rich Filter catalog and queries")
+    rich_filter_sub = rich_filter_parser.add_subparsers(dest="rich_filter_command")
+    rich_filter_sub.add_parser("inventory", help="List all exported filter data")
+    p = rich_filter_sub.add_parser("query", help="Compose any exported query")
+    p.add_argument(
+        "kind",
+        choices=[
+            "static",
+            "smart",
+            "queue",
+            "time-series",
+            "ratio-numerator",
+            "ratio-denominator",
+        ],
+    )
+    p.add_argument("name", help="Exported entry name")
+    p.add_argument("--group", help="Smart filter group name (required for kind=smart)")
+    p.add_argument("--version", help="Optional release version scope")
+    p.add_argument("--count", action="store_true", help="Run the composed query with acli")
+
     slack_parser = sub.add_parser("slack", help="Slack announcement templates")
     slack_sub = slack_parser.add_subparsers(dest="slack_command")
 
@@ -1143,6 +1224,7 @@ COMMANDS = {
     "epics": cmd_epics,
     "cves": cmd_cves,
     "notes": cmd_notes,
+    "post-freeze": cmd_post_freeze,
 }
 
 SLACK_COMMANDS = {
@@ -1150,6 +1232,11 @@ SLACK_COMMANDS = {
     "feature-freeze": cmd_slack_feature_freeze,
     "code-freeze-update": cmd_slack_code_freeze_update,
     "code-freeze": cmd_slack_code_freeze,
+}
+
+RICH_FILTER_COMMANDS = {
+    "inventory": cmd_rich_filter_inventory,
+    "query": cmd_rich_filter_query,
 }
 
 
@@ -1177,6 +1264,14 @@ def main(argv: list[str] | None = None) -> None:
             )
             sys.exit(1)
         handler = SLACK_COMMANDS.get(args.slack_command)
+    elif args.command == "rich-filter":
+        if not args.rich_filter_command:
+            fmt.error(
+                "MISSING_SUBCOMMAND",
+                "rich-filter requires a subcommand: " + ", ".join(sorted(RICH_FILTER_COMMANDS)),
+            )
+            sys.exit(1)
+        handler = RICH_FILTER_COMMANDS.get(args.rich_filter_command)
     else:
         handler = COMMANDS.get(args.command)
 

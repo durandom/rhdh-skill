@@ -18,11 +18,25 @@ Static configuration values for the RHDH Release Manager skill.
 
 ## Rich Filter
 
-The Rich Filter JSON is sourced from the "RHIDP Operational" Rich Filter in Jira, maintained by Matt Reid and Jasper Chui. When available, it provides JQL for Feature Freeze, Code Freeze, and Release Notes queries.
+The Rich Filter JSON is sourced from the "RHIDP Operational" Rich Filter in Jira, maintained by Matt Reid and Jasper Chui. It is required for freeze, demo/Test Day, post-freeze, release-note lifecycle, Scrum Team, and exported ad hoc queries.
 
 The repo is discovered via `rhdh.config.get_repo("private-data")`. Register it with `rhdh config set private-data /path/to/rhdh-skill-private-data`.
 
 **Override:** Set `RHDH_RICH_FILTER_PATH=/path/to/file.json` to use a specific file.
+
+Validate and inspect it with:
+
+```bash
+python scripts/release.py --json check
+python scripts/release.py --json rich-filter inventory
+python scripts/release.py --json rich-filter query static "Feature Freeze" --version 2.1.0 --count
+python scripts/release.py --json rich-filter query smart AI --group "Scrum Team" --version 2.1.0 --count
+python scripts/release.py --json rich-filter query queue "RNs Proposed" --version 2.1.0 --count
+python scripts/release.py --json rich-filter query time-series "Last week" --version 2.1.0 --count
+python scripts/release.py --json rich-filter query ratio-numerator "1.10 Plan to Commit" --count
+```
+
+See `rich-filter-coverage.md` for the complete coverage contract and exclusions.
 
 ## gog CLI Setup
 

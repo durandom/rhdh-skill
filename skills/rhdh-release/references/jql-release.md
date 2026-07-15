@@ -67,12 +67,8 @@ project IN (RHIDP, rhdhbugs) AND fixVersion = "{{RELEASE_VERSION}}" and issuetyp
 
 Find features tagged for demonstration.
 
-```jql
-project in (RHDHPlan, RHIDP) AND issuetype = feature AND labels = demo AND fixVersion = "{{RELEASE_VERSION}}" AND status != closed
-```
-
+- **Source:** Rich Filter — "demo" static filter
 - **Placeholders:** `{{RELEASE_VERSION}}`
-- **Example:** `... AND labels = demo AND fixVersion = "1.9.0" AND status != closed`
 - **Notes:** Features that need demo preparation.
 
 ## feature_subtasks
@@ -91,12 +87,8 @@ project in (RHDHPlan) AND issuetype = sub-task AND fixVersion = "{{RELEASE_VERSI
 
 Find features designated for Test Day.
 
-```jql
-Project in (RHDHPlan, rhidp) AND issuetype = feature AND labels = rhdh-testday AND fixVersion = "{{RELEASE_VERSION}}" AND status != closed
-```
-
+- **Source:** Rich Filter — "Test Day" static filter
 - **Placeholders:** `{{RELEASE_VERSION}}`
-- **Example:** `... AND labels = rhdh-testday AND fixVersion = "1.9.0" AND status != closed`
 - **Notes:** Features ready for Test Day validation.
 
 ## features_added_to_release
@@ -118,6 +110,27 @@ Find issues missing Release Note Type field.
 - **Source:** Rich Filter — "RNs Unclassified" rich queue
 - **Placeholders:** `{{RELEASE_VERSION}}`
 - **Notes:** Critical for documentation — must be filled before release.
+
+## release_notes_proposed
+
+Find issues with proposed or in-progress release notes and non-empty text.
+
+- **Source:** Rich Filter — "RNs Proposed" rich queue
+- **Placeholders:** `{{RELEASE_VERSION}}`
+
+## release_notes_done
+
+Find issues with completed release notes and non-empty text.
+
+- **Source:** Rich Filter — "RNs Done" rich queue
+- **Placeholders:** `{{RELEASE_VERSION}}`
+
+## release_notes_with_text
+
+Find release-scoped issues that have release-note text.
+
+- **Source:** Rich Filter — "Has RN Text" rich queue
+- **Placeholders:** `{{RELEASE_VERSION}}`
 
 ## blockers
 
@@ -146,6 +159,13 @@ Find all issues outstanding at Code Freeze.
 - **Source:** Rich Filter — "Code Freeze" static filter
 - **Placeholders:** `{{RELEASE_VERSION}}`
 - **Notes:** All open work scoped to the release. Use for Code Freeze announcements.
+
+## post_code_freeze_issues
+
+Find release-scoped work requiring attention after Code Freeze.
+
+- **Source:** Rich Filter — "Post Code Freeze" static filter
+- **Placeholders:** `{{RELEASE_VERSION}}`
 
 ## open_issues_by_team
 

@@ -25,7 +25,7 @@ If this fails, stop — Jira access is not configured.
 ### 1. JQL syntax validation
 
 Run `python scripts/release.py --json check` and confirm the Rich Filter check
-passes. Load the 16 composed templates through `scripts/jql.py`; substitute a
+passes. Load the 20 composed templates through `scripts/jql.py`; substitute a
 real release version (discover it from check 2 below) and run each with
 `--count` to verify the JQL parses without error.
 
@@ -48,8 +48,12 @@ Then for each remaining query, substitute `{{RELEASE_VERSION}}` with the discove
 - [ ] `test_day_features` — returns count
 - [ ] `features_added_to_release` — returns count
 - [ ] `release_notes` — returns count
+- [ ] `release_notes_proposed` — returns count
+- [ ] `release_notes_done` — returns count
+- [ ] `release_notes_with_text` — returns count
 - [ ] `feature_freeze_issues` — returns count
 - [ ] `code_freeze_issues` — returns count
+- [ ] `post_code_freeze_issues` — returns count
 - [ ] `open_issues_by_team` — substitute `{{CLOUD_ID}}` with a Rich Filter Scrum Team Cloud ID, returns count
 - [ ] `feature_freeze_issues_by_team` — substitute `{{CLOUD_ID}}`, returns count
 - [ ] `code_freeze_issues_by_team` — substitute `{{CLOUD_ID}}`, returns count
@@ -81,7 +85,7 @@ acli jira workitem search --jql 'project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP
 ```
 Jira Smoke Checks — rhdh-release
 ==================================
- 1. JQL syntax validation:    PASS/FAIL (N/16 queries valid)
+ 1. JQL syntax validation:    PASS/FAIL (N/20 queries valid)
  2. parse_issues.py:          PASS/FAIL (details)
  3. Team enrichment:          PASS/FAIL (details)
 
