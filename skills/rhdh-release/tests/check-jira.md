@@ -81,7 +81,7 @@ acli jira workitem search --jql 'project IN (RHIDP, RHDHBugs, RHDHPLAN, RHDHSUPP
 ```
 Jira Smoke Checks — rhdh-release
 ==================================
- 1. JQL syntax validation:    PASS/FAIL (N/12 queries valid)
+ 1. JQL syntax validation:    PASS/FAIL (N/16 queries valid)
  2. parse_issues.py:          PASS/FAIL (details)
  3. Team enrichment:          PASS/FAIL (details)
 

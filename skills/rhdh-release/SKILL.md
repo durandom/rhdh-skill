@@ -107,7 +107,7 @@ What would you like to do?
 
 | Reference | Purpose | Load when |
 |-----------|---------|-----------|
-| `references/jql-release.md` | 13 release-specific JQL templates | Any Jira query for release data |
+| `references/jql-release.md` | 16 release-specific templates (11 inline + 5 Rich Filter) | Any Jira query for release data |
 | `references/slack-templates.md` | 4 Slack announcement templates | Generating freeze announcements |
 | `references/config.md` | GDrive IDs, project keys, dashboards, Rich Filter config, gog setup | Looking up config values or links |
 | `gog docs cat 13OkypJ3u_7Jq6kEhKhjEFwHQ12oPFDKXVzFjYW4XLdk` | Release process (live Google Doc) | Release process questions, onboarding |

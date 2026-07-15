@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _RELEASE_SCRIPTS = PROJECT_ROOT / "skills" / "rhdh-release" / "scripts"
+_NO_RICH_FILTER = PROJECT_ROOT / ".test-no-rich-filter.json"
 if str(_RELEASE_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_RELEASE_SCRIPTS))
 
@@ -25,7 +26,7 @@ import slack_templates  # noqa: E402
 class TestJqlLoadTemplates:
     def setup_method(self):
         jql._TEMPLATE_CACHE = None
-        jql._RICH_FILTER_PATH = None
+        jql._RICH_FILTER_PATH = _NO_RICH_FILTER
         rich_filter.reset_cache()
 
     def teardown_method(self):
@@ -414,6 +415,60 @@ class TestParseDate:
         assert release._parse_date("not a date") is None
 
 
+class TestExtractMilestoneDates:
+    @staticmethod
+    def _row(label, value):
+        value_node = (
+            {"type": "date", "attrs": {"timestamp": value}}
+            if value != "TBD"
+            else {"type": "text", "text": value}
+        )
+        return {
+            "type": "tableRow",
+            "content": [
+                {"type": "tableCell", "content": [{"type": "text", "text": label}]},
+                {"type": "tableCell", "content": [value_node]},
+            ],
+        }
+
+    def test_extracts_adf_date_nodes_by_milestone_row(self):
+        description = {
+            "type": "doc",
+            "content": [
+                {
+                    "type": "table",
+                    "content": [
+                        self._row("Feature Freeze", "1790035200000"),
+                        self._row("Code Freeze", "1791849600000"),
+                        self._row("Docs Input Freeze", "TBD"),
+                        self._row("Docs Freeze", "TBD"),
+                        self._row("RHDH 1.10 Go/No Go & Push", "1792972800000"),
+                        self._row("RHDH 1.10 GA announce", "1793145600000"),
+                    ],
+                }
+            ],
+        }
+
+        dates = release._extract_milestone_dates(description)
+
+        assert dates == {
+            "feature_freeze": "2026-09-22",
+            "code_freeze": "2026-10-13",
+            "doc_freeze": "TBD",
+            "go_no_go": "2026-10-26",
+            "ga_announce": "2026-10-28",
+        }
+
+    def test_supports_legacy_plain_text_descriptions(self):
+        dates = release._extract_milestone_dates(
+            "Feature Freeze: 2025-05-01\nCode Freeze 2025-05-15"
+        )
+
+        assert dates["feature_freeze"] == "2025-05-01"
+        assert dates["code_freeze"] == "2025-05-15"
+        assert dates["ga_announce"] == "TBD"
+
+
 class TestFindScheduleTab:
     def test_finds_current_year(self):
         from datetime import datetime
@@ -764,7 +819,7 @@ class TestJqlWithoutRichFilter:
         rich_filter.reset_cache()
 
     def test_only_11_templates_without_rich_filter(self):
-        jql.set_rich_filter_path(None)
+        jql.set_rich_filter_path(_NO_RICH_FILTER)
         templates = jql.load_templates()
         assert len(templates) == 11
 
@@ -774,14 +829,14 @@ class TestJqlWithoutRichFilter:
         assert len(templates) == 11
 
     def test_freeze_templates_missing_without_rich_filter(self):
-        jql.set_rich_filter_path(None)
+        jql.set_rich_filter_path(_NO_RICH_FILTER)
         templates = jql.load_templates()
         assert "feature_freeze_issues" not in templates
         assert "code_freeze_issues" not in templates
         assert "release_notes" not in templates
 
     def test_freeze_template_raises_keyerror(self):
-        jql.set_rich_filter_path(None)
+        jql.set_rich_filter_path(_NO_RICH_FILTER)
         try:
             jql.get_template("feature_freeze_issues")
             assert False, "Expected KeyError"
@@ -823,7 +878,7 @@ class TestRichFilterCliIntegration:
         assert result.stdout.strip() == str(rf_path)
 
     def test_missing_rich_filter_is_reported_without_traceback(self, monkeypatch, capsys):
-        jql.set_rich_filter_path(None)
+        jql.set_rich_filter_path(_NO_RICH_FILTER)
         monkeypatch.setattr(release, "_init_rich_filter", lambda: None)
 
         try:

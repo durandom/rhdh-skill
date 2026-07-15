@@ -18,7 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 _scripts_dir = Path(__file__).resolve().parent
@@ -190,6 +190,59 @@ def _parse_date(raw: str) -> str | None:
         except ValueError:
             continue
     return None
+
+
+_MILESTONE_LABELS = {
+    "feature_freeze": r"\bFeature Freeze\b",
+    "code_freeze": r"\bCode Freeze\b",
+    "doc_freeze": r"\bDocs? Freeze\b",
+    "go_no_go": r"\bGo/No Go\b",
+    "ga_announce": r"\bGA Announce\b",
+}
+
+
+def _adf_text(node: dict) -> str:
+    """Render the text and date values from an Atlassian Document Format node."""
+    if node.get("type") == "text":
+        return node.get("text", "")
+    if node.get("type") == "date":
+        try:
+            timestamp = int(node.get("attrs", {}).get("timestamp"))
+            return datetime.fromtimestamp(timestamp / 1000, timezone.utc).date().isoformat()
+        except (TypeError, ValueError, OverflowError):
+            return ""
+    return " ".join(filter(None, (_adf_text(child) for child in node.get("content", []))))
+
+
+def _adf_table_rows(node: dict) -> list[str]:
+    """Return rendered rows from an ADF document's tables."""
+    rows = []
+    if node.get("type") == "tableRow":
+        rows.append(" | ".join(_adf_text(cell).strip() for cell in node.get("content", [])))
+    for child in node.get("content", []):
+        rows.extend(_adf_table_rows(child))
+    return rows
+
+
+def _extract_milestone_dates(description: dict | str | None) -> dict[str, str]:
+    """Extract release milestone dates from ADF table rows or legacy plain text."""
+    dates = {key: "TBD" for key in _MILESTONE_LABELS}
+    if isinstance(description, dict):
+        lines = _adf_table_rows(description)
+    elif isinstance(description, str):
+        lines = description.splitlines()
+    else:
+        return dates
+
+    for line in lines:
+        parsed_date = re.search(r"\b\d{4}-\d{2}-\d{2}\b", line)
+        if not parsed_date:
+            continue
+        for key, label_pattern in _MILESTONE_LABELS.items():
+            if re.search(label_pattern, line, re.IGNORECASE):
+                dates[key] = parsed_date.group(0)
+                break
+    return dates
 
 
 def _row_date(cells: list[str]) -> str | None:
@@ -532,17 +585,8 @@ def cmd_dates(_args: argparse.Namespace, fmt: OutputFormatter) -> None:
         summary = issue.get("fields", {}).get("summary", "")
 
         detail = _acli_view_json(key)
-        desc = ""
         desc_field = detail.get("fields", {}).get("description", {})
-        if isinstance(desc_field, dict):
-            desc = json.dumps(desc_field)
-        elif isinstance(desc_field, str):
-            desc = desc_field
-
-        dates = {}
-        for label in ["Feature Freeze", "Code Freeze", "Doc Freeze", "Go/No Go", "GA Announce"]:
-            m = re.search(rf"{re.escape(label)}[:\s]*(\d{{4}}-\d{{2}}-\d{{2}})", desc)
-            dates[label.lower().replace(" ", "_").replace("/", "_")] = m.group(1) if m else "TBD"
+        dates = _extract_milestone_dates(desc_field)
 
         version_m = re.search(r"(\d+\.\d+(?:\.\d+)?)", summary)
         if not version_m:
@@ -812,10 +856,8 @@ def _get_freeze_date(version: str, date_key: str) -> str:
         if version in summary:
             detail = _acli_view_json(issue["key"])
             desc_field = detail.get("fields", {}).get("description", {})
-            desc = json.dumps(desc_field) if isinstance(desc_field, dict) else str(desc_field or "")
-            m = re.search(rf"{re.escape(date_key)}[:\s]*(\d{{4}}-\d{{2}}-\d{{2}})", desc)
-            if m:
-                return m.group(1)
+            key = date_key.lower().replace(" ", "_").replace("/", "_")
+            return _extract_milestone_dates(desc_field).get(key, "TBD")
     return "TBD"
 
 
