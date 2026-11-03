@@ -37,7 +37,7 @@ After the feature branch is committed:
 
 Compose the reviewer-facing PR or MR title and body, then invoke
 `/prose-editing` once on both in the **flavored** register. Preserve Jira keys,
-closing syntax, headings, checklists, links, and the required `Generated-by`
+closing syntax, headings, checklists, links, and the required `Assisted-By`
 line. Pass the edited strings to `create-pr-mr.js`; it is a transport layer and
 must not edit them. The structured Jira link comment created later is a protocol
 payload and does not receive this prose pass.
@@ -53,8 +53,6 @@ node "$SKILL/scripts/create-pr-mr.js" \
 
 ## Test plan
 - [ ] …
-
-Generated-by: cursor
 EOF
 )"
 ```
@@ -78,9 +76,12 @@ Either works (same token either way):
    `/rhdh-jira-api` uses. Invoke `/rhdh-jira-api` by name for the authoritative auth
    setup instead of duplicating it here.
 
-`create-pr-mr.js` appends `Ref: https://redhat.atlassian.net/browse/KEY` and
-`Generated-by: cursor` to the **PR/MR body** when missing. It skips the Jira
-`Ref:` line for `community-plugins` remotes (or when `--no-jira-ref` is set) so
+`create-pr-mr.js` appends `Ref: https://redhat.atlassian.net/browse/KEY` and an
+attribution trailer to the **PR/MR body** when missing — `Assisted-By: pi
+(<model>, thinking: <level>)` when `PI_MODEL` / `PI_REASONING_LEVEL` identify the
+harness, and nothing at all when they do not (never a guessed tool). It adds
+nothing when the body already carries an `Assisted-By:`/`Generated-by:` line. It
+skips the Jira `Ref:` line for `community-plugins` remotes (or when `--no-jira-ref` is set) so
 that repo stays free of Jira browse URLs in git history / PR text.
 
 ## Link-only: `link-pr-mr.js`
@@ -214,8 +215,9 @@ free to transition the issue to **Review** (see
 ## Agent checklist
 
 1. Resolve Jira key. Ask if missing (unless user skipped Jira).
-2. Commit on a feature branch. Put the Jira browse URL and `Generated-by: cursor`
-   in the **PR/MR body** (`create-pr-mr.js` appends them when missing; skips
+2. Commit on a feature branch. Put the Jira browse URL and an attribution trailer
+   (`Assisted-By: <tool> (<model>, thinking: <level>)`, dropping the parts you do
+   not know) in the **PR/MR body** (`create-pr-mr.js` appends them when missing; skips
    `Ref:` for community-plugins).
 3. Run **`create-pr-mr.js`** once. Report `url:` / `diffs:` / `browserOpened:` /
    `jiraLink:` from its stdout (`browserOpened: true` or `--no-open` means the
